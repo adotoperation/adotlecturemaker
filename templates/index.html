@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강의용 교안 만들기 | supported by 영업지원팀</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .slash-mark {
+            color: #9333ea;
+            font-weight: 900;
+            margin: 0 3px;
+        }
+
+        /* Token Visual Syntax Tree Colors - S, V, O, C get colors; Modifiers get black/slate */
+        .token-blue { color: #2563eb; }
+        .token-rose { color: #e11d48; }
+        .token-emerald { color: #059669; }
+        .token-indigo { color: #4f46e5; }
+        .token-amber { color: #0f172a; }
+        .token-slate { color: #0f172a; }
+
+        .border-blue-sub { border-color: #2563eb; }
+        .border-rose-sub { border-color: #e11d48; }
+        .border-emerald-sub { border-color: #059669; }
+        .border-indigo-sub { border-color: #4f46e5; }
+        .border-amber-sub { border-color: transparent; }
+
+        /* Printable A4 Page styling - Page 1 (60% Image) & Page 2+ Multi-Page (2~3 sentences per page) */
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            body, html, main, section, div, #handoutSheet {
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            @page {
+                size: A4 portrait;
+                margin: 8mm 8mm 8mm 8mm;
+            }
+
+            .a4-page {
+                width: 100% !important;
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                background: white !important;
+                box-sizing: border-box !important;
+            }
+
+            #page1Container {
+                height: 260mm !important;
+                max-height: 260mm !important;
+                overflow: hidden !important;
+                page-break-before: avoid !important;
+                break-before: avoid !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                padding: 4mm 6mm !important;
+            }
+
+            .print-ghibli-img {
+                height: 142mm !important; /* 60% of Page 1 height */
+                max-height: 142mm !important;
+            }
+
+            .summary-badge-print {
+                background-color: #e11d48 !important;
+                color: #ffffff !important;
+                display: inline-block !important;
+            }
+
+            .print-page-block {
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                height: 265mm !important;
+                max-height: 265mm !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                padding: 4mm 6mm !important;
+            }
+
+            .print-page-block-last {
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+                height: auto !important;
+                max-height: none !important;
+                page-break-after: auto !important;
+                break-after: auto !important;
+                padding: 4mm 6mm !important;
+            }
+
+            .print-block {
+                background: white !important;
+                border: 1px solid #cbd5e1 !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                margin-bottom: 1.2rem !important;
+            }
+        }
+
+        /* Screen A4 Preview Mode */
+        .a4-preview-page1 {
+            background: white;
+            min-height: 285mm;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+
+        .a4-preview-page2 {
+            background: white;
+            min-height: 275mm;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+
+        .page-separator {
+            page-break-after: always;
+            break-after: page;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- Top Navbar -->
+    <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md no-print sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white shadow">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">강의용 교안 만들기</h1>
+                    <p class="text-xs text-indigo-200 font-medium">★ Page 1: 60% 삽화 & 지문 핵심 정리 / Page 2+: 2~3문장 다중 페이지 구문분석 ★</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 mt-2 sm:mt-0">
+                <i class="fa-solid fa-building-user text-indigo-400"></i>
+                <span class="text-slate-300">supported by</span>
+                <span class="font-bold text-indigo-300">영업지원팀</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Input Panel -->
+        <section class="lg:col-span-5 flex flex-col space-y-4 no-print">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col space-y-4">
+                
+                <!-- Title Input (Mandatory & Auto-Saved via localStorage) -->
+                <div>
+                    <label for="titleInput" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                        <i class="fa-solid fa-heading text-indigo-600"></i>
+                        1. 지문 제목 입력 <span class="text-rose-600 font-bold">(필수)</span>
+                    </label>
+                    <input type="text" id="titleInput" 
+                        placeholder="예: 26년 3월 모의고사 36번" 
+                        class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs outline-none">
+                </div>
+
+                <!-- Input Mode Toggle (Sentence Pairs vs Bulk Passage) -->
+                <div class="border-b border-slate-200 pb-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700">2. 지문 및 해석 입력 방식</span>
+                        <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                            <button id="btnModePairs" type="button" class="text-[11px] font-bold px-2.5 py-1 rounded-md bg-white text-indigo-600 shadow-sm transition">
+                                <i class="fa-solid fa-list-check mr-1"></i> 문장별 1:1 입력 (추천)
+                            </button>
+                            <button id="btnModeBulk" type="button" class="text-[11px] font-bold px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition">
+                                <i class="fa-solid fa-align-left mr-1"></i> 지문 통입력
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mode A: Sentence Pair List (Default & Recommended!) -->
+                <div id="sectionPairInput" class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-indigo-900">문장과 해석을 1:1쌍으로 입력하세요.</span>
+                        <button id="btnResetPairs" type="button" class="text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-2.5 py-1 rounded border border-rose-200 transition">
+                            <i class="fa-solid fa-rotate-left text-rose-500 mr-1"></i> 초기화
+                        </button>
+                    </div>
+
+                    <div id="pairContainer" class="space-y-3">
+                        <!-- Dynamic Sentence Rows Inserted Here -->
+                    </div>
+
+                    <button id="btnAddPair" type="button" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg border border-dashed border-slate-300 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-plus text-indigo-600"></i> 문장 1:1 추가하기
+                    </button>
+                </div>
+
+                <!-- Mode B: Bulk Passage Input (Hidden by default) -->
+                <div id="sectionBulkInput" class="space-y-3 hidden">
+                    <div>
+                        <label for="passageInput" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                            <i class="fa-solid fa-align-left text-indigo-600"></i> 영어 지문 전체 <span class="text-rose-600 font-bold">(필수)</span>
+                        </label>
+                        <textarea id="passageInput" rows="4" 
+                            placeholder="구조분석을 실행할 영어 지문 전체를 입력하세요."
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs leading-relaxed outline-none resize-y font-outfit"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="koreanInput" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
+                            <i class="fa-solid fa-language text-emerald-600"></i> 한글 해석 전체 <span class="text-rose-600 font-bold">(필수)</span>
+                        </label>
+                        <textarea id="koreanInput" rows="4" 
+                            placeholder="끊어읽기 직독직해 매칭을 위해 한글 번역 전체를 입력하세요."
+                            class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-xs leading-relaxed outline-none resize-y"></textarea>
+                    </div>
+                </div>
+
+                <!-- Correction Prompt Input Card -->
+                <div class="bg-amber-50/80 p-3.5 rounded-lg border border-amber-200 space-y-2">
+                    <label for="modifyPromptInput" class="text-xs font-bold text-amber-950 flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square text-amber-600"></i>
+                        3. 구문 분석 AI 수정 프롬프트 (선택)
+                    </label>
+                    <textarea id="modifyPromptInput" rows="2" 
+                        placeholder="예: 문장 4의 and 접속사 work에서 and를 세모쳐줘" 
+                        class="w-full p-2.5 border border-amber-300 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-amber-500 leading-relaxed resize-y"></textarea>
+                    <button id="btnApplyModify" type="button" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow-sm transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>수정 프롬프트 반영하기</span>
+                    </button>
+                </div>
+
+                <!-- Gemini AI Option Block -->
+                <div class="bg-indigo-50/70 p-3 rounded-lg border border-indigo-200 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center space-x-2 text-xs font-bold text-indigo-950 cursor-pointer">
+                            <input type="checkbox" id="chkUseAi" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                            <span><i class="fa-solid fa-wand-magic-sparkles text-indigo-600 mr-1"></i> Gemini 2.5 Flash 전 문장 구문 분석</span>
+                        </label>
+                        <span class="text-[10px] bg-indigo-200 text-indigo-900 font-bold px-1.5 py-0.5 rounded">지브리 삽화</span>
+                    </div>
+
+                    <div>
+                        <input type="password" id="apiKeyInput" value="{{ default_api_key }}" 
+                            placeholder="Gemini API Key"
+                            class="w-full px-2.5 py-1.5 border border-indigo-200 rounded text-xs bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-2 pt-2">
+                    <button id="btnAnalyze" type="button" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-diagram-project"></i>
+                        <span>직독직해 & 구문분석 교안 생성</span>
+                    </button>
+
+                    <button id="btnPrint" type="button" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
+                        <i class="fa-solid fa-print"></i>
+                        <span>A4 인쇄 / PDF 저장</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Preview Panel -->
+        <section class="lg:col-span-7 flex flex-col">
+            <div class="bg-slate-200 rounded-xl p-2 sm:p-4 border border-slate-300 flex-1 overflow-x-auto">
+                <div class="flex justify-between items-center mb-3 px-1 no-print">
+                    <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-eye text-rose-600"></i>
+                        강의용 교안 미리보기 (Page 1: 60% 삽화/주제 ➔ Page 2+: 2~3문장 다중페이지 구문분석)
+                    </h2>
+                    <span class="text-xs text-slate-500">A4 인쇄 레이아웃</span>
+                </div>
+
+                <!-- Empty State -->
+                <div class="bg-white rounded-lg p-12 text-center text-slate-400 border border-slate-300 no-print" id="emptyState">
+                    <i class="fa-solid fa-palette text-4xl mb-3 text-rose-400"></i>
+                    <p class="text-sm font-medium">지문 제목, 영어 문장 및 한글 해석을 입력하고 <b class="text-rose-600">[직독직해 & 구문분석 교안 생성]</b> 버튼을 누르면<br>1페이지 감성 삽화 및 전체 문장 구문분석 교안이 생성됩니다.</p>
+                </div>
+
+                <!-- A4 Handout Sheet Container (Page 1 + Dynamic Multi-Pages for Sentences) -->
+                <div id="handoutSheet" class="space-y-6 hidden">
+
+                    <!-- ==================== PAGE 1: 60% 대형 감성 삽화 & 하단 지문 핵심 정리 ==================== -->
+                    <div id="page1Container" class="a4-preview-page1 a4-page p-4 sm:p-5 rounded-lg relative flex flex-col justify-between border border-slate-300">
+                        <div>
+                            <!-- Header (Dynamic Title Integration) -->
+                            <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
+                                <div>
+                                    <h1 id="page1MainTitle" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">강의용 교안</h1>
+                                </div>
+                            </div>
+
+                            <!-- Page 1 Section 1: 60% Page Height Large Illustration Image -->
+                            <div class="mb-3">
+                                <div class="w-full relative overflow-hidden rounded-xl border border-slate-300 shadow-sm">
+                                    <img id="ghibliImg" src="/static/illustration.jpg" alt="Remote Work Struggle Illustration" 
+                                        class="print-ghibli-img w-full h-[380px] sm:h-[410px] object-cover rounded-xl transition duration-300">
+                                </div>
+                            </div>
+
+                            <!-- Page 1 Section 2: [지문 핵심 정리] Summary Box (Positioned in Lower 40% of Page 1) -->
+                            <div class="space-y-1.5 mt-2">
+                                <div class="flex items-center space-x-2">
+                                    <span class="summary-badge-print bg-rose-600 text-white font-bold text-xs px-3 py-0.5 rounded-full shadow-sm">지문 핵심 정리</span>
+                                </div>
+
+                                <div class="bg-white border-2 border-rose-300/80 rounded-xl p-2.5 shadow-sm space-y-1.5">
+                                    
+                                    <!-- 주제 -->
+                                    <div class="grid grid-cols-12 gap-2 items-baseline border-b border-rose-100 pb-1">
+                                        <div class="col-span-3 sm:col-span-2 font-bold text-rose-600 text-xs">주제</div>
+                                        <div id="summarySubject" class="col-span-9 sm:col-span-10 font-bold text-slate-900 text-xs leading-snug"></div>
+                                    </div>
+
+                                    <!-- 핵심어휘 (주제 직결 본문 어휘 3개) -->
+                                    <div class="grid grid-cols-12 gap-2 items-baseline border-b border-rose-100 pb-1">
+                                        <div class="col-span-3 sm:col-span-2 font-bold text-rose-600 text-xs">핵심어휘</div>
+                                        <div id="summaryKeywords" class="col-span-9 sm:col-span-10 font-semibold text-slate-800 text-xs leading-snug"></div>
+                                    </div>
+
+                                    <!-- 세 줄 요약 (개조식 명사형 종결) -->
+                                    <div class="grid grid-cols-12 gap-2 items-start">
+                                        <div class="col-span-3 sm:col-span-2 font-bold text-rose-600 text-xs pt-0.5">세 줄 요약</div>
+                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-0.5 text-xs text-slate-800 font-medium leading-snug"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Page 1 Footer (Clean Page Number ONLY) -->
+                        <div class="border-t border-slate-300 pt-1 mt-1 flex justify-end items-center text-[10px] text-slate-500">
+                            <span class="font-bold">1</span>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Sentence Pages Container (Page 2, Page 3, Page 4...) -->
+                    <div id="sentencePagesWrapper" class="space-y-6">
+                        <!-- Multi-page blocks (2~3 sentences per page) generated dynamically in JS -->
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Screen Footer -->
+    <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500 no-print">
+        <p>© 2026 강의용 교안 만들기</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const samplePairsData = [
+            {
+                english: "A study by Eurofound found that young people who were working remotely reported more difficulties in managing their workload than older colleagues.",
+                korean: "Eurofound의 한 연구는 원격 근무를 하고 있었던 젊은 사람들이 나이가 더 많은 동료들보다 자신들의 업무량을 관리하는 데 더 많은 어려움을 이야기했다는 것을 발견했다."
+            },
+            {
+                english: "Moreover, many young people began their careers working remotely during the pandemic, unlike those in older generations who had many years to establish interpersonal connections and embed themselves in the organizational culture in an in-person job.",
+                korean: "게다가, 대면 근무에서 대인 관계를 구축하고 조직 문화에 그들 자신을 깊이 자리 잡게 할 수년간의 시간이 있었던 이전 세대의 사람들과는 달리 많은 젊은 사람들은 팬데믹 동안 원격 근무로 자신들의 경력을 시작했다."
+            },
+            {
+                english: "A survey by Prospects found that almost half of students and graduates in the United Kingdom found it difficult to work from home during the pandemic due to a lack of suitable workspace or distractions.",
+                korean: "Prospects의 한 설문 조사는 영국의 학생들과 졸업생들 중 거의 절반이 팬데믹 동안 적절한 작업 공간 부족이나 방해 요인들 때문에 집에서 작업을 하는 것을 어렵다고 여겼다는 것을 알아냈다."
+            },
+            {
+                english: "While young people may struggle long-term with remote work, perhaps more of a hybrid model where they can work from home part of the time and work onsite other times, would work well for them.",
+                korean: "젊은 사람들이 원격 근무에 장기간 어려움을 겪을지도 모르는 가운데, 아마도 일부 시간은 집에서, 다른 시간은 현장에서 근무할 수 있는 혼합 모델 쪽이 그들에게 효과가 있을 것이다."
+            },
+            {
+                english: "But it may not be that they need a formal hybrid structure with specific days of the week designated for working remotely but instead a fluid option that allows them, if possible, depending on the job role, to choose their day-to-day work location.",
+                korean: "하지만 그들은 주중의 특정 요일들이 원격 근무로 지정된 경직된 혼합 구조가 아니라, 대신 가능하다면 그들이 업무 역할에 따라 날마다의 근무 장소를 선택하도록 허락하는 유연한 선택지를 필요로 할지도 모름을 의미한다."
+            }
+        ];
+
+        let currentAnalysisData = null;
+        let isPairsMode = true;
+
+        const titleInput = document.getElementById('titleInput');
+        const passageInput = document.getElementById('passageInput');
+        const koreanInput = document.getElementById('koreanInput');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const chkUseAi = document.getElementById('chkUseAi');
+
+        const modifyPromptInput = document.getElementById('modifyPromptInput');
+        const btnApplyModify = document.getElementById('btnApplyModify');
+
+        const btnModePairs = document.getElementById('btnModePairs');
+        const btnModeBulk = document.getElementById('btnModeBulk');
+        const sectionPairInput = document.getElementById('sectionPairInput');
+        const sectionBulkInput = document.getElementById('sectionBulkInput');
+        const pairContainer = document.getElementById('pairContainer');
+        const btnAddPair = document.getElementById('btnAddPair');
+        const btnResetPairs = document.getElementById('btnResetPairs');
+
+        const btnAnalyze = document.getElementById('btnAnalyze');
+        const btnPrint = document.getElementById('btnPrint');
+
+        const emptyState = document.getElementById('emptyState');
+        const handoutSheet = document.getElementById('handoutSheet');
+        const sentencePagesWrapper = document.getElementById('sentencePagesWrapper');
+
+        const page1MainTitle = document.getElementById('page1MainTitle');
+        const summarySubject = document.getElementById('summarySubject');
+        const summaryKeywords = document.getElementById('summaryKeywords');
+        const summaryPoints = document.getElementById('summaryPoints');
+
+        // LocalStorage Persistence Functions
+        function saveToLocalStorage() {
+            localStorage.setItem('handout_title', titleInput.value);
+            
+            const rows = pairContainer.querySelectorAll('.pair-row');
+            const pairs = [];
+            rows.forEach(r => {
+                const en = r.querySelector('.pair-en').value;
+                const kr = r.querySelector('.pair-kr').value;
+                pairs.push({ english: en, korean: kr });
+            });
+            localStorage.setItem('handout_pairs', JSON.stringify(pairs));
+        }
+
+        function restoreFromLocalStorage() {
+            const savedTitle = localStorage.getItem('handout_title');
+            if (savedTitle !== null) {
+                titleInput.value = savedTitle;
+            } else {
+                titleInput.value = '26년 3월 모의고사 36번';
+            }
+
+            const savedPairsRaw = localStorage.getItem('handout_pairs');
+            pairContainer.innerHTML = '';
+
+            if (savedPairsRaw) {
+                try {
+                    const savedPairs = JSON.parse(savedPairsRaw);
+                    if (Array.isArray(savedPairs) && savedPairs.length > 0) {
+                        savedPairs.forEach(p => addPairRow(p.english, p.korean));
+                        return;
+                    }
+                } catch(e) {}
+            }
+
+            // Default sample rows if no localStorage
+            samplePairsData.forEach(p => addPairRow(p.english, p.korean));
+        }
+
+        // Mode Switching
+        btnModePairs.addEventListener('click', () => {
+            isPairsMode = true;
+            btnModePairs.className = "text-[11px] font-bold px-2.5 py-1 rounded-md bg-white text-indigo-600 shadow-sm transition";
+            btnModeBulk.className = "text-[11px] font-bold px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition";
+            sectionPairInput.classList.remove('hidden');
+            sectionBulkInput.classList.add('hidden');
+        });
+
+        btnModeBulk.addEventListener('click', () => {
+            isPairsMode = false;
+            btnModeBulk.className = "text-[11px] font-bold px-2.5 py-1 rounded-md bg-white text-indigo-600 shadow-sm transition";
+            btnModePairs.className = "text-[11px] font-bold px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 transition";
+            sectionBulkInput.classList.remove('hidden');
+            sectionPairInput.classList.add('hidden');
+        });
+
+        // Add Sentence Pair Row
+        function addPairRow(enVal = "", krVal = "") {
+            const index = pairContainer.children.length + 1;
+            const row = document.createElement('div');
+            row.className = "pair-row bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2 relative";
+            row.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-indigo-900 flex items-center gap-1">
+                        <i class="fa-solid fa-align-left text-indigo-600"></i> 문장 ${index}
+                    </span>
+                    ${index > 1 ? '<button type="button" class="btn-remove-pair text-[11px] text-rose-500 hover:text-rose-700 font-bold"><i class="fa-solid fa-trash mr-1"></i>삭제</button>' : ''}
+                </div>
+                <div>
+                    <textarea class="pair-en w-full p-2 border border-slate-300 rounded text-xs leading-relaxed focus:ring-1 focus:ring-indigo-500 outline-none font-outfit" rows="2" placeholder="영어 문장 ${index} 입력">${enVal}</textarea>
+                </div>
+                <div>
+                    <textarea class="pair-kr w-full p-2 border border-slate-300 rounded text-xs leading-relaxed focus:ring-1 focus:ring-emerald-500 outline-none" rows="2" placeholder="한글 해석 ${index} 입력 (직독직해 / 구분 포함)">${krVal}</textarea>
+                </div>
+            `;
+
+            const enTa = row.querySelector('.pair-en');
+            const krTa = row.querySelector('.pair-kr');
+            enTa.addEventListener('input', saveToLocalStorage);
+            krTa.addEventListener('input', saveToLocalStorage);
+
+            const btnRemove = row.querySelector('.btn-remove-pair');
+            if (btnRemove) {
+                btnRemove.addEventListener('click', () => {
+                    row.remove();
+                    renumberPairRows();
+                    saveToLocalStorage();
+                });
+            }
+
+            pairContainer.appendChild(row);
+        }
+
+        function renumberPairRows() {
+            const rows = pairContainer.querySelectorAll('.pair-row');
+            rows.forEach((r, idx) => {
+                const label = r.querySelector('.text-indigo-900');
+                if (label) label.innerHTML = `<i class="fa-solid fa-align-left text-indigo-600"></i> 문장 ${idx + 1}`;
+                const enTa = r.querySelector('.pair-en');
+                if (enTa) enTa.placeholder = `영어 문장 ${idx + 1} 입력`;
+                const krTa = r.querySelector('.pair-kr');
+                if (krTa) krTa.placeholder = `한글 해석 ${idx + 1} 입력 (직독직해 / 구분 포함)`;
+            });
+        }
+
+        btnAddPair.addEventListener('click', () => {
+            addPairRow();
+            saveToLocalStorage();
+        });
+
+        titleInput.addEventListener('input', saveToLocalStorage);
+
+        // Reset / Clear All Button
+        btnResetPairs.addEventListener('click', () => {
+            if (confirm('입력된 모든 제목, 문장 및 해석을 초기화하시겠습니까?')) {
+                titleInput.value = '';
+                localStorage.removeItem('handout_title');
+                localStorage.removeItem('handout_pairs');
+                pairContainer.innerHTML = '';
+                addPairRow();
+            }
+        });
+
+        // Apply Modification Prompt
+        btnApplyModify.addEventListener('click', async () => {
+            if (!currentAnalysisData) {
+                alert('먼저 구문분석 교안을 생성해 주세요.');
+                return;
+            }
+
+            const promptText = modifyPromptInput.value.trim();
+            if (!promptText) {
+                alert('수정 프롬프트를 입력해 주세요. (예: 문장 4의 and 접속사 work에서 and를 세모쳐줘)');
+                modifyPromptInput.focus();
+                return;
+            }
+
+            btnApplyModify.disabled = true;
+            btnApplyModify.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>수정 반영 중...</span>';
+
+            try {
+                const response = await fetch('/api/modify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        analysis_data: currentAnalysisData,
+                        modify_prompt: promptText
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || '수정 중 오류가 발생했습니다.');
+                }
+
+                currentAnalysisData = await response.json();
+                renderAnalysisData(currentAnalysisData);
+                alert('수정 프롬프트가 성공적으로 반영되었습니다!');
+
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btnApplyModify.disabled = false;
+                btnApplyModify.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>수정 프롬프트 반영하기</span>';
+            }
+        });
+
+        // Initialize from localStorage on Page Load
+        restoreFromLocalStorage();
+
+        btnAnalyze.addEventListener('click', async () => {
+            const title = titleInput.value.trim();
+            const api_key = apiKeyInput.value.trim();
+            const use_ai = chkUseAi.checked;
+
+            if (!title) {
+                alert('지문 제목을 입력해주세요.');
+                titleInput.focus();
+                return;
+            }
+
+            let passage = '';
+            let korean_passage = '';
+            let sentence_pairs = [];
+
+            if (isPairsMode) {
+                const rows = pairContainer.querySelectorAll('.pair-row');
+                rows.forEach(r => {
+                    const en = r.querySelector('.pair-en').value.trim();
+                    const kr = r.querySelector('.pair-kr').value.trim();
+                    if (en) {
+                        sentence_pairs.push({ english: en, korean: kr });
+                    }
+                });
+
+                if (sentence_pairs.length === 0) {
+                    alert('최소 1개 이상의 영어 문장을 입력해주세요.');
+                    return;
+                }
+            } else {
+                passage = passageInput.value.trim();
+                korean_passage = koreanInput.value.trim();
+
+                if (!passage) {
+                    alert('영어 지문을 입력해주세요.');
+                    passageInput.focus();
+                    return;
+                }
+                if (!korean_passage) {
+                    alert('한글 해석을 입력해주세요.');
+                    koreanInput.focus();
+                    return;
+                }
+            }
+
+            btnAnalyze.disabled = true;
+            btnAnalyze.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>전 문장 구문분석 교안 생성 중...</span>';
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        title: title, 
+                        passage: passage, 
+                        korean_passage: korean_passage,
+                        sentence_pairs: sentence_pairs,
+                        api_key: api_key,
+                        use_ai: use_ai
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || '분석 중 오류가 발생했습니다.');
+                }
+
+                currentAnalysisData = await response.json();
+
+                // If user wrote a prompt in modifyPromptInput, apply it right after analysis!
+                const initPrompt = modifyPromptInput.value.trim();
+                if (initPrompt) {
+                    const modRes = await fetch('/api/modify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            analysis_data: currentAnalysisData,
+                            modify_prompt: initPrompt
+                        })
+                    });
+                    if (modRes.ok) {
+                        currentAnalysisData = await modRes.json();
+                    }
+                }
+
+                renderAnalysisData(currentAnalysisData);
+
+            } catch (err) {
+                alert(err.message);
+            } finally {
+                btnAnalyze.disabled = false;
+                btnAnalyze.innerHTML = '<i class="fa-solid fa-diagram-project"></i> <span>직독직해 & 구문분석 교안 생성</span>';
+            }
+        });
+
+        const colorClasses = {
+            blue: 'text-blue-600 border-blue-500',         // S (Subject) - Blue
+            rose: 'text-rose-600 border-rose-500',         // V/Vi/Vt (Verb) - Red
+            emerald: 'text-emerald-600 border-emerald-500',// O/IO/DO (Object) - Green
+            indigo: 'text-indigo-600 border-indigo-500',   // SC/OC (Complement) - Purple
+            amber: 'text-slate-900 border-transparent',    // Modifiers / Adverbials - Black!
+            slate: 'text-slate-900 border-transparent'     // Normal text - Black
+        };
+
+        const conjAdverbsList = ['moreover', 'however', 'therefore', 'furthermore', 'in addition', 'consequently', 'thus', 'nonetheless', 'nevertheless', 'for example', 'but'];
+
+        // Render Analysis Data (Dynamic Multi-Page Generation: 2~3 sentences per page)
+        function renderAnalysisData(data) {
+            emptyState.classList.add('hidden');
+            handoutSheet.classList.remove('hidden');
+
+            const userTitle = data.title || titleInput.value.trim() || '강의용 교안';
+            const fullHeading = userTitle.endsWith('강의용 교안') ? userTitle : `${userTitle} 강의용 교안`;
+            page1MainTitle.innerText = fullHeading;
+
+            const sInfo = data.summary_info || {};
+            summarySubject.innerText = sInfo.subject || '원격 근무 젊은 직원의 직장 적응 어려움과 유연한 선택지 제공의 필요성';
+            summaryKeywords.innerText = sInfo.keywords || '① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)';
+
+            summaryPoints.innerHTML = '';
+            const summaryList = sInfo.summary || [
+                '① 원격 근무를 한 젊은 직원들은 나이 많은 동료보다 업무량 관리 및 대인 관계 형성 어려움 보고.',
+                '② 적절한 작업 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.',
+                '③ 경직된 하이브리드 구조 대신 일상적 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요.'
+            ];
+
+            summaryList.forEach(pt => {
+                const div = document.createElement('div');
+                div.className = 'flex items-start gap-1.5';
+                div.innerText = pt;
+                summaryPoints.appendChild(div);
+            });
+
+            // Clean & Build Dynamic Sentence Pages (Page 2, Page 3, Page 4...)
+            sentencePagesWrapper.innerHTML = '';
+            
+            const sentences = data.sentences || [];
+            const chunkSize = 3; // 2~3 sentences per page!
+            let currentPageNum = 2;
+
+            for (let i = 0; i < sentences.length; i += chunkSize) {
+                const chunk = sentences.slice(i, i + chunkSize);
+                const isLastPage = (i + chunkSize >= sentences.length);
+                const printBlockClass = isLastPage ? 'print-page-block-last' : 'print-page-block';
+
+                const pageDiv = document.createElement('div');
+                pageDiv.className = `a4-preview-page2 a4-page p-4 sm:p-6 rounded-lg relative flex flex-col justify-between border border-slate-300 ${printBlockClass}`;
+
+                let pageHtml = `
+                    <div>
+                        <!-- Header -->
+                        <div class="border-b-2 border-slate-900 pb-2 mb-4 flex justify-between items-end">
+                            <div>
+                                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
+                            </div>
+                        </div>
+
+                        <!-- Sentence List for this Page -->
+                        <div class="space-y-4">
+                `;
+
+                chunk.forEach((s) => {
+                    pageHtml += `
+                        <div class="print-block bg-white border border-slate-300 rounded-lg p-3.5 shadow-sm space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <span class="bg-rose-600 text-white font-bold text-[11px] px-2.5 py-0.5 rounded-full shadow-sm">구문 분석</span>
+                                <span class="text-[11px] font-bold text-slate-400">문장 ${s.index}</span>
+                            </div>
+
+                            <div class="flex flex-wrap items-baseline leading-snug gap-x-1.5 gap-y-1.5 py-2 px-2 bg-slate-50/50 rounded-lg border border-slate-100">
+                    `;
+
+                    if (s.tokens && s.tokens.length > 0) {
+                        s.tokens.forEach((t) => {
+                            if (t.text && t.text.trim() === '/') {
+                                pageHtml += `
+                                    <div class="inline-flex flex-col justify-end items-center align-bottom my-0.5 px-0.5">
+                                        <span class="text-base font-black text-purple-600 leading-none">/</span>
+                                        <span class="text-[10px] leading-none mt-0.5"></span>
+                                    </div>
+                                `;
+                            } else {
+                                const colorClass = colorClasses[t.color] || colorClasses.slate;
+                                const hasUnderline = t.underline ? 'border-b-2' : '';
+                                let subTag = t.sub_tag || '';
+
+                                if (subTag.includes('⬑')) {
+                                    subTag = subTag.replace('⬑', '<span class="text-slate-900 font-black text-[10px] mr-0.5">⬑</span>');
+                                }
+
+                                const isConjunctiveAdverb = subTag === '접속부사' || t.is_conjunction || conjAdverbsList.some(adv => t.text.toLowerCase().startsWith(adv));
+
+                                let wordDisplayHtml = '';
+                                if (isConjunctiveAdverb) {
+                                    wordDisplayHtml = `
+                                        <div class="relative inline-block px-1.5 py-0.5">
+                                            <svg class="absolute -inset-0.5 w-[calc(100%+4px)] h-[calc(100%+4px)] text-sky-500 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                                <polygon points="50,2 98,96 2,96" fill="none" stroke="#0284c7" stroke-width="7"/>
+                                            </svg>
+                                            <span class="relative z-10 font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${t.text}</span>
+                                        </div>
+                                    `;
+                                } else {
+                                    wordDisplayHtml = `<span class="text-xs font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${t.text}</span>`;
+                                }
+
+                                pageHtml += `
+                                    <div class="inline-flex flex-col justify-end items-center align-bottom my-0.5 px-0.5">
+                                        ${wordDisplayHtml}
+                                        <span class="text-[10px] font-black leading-none mt-1 ${colorClass.split(' ')[0]}">${subTag}</span>
+                                    </div>
+                                `;
+                            }
+                        });
+                    } else {
+                        pageHtml += `<span class="text-xs font-bold text-slate-800">${s.original}</span>`;
+                    }
+
+                    pageHtml += '</div>';
+
+                    if (s.chunk_korean) {
+                        const formattedChunkKr = s.chunk_korean.replace(/\s*\/\s*/g, ' <span class="slash-mark text-purple-600 font-black">/</span> ');
+                        pageHtml += `
+                        <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-lg p-2.5 text-xs text-emerald-900 leading-relaxed font-semibold">
+                            <span class="text-emerald-700 font-bold mr-1.5">[직독직해]</span> ${formattedChunkKr}
+                        </div>`;
+                    }
+
+                    pageHtml += '</div>';
+                });
+
+                pageHtml += '</div>'; // End sentence list
+
+                // Vocab Box on Last Page
+                if (isLastPage && data.vocabulary && data.vocabulary.length > 0) {
+                    let vocabItemsHtml = '';
+                    data.vocabulary.slice(0, 10).forEach(v => {
+                        vocabItemsHtml += `<div class="flex justify-between border-b border-slate-200 pb-0.5 text-xs"><span class="font-bold text-slate-800">• ${v.word}</span> <span class="text-slate-700 font-medium">${v.meaning}</span></div>`;
+                    });
+
+                    pageHtml += `
+                        <div class="mt-4 pt-3 border-t-2 border-slate-300">
+                            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-book-bookmark text-slate-700"></i> 주요 어휘 및 구문 정리
+                            </h3>
+                            <div class="grid grid-cols-2 gap-2 text-xs bg-white p-3 rounded-lg border border-slate-300">
+                                ${vocabItemsHtml}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                pageHtml += `
+                    </div>
+                    <!-- Page Footer -->
+                    <div class="border-t border-slate-300 pt-2 mt-4 flex justify-end items-center text-[10px] text-slate-500">
+                        <span class="font-bold">${currentPageNum}</span>
+                    </div>
+                `;
+
+                pageDiv.innerHTML = pageHtml;
+
+                // On screen preview, show page separator indicator between pages
+                if (!isLastPage) {
+                    const sep = document.createElement('div');
+                    sep.className = 'page-separator my-6 border-b-2 border-dashed border-slate-300 no-print flex justify-center';
+                    sep.innerHTML = `<span class="bg-slate-300 text-slate-700 text-xs font-bold px-4 py-1 -mb-3 rounded-full shadow-sm">--- ${currentPageNum + 1}페이지 구문분석 계속 ---</span>`;
+                    
+                    sentencePagesWrapper.appendChild(pageDiv);
+                    sentencePagesWrapper.appendChild(sep);
+                } else {
+                    sentencePagesWrapper.appendChild(pageDiv);
+                }
+
+                currentPageNum++;
+            }
+        }
+
+        // Trigger A4 Print
+        btnPrint.addEventListener('click', () => {
+            if (!currentAnalysisData) {
+                alert('먼저 구조분석을 실행해주세요.');
+                return;
+            }
+            window.print();
+        });
+    </script>
+</body>
+</html>
