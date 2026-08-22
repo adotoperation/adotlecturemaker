@@ -62,14 +62,16 @@
         }
 
         /* Print Media Styles */
+        @page {
+            size: A4 portrait;
+            margin: 0; /* 브라우저 기본 헤더/푸터(URL, 날짜 등) 완벽 제거 */
+        }
         @media print {
-            @page {
-                size: A4 portrait;
-                margin: 12mm 12mm 12mm 12mm;
-            }
-            body {
+            html, body {
                 background-color: #ffffff !important;
                 color: #000000 !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 font-size: 10pt;
             }
             .no-print {
@@ -78,10 +80,11 @@
             .a4-page {
                 box-shadow: none !important;
                 border: none !important;
-                padding: 0 !important;
+                padding: 14mm 14mm 14mm 14mm !important;
                 margin: 0 !important;
-                width: 100% !important;
-                min-height: auto !important;
+                width: 210mm !important;
+                min-height: 297mm !important;
+                box-sizing: border-box !important;
                 page-break-after: always;
                 break-after: page;
             }
@@ -109,7 +112,7 @@
             /* 2-column answer print enforcement */
             .two-column-answers {
                 column-count: 2 !important;
-                column-gap: 20px !important;
+                column-gap: 18px !important;
                 column-rule: 1px dashed #94a3b8 !important;
             }
         }
@@ -195,19 +198,9 @@
                     <!-- Injected dynamically via JS in 2 columns -->
                 </div>
             </div>
-
-            <!-- Answer Sheet Footer -->
-            <div class="border-t border-slate-200 pt-2 text-center text-[10px] text-slate-400 font-medium">
-                정답 및 해설지 • 9종 변형문제
-            </div>
         </section>
 
     </main>
-
-    <!-- Footer -->
-    <footer class="no-print bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400 font-medium">
-        영어 내신 대비 9종 변형문제 생성 시스템 • A4 출력 & 페이지 나누기/합치기 지원
-    </footer>
 
     <!-- Logic Script -->
     <script>
@@ -433,13 +426,7 @@
                     qBodyContainer.appendChild(qCard);
                 });
 
-                // Page Footer
-                const pageFooter = document.createElement('div');
-                pageFooter.className = 'border-t border-slate-200 pt-2 text-center text-[10px] text-slate-400 font-medium mt-4';
-                pageFooter.innerHTML = `[${examTitle}] • Page ${pageNum} / ${totalPages}`;
-
                 a4Page.appendChild(qBodyContainer);
-                a4Page.appendChild(pageFooter);
                 examQuestionsContainer.appendChild(a4Page);
             });
 
@@ -498,17 +485,23 @@
 
         // Print Handlers
         btnPrintQuestions.addEventListener('click', () => {
+            const prevTitle = document.title;
+            document.title = '';
             document.body.classList.remove('print-answers-only');
             document.body.classList.add('print-questions-only');
             window.print();
             document.body.classList.remove('print-questions-only');
+            document.title = prevTitle;
         });
 
         btnPrintAnswers.addEventListener('click', () => {
+            const prevTitle = document.title;
+            document.title = '';
             document.body.classList.remove('print-questions-only');
             document.body.classList.add('print-answers-only');
             window.print();
             document.body.classList.remove('print-answers-only');
+            document.title = prevTitle;
         });
 
         btnCloseWindow.addEventListener('click', () => {
