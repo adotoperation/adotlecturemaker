@@ -1943,8 +1943,11 @@
             console.log("loadHandoutFromServer 진입:", filename, label);
             showLoading("교안 불러오는 중", "구글 서버에서 분석 데이터를 안전하게 내려받고 있습니다...");
             try {
-                const response = await fetch(`/api/save/${filename}?label=${encodeURIComponent(label)}`);
-                if (!response.ok) throw new Error('교안을 불러오지 못했습니다.');
+                const response = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`);
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || '교안을 불러오지 못했습니다.');
+                }
                 const data = await response.json();
                 
                 // Populate UI
@@ -1992,7 +1995,7 @@
         async function deleteHandoutFromServer(filename, label = '모의고사') {
             showLoading("교안 삭제 중", "구글 서버에서 해당 문서를 영구히 파기하고 있습니다...");
             try {
-                const response = await fetch(`/api/save/${filename}?label=${encodeURIComponent(label)}`, { method: 'DELETE' });
+                const response = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`, { method: 'DELETE' });
                 if (!response.ok) throw new Error('교안 삭제에 실패했습니다.');
                 hideLoading();
                 showToast('교안이 서버에서 삭제되었습니다.');
