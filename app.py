@@ -97,6 +97,27 @@ def generate_exam():
         print(f"[generate_exam] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/save_exam_layout', methods=['POST'])
+def save_exam_layout():
+    data = request.json or {}
+    filename = data.get('filename', '').strip()
+    label = data.get('label', '변형문제').strip()
+    page_breaks = data.get('page_breaks', [])
+    
+    if not filename:
+        return jsonify({'error': '파일명이 필요합니다.'}), 400
+        
+    try:
+        doc = load_db_handout(filename, label=label)
+        if not doc.get('analysis_data'):
+            doc['analysis_data'] = {}
+        doc['analysis_data']['page_breaks'] = page_breaks
+        saved_fn = save_db_handout(doc.get('title', filename.replace('.json', '')), doc, label=label)
+        return jsonify({'success': True, 'filename': saved_fn})
+    except Exception as e:
+        print(f"[save_exam_layout] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
     data = request.json or {}

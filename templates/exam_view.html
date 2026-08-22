@@ -156,7 +156,10 @@
                     </button>
                 </div>
 
-                <!-- Print Buttons -->
+                <!-- Action & Print Buttons -->
+                <button id="btnSavePageBreaks" type="button" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="현재 페이지 나누기/합치기 설정을 구글 시트에 저장">
+                    <i class="fa-solid fa-floppy-disk"></i> <span>페이지 설정 저장</span>
+                </button>
                 <button id="btnPrintQuestions" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5">
                     <i class="fa-solid fa-print"></i> <span>문제 인쇄</span>
                 </button>
@@ -212,6 +215,7 @@
 
         const btnPrintQuestions = document.getElementById('btnPrintQuestions');
         const btnPrintAnswers = document.getElementById('btnPrintAnswers');
+        const btnSavePageBreaks = document.getElementById('btnSavePageBreaks');
         const btnCloseWindow = document.getElementById('btnCloseWindow');
 
         // State Variables
@@ -241,20 +245,20 @@
             const lines = content.split('\n');
             const questionLines = [];
             const answerLines = [];
-            let inAnswer = false;
+            let inAnswerSection = false;
 
-            lines.forEach(line => {
+            for (const line of lines) {
                 const trimmed = line.trim();
                 if (trimmed.startsWith('[정답]') || trimmed.startsWith('[모범답안]') || trimmed.startsWith('[해설]') || trimmed.startsWith('[채점기준]')) {
-                    inAnswer = true;
+                    inAnswerSection = true;
                 }
 
-                if (inAnswer) {
+                if (inAnswerSection) {
                     answerLines.push(line);
                 } else {
                     questionLines.push(line);
                 }
-            });
+            }
 
             return {
                 questionText: questionLines.join('\n'),
@@ -275,8 +279,11 @@
                     if (res.ok) {
                         const data = await res.json();
                         examTitle = data.title || filename.replace('.json', '');
-                        if (data.analysis_data && data.analysis_data.questions) {
-                            questionsData = data.analysis_data.questions;
+                        if (data.analysis_data) {
+                            if (data.analysis_data.questions) questionsData = data.analysis_data.questions;
+                            if (Array.isArray(data.analysis_data.page_breaks) && data.analysis_data.page_breaks.length === 9) {
+                                pageBreaks = data.analysis_data.page_breaks;
+                            }
                         } else if (data.questions) {
                             questionsData = data.questions;
                         }
@@ -300,6 +307,17 @@
                         }
                     } catch (e) {}
                 }
+            }
+
+            // Check cached page breaks in localStorage if not set from server
+            const localSavedBreaks = localStorage.getItem('pagebreaks_' + examTitle);
+            if (localSavedBreaks) {
+                try {
+                    const parsedBreaks = JSON.parse(localSavedBreaks);
+                    if (Array.isArray(parsedBreaks) && parsedBreaks.length === 9) {
+                        pageBreaks = parsedBreaks;
+                    }
+                } catch (e) {}
             }
 
             // Update Titles
@@ -477,6 +495,62 @@
             tabShowQuestions.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5';
             tabShowAnswers.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5';
         });
+
+        // Save Page Layout Handler
+        if (btnSavePageBreaks) {
+            btnSavePageBreaks.addEventListener('click', async () => {
+                const params = new URLSearchParams(window.location.search);
+                const fn = params.get('filename') || `${examTitle}.json`;
+                const lb = params.get('label') || '변형문제';
+                
+                btnSavePageBreaks.disabled = true;
+                btnSavePageBreaks.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>저장 중...</span>';
+                
+                try {
+                    const resp = await fetch('/api/save_exam_layout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: fn,
+                            label: lb,
+                            page_breaks: pageBreaks
+                        })
+                    });
+                    
+                    if (resp.ok) {
+                        localStorage.setItem('pagebreaks_' + examTitle, JSON.stringify(pageBreaks));
+                        showExamToast("페이지 분할 설정이 구글 시트에 안전하게 저장되었습니다! 다음번에도 동일하게 유지됩니다.");
+                    } else {
+                        const err = await resp.json().catch(() => ({}));
+                        throw new Error(err.error || "서버 저장 실패");
+                    }
+                } catch (e) {
+                    localStorage.setItem('pagebreaks_' + examTitle, JSON.stringify(pageBreaks));
+                    showExamToast("로컬 브라우저에 페이지 분할 설정이 저장되었습니다.", "info");
+                } finally {
+                    btnSavePageBreaks.disabled = false;
+                    btnSavePageBreaks.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>페이지 설정 저장</span>';
+                }
+            });
+        }
+
+        // Toast Helper
+        function showExamToast(msg, type = 'success') {
+            const existing = document.getElementById('examToast');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'examToast';
+            toast.className = `fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 text-white transition-all transform duration-300 ${type === 'success' ? 'bg-emerald-600' : 'bg-indigo-600'}`;
+            toast.innerHTML = `<i class="fa-solid fa-${type === 'success' ? 'circle-check' : 'circle-info'}"></i> <span>${msg}</span>`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
 
         // Print Handlers
         btnPrintQuestions.addEventListener('click', () => {
