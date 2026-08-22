@@ -124,10 +124,11 @@ def create_token_tables_for_sentence(tokens, style_word, style_sub, max_width=51
                 u_tag = "<u>" if t.get('underline') else ""
                 u_close = "</u>" if t.get('underline') else ""
                 
+                safe_txt = txt.replace(' ', '&nbsp;')
                 if sub == '접속부사' or t.get('is_conjunction'):
-                    w_html = f"<font color='#0284c7'><b>△ {txt}</b></font>"
+                    w_html = f"<font color='#0284c7'><b>△ {safe_txt}</b></font>"
                 else:
-                    w_html = f"{u_tag}<font color='{c_hex}'><b>{txt}</b></font>{u_close}"
+                    w_html = f"{u_tag}<font color='{c_hex}'><b>{safe_txt}</b></font>{u_close}"
 
                 s_html = f"<font color='{c_hex}' size=7><b>{sub}</b></font>" if sub else ""
 
@@ -184,17 +185,24 @@ def create_handout_pdf(analysis_data):
     style_summary_label = ParagraphStyle(
         'SummaryLabel',
         fontName=FONT_NAME,
-        fontSize=9,
-        leading=12,
+        fontSize=11,
+        leading=18,
         textColor=colors.HexColor('#e11d48')
     )
 
     style_summary_content = ParagraphStyle(
         'SummaryContent',
         fontName=FONT_NAME,
-        fontSize=8.5,
-        leading=12,
-        textColor=colors.HexColor('#0f172a')
+        fontSize=10.5,
+        leading=18,
+        textColor=colors.HexColor('#0f172a'),
+        alignment=1 # Center aligned
+    )
+
+    style_vocab_content = ParagraphStyle(
+        'VocabContent',
+        parent=style_summary_content,
+        alignment=0 # Left aligned
     )
 
     style_token_word = ParagraphStyle(
@@ -223,13 +231,38 @@ def create_handout_pdf(analysis_data):
         textColor=colors.HexColor('#065f46')
     )
 
+    style_grammar_box = ParagraphStyle(
+        'GrammarBox',
+        fontName=FONT_NAME,
+        fontSize=8.5,
+        leading=12,
+        textColor=colors.HexColor('#1e1b4b')
+    )
+
+    style_summary_points = ParagraphStyle(
+        'SummaryPoints',
+        fontName=FONT_NAME,
+        fontSize=8.5, # 2pt smaller than 10.5
+        leading=14,
+        textColor=colors.HexColor('#334155'),
+        alignment=1 # Center aligned
+    )
+
+    style_arrow = ParagraphStyle(
+        'Arrow',
+        fontName=FONT_NAME,
+        fontSize=10.5,
+        leading=13,
+        textColor=colors.HexColor('#e11d48'),
+        alignment=1 # Center aligned
+    )
+
     story = []
 
-    page_title = analysis_data.get('title') or ""
-    if page_title:
-        doc_heading = page_title if page_title.endswith("강의용 교안") else f"{page_title} 강의용 교안"
-    else:
-        doc_heading = "강의용 교안"
+    page_title = analysis_data.get('title') or "영어 지문 분석"
+    doc_heading = page_title.replace("강의용 교안", "").strip()
+    if not doc_heading:
+        doc_heading = "영어 지문 분석"
 
     s_info = analysis_data.get('summary_info') or {}
 
@@ -252,7 +285,8 @@ def create_handout_pdf(analysis_data):
         ]))
         story.append(fallback_box)
 
-    story.append(Spacer(1, 8))
+    # Taller layout spacing to fill page 1 bottom margin
+    story.append(Spacer(1, 14))
 
     sum_header = Table(
         [[Paragraph("<b>지문 핵심 정리</b>", style_badge), Paragraph("<b>핵심 주제, 어휘 및 3단 내용 요약</b>", style_summary_content)]],
@@ -262,26 +296,40 @@ def create_handout_pdf(analysis_data):
         ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#e11d48')),
         ('ALIGN', (0, 0), (0, 0), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-        ('TOPPADDING', (0, 0), (-1, -1), 2),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
     ]))
     story.append(sum_header)
-    story.append(Spacer(1, 3))
+    story.append(Spacer(1, 6))
 
     sum_subj_val = s_info.get('subject', '원격 근무 젊은 직원의 직장 적응 어려움과 유연한 선택지 제공의 필요성')
     sum_kw_val = s_info.get('keywords', '① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)')
     
     summary_pts = s_info.get('summary', [
-        '① 원격 근무를 한 젊은 직원들은 나이 많은 동료보다 업무량 관리 및 대인 관계 형성 어려움 보고.',
-        '② 적절한 작업 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.',
-        '③ 경직된 하이브리드 구조 대신 일상적 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요.'
+        '① 원격 근무 젊은 직원은 동료보다 업무 및 관계 형성에 어려움을 겪음.',
+        '② 적절한 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.',
+        '③ 경직된 일정 대신 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요.'
     ])
-    sum_pts_val = "<br/>".join(summary_pts)
+    
+    # 3-Stage Flowchart formatting: clean numbers and build a list of Flowables
+    import re
+    clean_pts = []
+    for pt in summary_pts:
+        clean_pt = re.sub(r'^[①②③\d\.\s]*', '', pt).strip()
+        clean_pts.append(clean_pt)
+
+    sum_pts_flowables = []
+    for idx, pt in enumerate(clean_pts):
+        if idx > 0:
+            sum_pts_flowables.append(Spacer(1, 2))
+            sum_pts_flowables.append(Paragraph("<b>↓</b>", style_arrow))
+            sum_pts_flowables.append(Spacer(1, 2))
+        sum_pts_flowables.append(Paragraph(pt, style_summary_points))
 
     sum_table_data = [
         [Paragraph("<b>주제</b>", style_summary_label), Paragraph(sum_subj_val, style_summary_content)],
         [Paragraph("<b>핵심어휘</b>", style_summary_label), Paragraph(sum_kw_val, style_summary_content)],
-        [Paragraph("<b>세 줄 요약</b>", style_summary_label), Paragraph(sum_pts_val, style_summary_content)]
+        [Paragraph("<b>3단 정리</b>", style_summary_label), sum_pts_flowables]
     ]
 
     sum_box = Table(sum_table_data, colWidths=[65, 458])
@@ -290,7 +338,7 @@ def create_handout_pdf(analysis_data):
         ('BOX', (0, 0), (-1, -1), 1.5, colors.HexColor('#fca5a5')),
         ('INNERGRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#ffe4e6')),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('PADDING', (0, 0), (-1, -1), 3.5),
+        ('PADDING', (0, 0), (-1, -1), 10), # Taller padding
     ]))
     story.append(sum_box)
 
@@ -337,6 +385,27 @@ def create_handout_pdf(analysis_data):
                 ('PADDING', (0, 0), (-1, -1), 4),
             ]))
             s_blocks.append(kr_table)
+        raw_gp = s.get('grammar_points', '')
+        if raw_gp:
+            import re
+            points = [p.strip() for p in raw_gp.split('\n') if p.strip()]
+            if points:
+                g_html = "<b><font color='#4338ca'>[중요 어법 포인트]</font></b>"
+                for pt in points:
+                    # Clean leading number if it exists (e.g. "1. ")
+                    clean_pt = re.sub(r'^\d+[\.\s]*', '', pt)
+                    g_html += f"<br/>• <font color='#374151'>{clean_pt}</font>"
+                
+                g_p = Paragraph(g_html, style_grammar_box)
+                g_table = Table([[g_p]], colWidths=[523])
+                g_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f3ff')),
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#ddd6fe')),
+                    ('PADDING', (0, 0), (-1, -1), 4),
+                ]))
+                s_blocks.append(Spacer(1, 2.5))
+                s_blocks.append(g_table)
+                
 
         s_blocks.append(Spacer(1, 8))
         story.append(KeepTogether(s_blocks))
@@ -346,12 +415,12 @@ def create_handout_pdf(analysis_data):
         v_cells = []
         for item in vocab[:10]:
             w_text = f"• <b>{item.get('word')}</b> : {item.get('meaning')}"
-            v_cells.append(Paragraph(w_text, style_summary_content))
+            v_cells.append(Paragraph(w_text, style_vocab_content))
         
         v_rows = []
         for i in range(0, len(v_cells), 2):
             left = v_cells[i]
-            right = v_cells[i+1] if i+1 < len(v_cells) else Paragraph("", style_summary_content)
+            right = v_cells[i+1] if i+1 < len(v_cells) else Paragraph("", style_vocab_content)
             v_rows.append([left, right])
         
         v_table = Table(v_rows, colWidths=[261, 262])

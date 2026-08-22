@@ -5,3 +5,5 @@ venv/
 .venv/
 test_output.pdf
 .vercel/
+scratch/
+

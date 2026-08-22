@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3초 스피드 단어 테스트</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Pretendard:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            user-select: none;
+        }
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background-color: #1e293b;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- ==================== VIEW 1: WELCOME & START SCREEN ==================== -->
+    <div id="viewWelcome" class="flex-1 flex items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 max-w-xl w-full text-center shadow-2xl space-y-6 relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-violet-600/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-indigo-600/20 rounded-full blur-3xl"></div>
+
+            <div class="relative z-10 space-y-3">
+                <div class="inline-flex items-center gap-2 bg-violet-500/10 border border-violet-500/30 text-violet-400 text-xs font-black px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+                    <i class="fa-solid fa-bolt"></i> 3초 스피드 단어 테스트
+                </div>
+                <h1 id="welcomeTitle" class="text-2xl sm:text-3xl font-black text-white tracking-tight">지문 단어 테스트</h1>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    15개 핵심 단어가 <b class="text-violet-400">무작위(Random)</b> 순서로 출제됩니다.<br>
+                    단어가 3초 동안 노출되는 동안 학생은 시험지나 노트에 한글 뜻을 작성하세요.
+                </p>
+            </div>
+
+            <!-- Settings -->
+            <div class="relative z-10 bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                <div>
+                    <div class="text-xs font-bold text-slate-300">단어당 노출 시간</div>
+                    <div class="text-[11px] text-slate-500">시간 경과 시 다음 단어로 자동 전환</div>
+                </div>
+                <select id="welcomeIntervalSelect" class="bg-slate-800 text-white border border-slate-700 rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer">
+                    <option value="2">2초 (빠르게)</option>
+                    <option value="3" selected>3초 (표준 추천)</option>
+                    <option value="4">4초 (여유있게)</option>
+                    <option value="5">5초 (초급용)</option>
+                </select>
+            </div>
+
+            <!-- Start Button -->
+            <div class="relative z-10 space-y-3 pt-2">
+                <button id="btnStartTest" type="button" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black py-4 px-6 rounded-2xl shadow-xl shadow-violet-600/30 hover:shadow-violet-600/50 transition duration-200 text-base flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>테스트 시작하기 (전체화면)</span>
+                </button>
+                <div class="flex items-center justify-center gap-4 text-xs text-slate-500">
+                    <span><i class="fa-solid fa-shuffle mr-1 text-violet-400"></i> 자동 무작위 셔플</span>
+                    <span><i class="fa-solid fa-clipboard-check mr-1 text-emerald-400"></i> 시험 후 강사 채점</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== VIEW 2: LIVE 3-SECOND FLASHCARD TEST ==================== -->
+    <div id="viewLiveTest" class="flex-1 flex flex-col justify-between p-6 sm:p-10 hidden relative">
+        <!-- Top Bar -->
+        <div class="w-full flex justify-between items-center z-10">
+            <div class="flex items-center gap-3">
+                <span class="bg-violet-600 text-white text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt"></i> 3초 테스트
+                </span>
+                <span id="liveProgressText" class="text-sm font-bold text-slate-300">문제 1 / 15</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btnToggleFullscreen" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border border-slate-700">
+                    <i class="fa-solid fa-expand"></i> <span id="fullscreenBtnText">전체화면</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-800/80 h-2 rounded-full mt-4 overflow-hidden z-10 border border-slate-800">
+            <div id="liveProgressBar" class="bg-gradient-to-r from-violet-500 to-indigo-500 h-full transition-all duration-300 w-[6.25%]"></div>
+        </div>
+
+        <!-- Center Stage: Giant Word Display -->
+        <div class="my-auto py-12 text-center flex flex-col items-center justify-center z-10">
+            <div class="inline-flex items-center gap-2 mb-4">
+                <span id="liveWordIndexBadge" class="bg-slate-900 text-violet-400 font-black text-base px-4 py-1.5 rounded-full border border-slate-700 shadow-inner">Q1</span>
+                <span id="liveWordPos" class="text-slate-400 text-base font-semibold"></span>
+            </div>
+            <h2 id="liveWordText" class="text-5xl sm:text-7xl md:text-8xl font-black font-outfit text-white tracking-tight leading-tight select-none drop-shadow-2xl"></h2>
+            <p class="text-slate-400 text-xs sm:text-sm mt-6 bg-slate-900/90 px-5 py-2 rounded-full border border-slate-800 shadow-sm">
+                <i class="fa-solid fa-pencil mr-1.5 text-violet-400"></i> 학생은 화면의 단어를 보고 시험지/노트에 한글 뜻을 적으세요!
+            </p>
+        </div>
+
+        <!-- Bottom Countdown & Navigation Controls -->
+        <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-800/80 z-10">
+            <!-- Circular Countdown Timer -->
+            <div class="flex items-center gap-3.5">
+                <div class="relative w-12 h-12 flex items-center justify-center">
+                    <svg class="w-12 h-12 transform -rotate-90">
+                        <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" class="text-slate-800" fill="transparent"/>
+                        <circle id="liveTimerCircle" cx="24" cy="24" r="20" stroke="currentColor" stroke-width="4" class="text-violet-500 transition-all duration-100" fill="transparent" stroke-dasharray="125.6" stroke-dashoffset="0"/>
+                    </svg>
+                    <span id="liveTimerSeconds" class="absolute text-base font-black text-white font-outfit">3</span>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-slate-200">자동 전환 카운트다운</div>
+                    <div class="text-[11px] text-slate-500">시간 종료 시 다음 단어로 자동 이동</div>
+                </div>
+            </div>
+
+            <!-- Controller Buttons -->
+            <div class="flex items-center gap-2">
+                <button id="btnLivePrev" type="button" title="이전 단어 (←)" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-3 rounded-xl text-xs transition border border-slate-700">
+                    <i class="fa-solid fa-backward-step"></i>
+                </button>
+                <button id="btnLivePlayPause" type="button" class="bg-violet-600 hover:bg-violet-500 text-white font-bold px-5 py-3 rounded-xl text-xs transition flex items-center gap-2 shadow-lg shadow-violet-600/30">
+                    <i class="fa-solid fa-pause"></i> <span id="livePlayPauseText">일시정지</span>
+                </button>
+                <button id="btnLiveNext" type="button" title="다음 단어 (→)" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-3 rounded-xl text-xs transition border border-slate-700">
+                    <i class="fa-solid fa-forward-step"></i>
+                </button>
+                <button id="btnLiveFinish" type="button" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-3 rounded-xl text-xs transition flex items-center gap-2 shadow-lg shadow-emerald-600/30 ml-2">
+                    <i class="fa-solid fa-clipboard-check"></i> <span>채점하러 가기</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== VIEW 3: TEACHER ANSWER KEY VIEW ==================== -->
+    <div id="viewTeacherScore" class="bg-slate-100 text-slate-900 min-h-screen p-4 sm:p-8 space-y-6 hidden">
+        <div class="max-w-5xl mx-auto space-y-6">
+            <!-- Header Card -->
+            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="bg-violet-100 text-violet-800 font-black text-xs px-2.5 py-0.5 rounded-full uppercase">TEST COMPLETED</span>
+                        <span class="text-xs text-slate-500 font-bold">15문항 단어 테스트 정답표</span>
+                    </div>
+                    <h2 id="teacherScoreTitle" class="text-xl sm:text-2xl font-black text-slate-900">지문 제목</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnRestartSpeedTest" type="button" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-rotate-left"></i> 3초 테스트 다시 시작
+                    </button>
+                    <button id="btnCloseWindow" type="button" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-xmark"></i> 창 닫기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 15 Questions Answer Cards Grid (Arranged in the EXACT test order) -->
+            <div id="teacherScoringCardsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <!-- Cards injected dynamically -->
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="flex justify-center gap-3 pt-4">
+                <button id="btnRestartSpeedTest2" type="button" class="bg-violet-600 hover:bg-violet-700 text-white font-bold px-6 py-3 rounded-2xl text-sm transition flex items-center gap-2 shadow-lg shadow-violet-600/20">
+                    <i class="fa-solid fa-rotate-left"></i> 3초 테스트 무작위 다시 시작
+                </button>
+                <button id="btnCloseWindow2" type="button" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold px-6 py-3 rounded-2xl text-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-xmark"></i> 창 닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Logic Script -->
+    <script>
+        // DOM Elements
+        const viewWelcome = document.getElementById('viewWelcome');
+        const viewLiveTest = document.getElementById('viewLiveTest');
+        const viewTeacherScore = document.getElementById('viewTeacherScore');
+
+        const welcomeTitle = document.getElementById('welcomeTitle');
+        const welcomeIntervalSelect = document.getElementById('welcomeIntervalSelect');
+        const btnStartTest = document.getElementById('btnStartTest');
+
+        const liveProgressText = document.getElementById('liveProgressText');
+        const liveProgressBar = document.getElementById('liveProgressBar');
+        const liveWordIndexBadge = document.getElementById('liveWordIndexBadge');
+        const liveWordPos = document.getElementById('liveWordPos');
+        const liveWordText = document.getElementById('liveWordText');
+        const liveTimerCircle = document.getElementById('liveTimerCircle');
+        const liveTimerSeconds = document.getElementById('liveTimerSeconds');
+        const btnToggleFullscreen = document.getElementById('btnToggleFullscreen');
+        const fullscreenBtnText = document.getElementById('fullscreenBtnText');
+
+        const btnLivePrev = document.getElementById('btnLivePrev');
+        const btnLivePlayPause = document.getElementById('btnLivePlayPause');
+        const livePlayPauseText = document.getElementById('livePlayPauseText');
+        const btnLiveNext = document.getElementById('btnLiveNext');
+        const btnLiveFinish = document.getElementById('btnLiveFinish');
+
+        const teacherScoreTitle = document.getElementById('teacherScoreTitle');
+        const teacherTotalScore = document.getElementById('teacherTotalScore');
+        const teacherMaxScore = document.getElementById('teacherMaxScore');
+        const scorePercentageBadge = document.getElementById('scorePercentageBadge');
+        const teacherScoringCardsGrid = document.getElementById('teacherScoringCardsGrid');
+        const btnRestartSpeedTest = document.getElementById('btnRestartSpeedTest');
+        const btnRestartSpeedTest2 = document.getElementById('btnRestartSpeedTest2');
+        const btnCloseWindow = document.getElementById('btnCloseWindow');
+        const btnCloseWindow2 = document.getElementById('btnCloseWindow2');
+
+        // State Variables
+        let testTitle = "영어 단어 테스트";
+        let originalVocabList = [];
+        let shuffledVocabList = [];
+        let currentIndex = 0;
+        let intervalSec = 3;
+        let timerInterval = null;
+        let timeRemainingMs = 3000;
+        let isPaused = false;
+
+        // Shuffle Function (Fisher-Yates)
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Initialize from URL query params or localStorage
+        async function initData() {
+            const params = new URLSearchParams(window.location.search);
+            const filename = params.get('filename');
+            const label = params.get('label') || '단어테스트';
+            const titleParam = params.get('title');
+
+            if (filename) {
+                try {
+                    const res = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        testTitle = data.title || filename.replace('.json', '');
+                        if (data.analysis_data && data.analysis_data.vocabulary && data.analysis_data.vocabulary.length > 0) {
+                            originalVocabList = data.analysis_data.vocabulary.slice(0, 15);
+                        } else if (data.vocabulary && data.vocabulary.length > 0) {
+                            originalVocabList = data.vocabulary.slice(0, 15);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load handout:", e);
+                }
+            } else if (titleParam) {
+                testTitle = titleParam;
+            }
+
+            // Fallback to localStorage if no words loaded from API
+            if (originalVocabList.length === 0) {
+                const cachedVocab = localStorage.getItem('current_vocab_test');
+                if (cachedVocab) {
+                    try {
+                        const parsed = JSON.parse(cachedVocab);
+                        if (parsed.vocabulary && parsed.vocabulary.length > 0) {
+                            originalVocabList = parsed.vocabulary.slice(0, 15);
+                            if (parsed.title) testTitle = parsed.title;
+                        }
+                    } catch (e) {}
+                }
+            }
+
+            // If still empty, sample fallback words (exactly 15 words)
+            if (originalVocabList.length === 0) {
+                originalVocabList = [
+                    { word: "Eurofound", meaning: "(명) 유럽생활노동조건개선재단" },
+                    { word: "remotely", meaning: "(부) 원격으로, 멀리서" },
+                    { word: "workload", meaning: "(명) 업무량, 작업량" },
+                    { word: "colleague", meaning: "(명) 동료" },
+                    { word: "pandemic", meaning: "(명) 팬데믹, 전국적 유행병" },
+                    { word: "establish", meaning: "(동) 확립하다, 설립하다" },
+                    { word: "interpersonal", meaning: "(형) 대인 관계의" },
+                    { word: "connection", meaning: "(명) 관계, 연결" },
+                    { word: "embed", meaning: "(동) 깊숙이 박다, 자리잡게 하다" },
+                    { word: "organizational", meaning: "(형) 조직의" },
+                    { word: "in-person", meaning: "(형) 직접 대면하는" },
+                    { word: "survey", meaning: "(명) 설문 조사" },
+                    { word: "graduate", meaning: "(명) 졸업생" },
+                    { word: "suitable", meaning: "(형) 적절한, 적합한" },
+                    { word: "workspace", meaning: "(명) 작업 공간" }
+                ];
+            }
+
+            welcomeTitle.innerText = testTitle;
+            document.title = `${testTitle} - 3초 단어 테스트`;
+            return originalVocabList;
+        }
+
+        // Start Test Trigger
+        btnStartTest.addEventListener('click', async () => {
+            intervalSec = parseInt(welcomeIntervalSelect.value) || 3;
+            if (!originalVocabList || originalVocabList.length === 0) {
+                btnStartTest.disabled = true;
+                btnStartTest.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>단어 준비 중...</span>';
+                await initData();
+                btnStartTest.disabled = false;
+                btnStartTest.innerHTML = '<i class="fa-solid fa-play"></i> <span>테스트 시작하기 (전체화면)</span>';
+            }
+            startLiveTest(originalVocabList);
+
+            // Request fullscreen if available
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        });
+
+        async function startLiveTest(vocabList) {
+            if (!vocabList || vocabList.length === 0) {
+                vocabList = await initData();
+            }
+            if (!vocabList || vocabList.length === 0) {
+                showToast('단어 목록을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.', 'error');
+                return;
+            }
+
+            shuffledVocabList = shuffle(vocabList);
+            currentIndex = 0;
+            isPaused = false;
+
+            viewWelcome.classList.add('hidden');
+            viewTeacherScore.classList.add('hidden');
+            viewLiveTest.classList.remove('hidden');
+
+            livePlayPauseText.innerText = "일시정지";
+            btnLivePlayPause.innerHTML = '<i class="fa-solid fa-pause"></i> <span id="livePlayPauseText">일시정지</span>';
+
+            displayLiveWord(currentIndex);
+            startCountdown();
+        }
+
+        function displayLiveWord(index) {
+            if (index < 0 || index >= shuffledVocabList.length) return;
+            const v = shuffledVocabList[index];
+            liveWordIndexBadge.innerText = `Q${index + 1}`;
+
+            let pos = '';
+            let cleanMeaning = v.meaning || '';
+            const posMatch = cleanMeaning.match(/^\(([가-힣]+)\)/);
+            if (posMatch) {
+                pos = posMatch[0];
+            }
+            liveWordPos.innerText = pos;
+            liveWordText.innerText = v.word;
+
+            // Update Progress
+            const percent = ((index + 1) / shuffledVocabList.length) * 100;
+            liveProgressBar.style.width = `${percent}%`;
+            liveProgressText.innerText = `문제 ${index + 1} / ${shuffledVocabList.length}`;
+        }
+
+        function startCountdown() {
+            stopCountdown();
+            timeRemainingMs = intervalSec * 1000;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                if (isPaused) return;
+                timeRemainingMs -= 100;
+
+                if (timeRemainingMs <= 0) {
+                    if (currentIndex < shuffledVocabList.length - 1) {
+                        currentIndex++;
+                        displayLiveWord(currentIndex);
+                        timeRemainingMs = intervalSec * 1000;
+                        updateTimerDisplay();
+                    } else {
+                        // Finished
+                        stopCountdown();
+                        showToast('🎉 모든 단어 노출이 끝났습니다! 강사 채점 화면으로 이동합니다.');
+                        showTeacherDashboard();
+                    }
+                } else {
+                    updateTimerDisplay();
+                }
+            }, 100);
+        }
+
+        function stopCountdown() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const secondsLeft = Math.ceil(timeRemainingMs / 1000);
+            liveTimerSeconds.innerText = secondsLeft > 0 ? secondsLeft : 0;
+
+            const totalMs = intervalSec * 1000;
+            const fraction = Math.max(0, timeRemainingMs / totalMs);
+            // Circumference of r=20 is 2 * PI * 20 ≈ 125.6
+            const offset = 125.6 * (1 - fraction);
+            liveTimerCircle.style.strokeDashoffset = offset;
+        }
+
+        // Live Controls
+        btnLivePlayPause.addEventListener('click', () => {
+            isPaused = !isPaused;
+            if (isPaused) {
+                btnLivePlayPause.innerHTML = '<i class="fa-solid fa-play"></i> <span id="livePlayPauseText">계속하기</span>';
+            } else {
+                btnLivePlayPause.innerHTML = '<i class="fa-solid fa-pause"></i> <span id="livePlayPauseText">일시정지</span>';
+            }
+        });
+
+        btnLivePrev.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                currentIndex--;
+                displayLiveWord(currentIndex);
+                timeRemainingMs = intervalSec * 1000;
+                updateTimerDisplay();
+            }
+        });
+
+        btnLiveNext.addEventListener('click', () => {
+            if (currentIndex < shuffledVocabList.length - 1) {
+                currentIndex++;
+                displayLiveWord(currentIndex);
+                timeRemainingMs = intervalSec * 1000;
+                updateTimerDisplay();
+            } else {
+                stopCountdown();
+                showTeacherDashboard();
+            }
+        });
+
+        btnLiveFinish.addEventListener('click', () => {
+            stopCountdown();
+            showTeacherDashboard();
+        });
+
+        // Fullscreen Toggle
+        btnToggleFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+                fullscreenBtnText.innerText = "전체화면 종료";
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+                fullscreenBtnText.innerText = "전체화면";
+            }
+        });
+
+        // Teacher Dashboard View
+        function showTeacherDashboard() {
+            stopCountdown();
+            viewWelcome.classList.add('hidden');
+            viewLiveTest.classList.add('hidden');
+            viewTeacherScore.classList.remove('hidden');
+
+            teacherScoreTitle.innerText = testTitle;
+            renderTeacherCards();
+        }
+
+        function renderTeacherCards() {
+            teacherScoringCardsGrid.innerHTML = '';
+
+            shuffledVocabList.forEach((v, idx) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-slate-200 hover:border-violet-300 rounded-2xl p-4 flex items-center justify-between shadow-xs transition duration-200';
+
+                let pos = '';
+                let cleanMeaning = v.meaning || '';
+                const posMatch = cleanMeaning.match(/^\(([가-힣]+)\)/);
+                if (posMatch) {
+                    pos = posMatch[0];
+                    cleanMeaning = cleanMeaning.replace(/^\(([가-힣]+)\)\s*/, '').trim();
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-violet-100 text-violet-800 flex items-center justify-center font-black text-xs shrink-0">
+                            ${idx + 1}
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-black text-base text-slate-900 font-outfit tracking-wide">${v.word}</span>
+                                <span class="text-xs text-slate-400 font-bold">${pos}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-black text-violet-700">
+                            ${cleanMeaning}
+                        </div>
+                    </div>
+                `;
+                teacherScoringCardsGrid.appendChild(card);
+            });
+        }
+
+        // Actions in Answer View
+        btnRestartSpeedTest.addEventListener('click', () => {
+            startLiveTest(originalVocabList);
+        });
+
+        btnRestartSpeedTest2.addEventListener('click', () => {
+            startLiveTest(originalVocabList);
+        });
+
+        btnCloseWindow.addEventListener('click', () => {
+            window.close();
+        });
+
+        btnCloseWindow2.addEventListener('click', () => {
+            window.close();
+        });
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (!viewLiveTest.classList.contains('hidden')) {
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    btnLivePlayPause.click();
+                } else if (e.code === 'ArrowLeft') {
+                    btnLivePrev.click();
+                } else if (e.code === 'ArrowRight') {
+                    btnLiveNext.click();
+                } else if (e.code === 'Enter') {
+                    btnLiveFinish.click();
+                }
+            }
+        });
+
+        // Toast Helper
+        function showToast(message, type = "success") {
+            const toast = document.createElement('div');
+            toast.className = "toast";
+            let icon = '<i class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>';
+            if (type === "error") icon = '<i class="fa-solid fa-circle-exclamation text-rose-400 text-lg"></i>';
+
+            toast.innerHTML = `${icon}<span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            toast.offsetHeight;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Init on page load
+        window.addEventListener('DOMContentLoaded', initData);
+    </script>
+</body>
+</html>

@@ -1,15 +1,99 @@
 import os
+import re
+import json
+import requests
+import time
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, render_template, request, jsonify, Response
-from parser_engine import parse_english_passage, modify_analysis_with_prompt
+from parser_engine import parse_english_passage, modify_analysis_with_prompt, generate_variation_exam
 from pdf_generator import create_lecture_handout_pdf
 
-app = Flask(__name__)
+def load_env():
+    env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(env_path):
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if '=' in line and not line.strip().startswith('#'):
+                    k, v = line.strip().split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip())
 
+load_env()
 DEFAULT_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 @app.route('/')
 def index():
     return render_template('index.html', default_api_key=DEFAULT_API_KEY)
+
+@app.route('/vocab-test')
+def vocab_test():
+    return render_template('vocab_test.html')
+
+@app.route('/exam-view')
+def exam_view():
+    return render_template('exam_view.html')
+
+@app.route('/api/generate_exam', methods=['POST'])
+@app.route('/api/generate_variation', methods=['POST'])
+def generate_exam():
+    data = request.json or {}
+    title = data.get('title', '').strip()
+    passage = data.get('passage', '').strip()
+    topic = data.get('topic', '').strip()
+    sentence_pairs = data.get('sentence_pairs', [])
+    api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
+
+    if not title:
+        return jsonify({'error': '지문 제목이 필요합니다.'}), 400
+
+    if not passage and sentence_pairs:
+        passage = " ".join([p.get('english', '').strip() for p in sentence_pairs if p.get('english')])
+
+    if not passage:
+        return jsonify({'error': '변형문제를 생성할 영어 지문 내용이 없습니다.'}), 400
+
+    if not topic:
+        topic = title
+
+    try:
+        title_clean = re.sub(r'\s*-\s*9종\s*변형문제.*$', '', title).strip()
+        title_1 = f"{title_clean} - 9종 변형문제 1차"
+        title_2 = f"{title_clean} - 9종 변형문제 2차"
+
+        def _gen_exam(idx, t_name):
+            q_data = generate_variation_exam(passage, topic=f"{topic} (세트 {idx}차)", api_key=api_key)
+            p_load = {
+                "title": t_name,
+                "label": "변형문제",
+                "sentence_pairs": sentence_pairs,
+                "analysis_data": {
+                    "title": t_name,
+                    "passage": passage,
+                    "topic": topic,
+                    "questions": q_data,
+                    "is_variation_exam": True,
+                    "set_number": idx,
+                    "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
+                }
+            }
+            f_name = save_db_handout(t_name, p_load, label='변형문제')
+            return {"title": t_name, "filename": f_name, "questions": q_data}
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future1 = executor.submit(_gen_exam, 1, title_1)
+            future2 = executor.submit(_gen_exam, 2, title_2)
+            res1 = future1.result()
+            res2 = future2.result()
+
+        return jsonify({
+            'success': True,
+            'results': [res1, res2],
+            'filename': res1['filename'],
+            'questions': res1['questions'],
+            'label': '변형문제'
+        })
+    except Exception as e:
+        print(f"[generate_exam] Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
@@ -87,6 +171,245 @@ def export_pdf():
     except Exception as e:
         print("PDF export error:", e)
         return jsonify({'error': f'PDF 생성 실패: {str(e)}'}), 500
+
+SAVES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'saves')
+os.makedirs(SAVES_DIR, exist_ok=True)
+
+GAS_URL = os.environ.get("GOOGLE_SHEET_API_URL", "") or "https://script.google.com/macros/s/AKfycbxFsfnKktu9HEzBBsMdJxlMPAGyKOrxuLYQA3uEHS8BwrIL2aVWPIV2GE-mAmAaIMfPAQ/exec"
+KV_URL = os.environ.get("KV_REST_API_URL")
+KV_TOKEN = os.environ.get("KV_REST_API_TOKEN")
+IS_VERCEL_KV = bool(KV_URL and KV_TOKEN)
+
+def safe_korean_filename(name):
+    import re
+    # Keep Korean, alphanumeric, spaces, hyphens, underscores, dots
+    cleaned = re.sub(r'[^\w\s\-\.\uac00-\ud7a3\u1100-\u11ff\u3130-\u318f]', '', name)
+    return cleaned.strip()
+
+def get_db_saves():
+    if GAS_URL:
+        try:
+            res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=15)
+            print("GAS Raw Response:", res.text)
+            if res.status_code == 200:
+                saves = res.json().get("saves", [])
+                saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
+                return saves
+            else:
+                print("GAS List failed:", res.text)
+                return []
+        except Exception as e:
+            print("GAS List error:", e)
+            return []
+    elif IS_VERCEL_KV:
+        headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+        try:
+            # Command: KEYS handout:*
+            res = requests.post(KV_URL, headers=headers, json=["KEYS", "handout:*"], timeout=5)
+            if res.status_code == 200:
+                keys = res.json().get("result", [])
+                saves = []
+                for k in keys:
+                    # Command: GET key
+                    res_val = requests.post(KV_URL, headers=headers, json=["GET", k], timeout=5)
+                    if res_val.status_code == 200:
+                        raw_data = res_val.json().get("result")
+                        if raw_data:
+                            try:
+                                data = json.loads(raw_data)
+                                saves.append({
+                                    'filename': k.replace("handout:", ""),
+                                    'title': data.get('title', k.replace("handout:", "")),
+                                    'mtime': data.get('mtime', 0.0),
+                                    'label': data.get('label', '모의고사')
+                                })
+                            except Exception:
+                                pass
+                saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
+                return saves
+        except Exception as e:
+            print("Vercel KV KEYS error:", e)
+            return []
+    else:
+        saves = []
+        for filename in os.listdir(SAVES_DIR):
+            if filename.endswith('.json'):
+                path = os.path.join(SAVES_DIR, filename)
+                mtime = os.path.getmtime(path)
+                try:
+                    with open(path, 'r', encoding='utf-8') as f:
+                        saved_data = json.load(f)
+                    title = saved_data.get('title', filename[:-5])
+                    label = saved_data.get('label', '모의고사')
+                except Exception:
+                    title = filename[:-5]
+                    label = '모의고사'
+                saves.append({
+                    'filename': filename,
+                    'title': title,
+                    'mtime': mtime,
+                    'label': label
+                })
+        saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
+        return saves
+
+def save_db_handout(title, data, label="모의고사"):
+    filename = safe_korean_filename(title)
+    if not filename.endswith('.json'):
+        filename += '.json'
+    
+    data['mtime'] = time.time()
+    data['label'] = label
+    
+    if GAS_URL:
+        payload = {
+            "action": "save",
+            "label": label,
+            "title": title,
+            "sentence_pairs": data.get("sentence_pairs", []),
+            "analysis_data": data.get("analysis_data", {})
+        }
+        try:
+            res = requests.post(GAS_URL, json=payload, timeout=10)
+            if res.status_code == 200 and res.json().get("success"):
+                return filename
+            else:
+                raise Exception(f"Google Sheet Save failed: {res.text}")
+        except Exception as e:
+            raise Exception(f"Google Sheet API error: {str(e)}")
+            
+    elif IS_VERCEL_KV:
+        headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+        key = f"handout:{filename}"
+        payload = json.dumps(data, ensure_ascii=False)
+        # Command: SET key value
+        res = requests.post(KV_URL, headers=headers, json=["SET", key, payload], timeout=5)
+        if res.status_code != 200:
+            raise Exception(f"Vercel KV SET failed: {res.text}")
+        return filename
+    else:
+        path = os.path.join(SAVES_DIR, filename)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return filename
+
+def load_db_handout(filename, label="강의용교안"):
+    filename = safe_korean_filename(filename)
+    if not filename.endswith('.json'):
+        filename += '.json'
+        
+    if GAS_URL:
+        title = filename.replace(".json", "")
+        payload = {
+            "action": "load",
+            "label": label,
+            "title": title
+        }
+        try:
+            res = requests.post(GAS_URL, json=payload, timeout=10)
+            if res.status_code == 200:
+                res_data = res.json()
+                if "error" in res_data:
+                    raise Exception("저장된 파일을 찾을 수 없습니다.")
+                return res_data
+            else:
+                raise Exception("Google Sheet Load failed")
+        except Exception as e:
+            raise Exception(f"Google Sheet Load error: {str(e)}")
+            
+    elif IS_VERCEL_KV:
+        headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+        key = f"handout:{filename}"
+        # Command: GET key
+        res = requests.post(KV_URL, headers=headers, json=["GET", key], timeout=5)
+        if res.status_code == 200:
+            raw_data = res.json().get("result")
+            if not raw_data:
+                raise Exception("저장된 파일을 찾을 수 없습니다.")
+            return json.loads(raw_data)
+        else:
+            raise Exception("Vercel KV GET failed")
+    else:
+        path = os.path.join(SAVES_DIR, filename)
+        if not os.path.exists(path):
+            raise Exception("저장된 파일을 찾을 수 없습니다.")
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+
+def delete_db_handout(filename, label="강의용교안"):
+    filename = safe_korean_filename(filename)
+    if not filename.endswith('.json'):
+        filename += '.json'
+        
+    if GAS_URL:
+        title = filename.replace(".json", "")
+        payload = {
+            "action": "delete",
+            "label": label,
+            "title": title
+        }
+        try:
+            res = requests.post(GAS_URL, json=payload, timeout=10)
+            if res.status_code == 200 and res.json().get("success"):
+                return True
+            else:
+                raise Exception("Google Sheet Delete failed")
+        except Exception as e:
+            raise Exception(f"Google Sheet Delete error: {str(e)}")
+            
+    elif IS_VERCEL_KV:
+        headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+        key = f"handout:{filename}"
+        # Command: DEL key
+        res = requests.post(KV_URL, headers=headers, json=["DEL", key], timeout=5)
+        if res.status_code != 200:
+            raise Exception("Vercel KV DEL failed")
+        return True
+    else:
+        path = os.path.join(SAVES_DIR, filename)
+        if not os.path.exists(path):
+            raise Exception("저장된 파일을 찾을 수 없습니다.")
+        os.remove(path)
+        return True
+
+@app.route('/api/saves', methods=['GET'])
+def get_saves():
+    try:
+        saves = get_db_saves()
+        return jsonify({'saves': saves})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save', methods=['POST'])
+def save_handout():
+    data = request.json or {}
+    title = data.get('title', '').strip()
+    label = data.get('label', '모의고사').strip()
+    if not title:
+        return jsonify({'error': '교안 제목이 필요합니다.'}), 400
+    try:
+        filename = save_db_handout(title, data, label=label)
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save/<filename>', methods=['GET'])
+def load_handout(filename):
+    label = request.args.get('label', '모의고사').strip()
+    try:
+        saved_data = load_db_handout(filename, label=label)
+        return jsonify(saved_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save/<filename>', methods=['DELETE'])
+def delete_handout(filename):
+    label = request.args.get('label', '모의고사').strip()
+    try:
+        delete_db_handout(filename, label=label)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("=" * 65)
