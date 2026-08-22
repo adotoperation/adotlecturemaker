@@ -20,6 +20,8 @@ def load_env():
 load_env()
 DEFAULT_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
+app = Flask(__name__)
+
 @app.route('/')
 def index():
     return render_template('index.html', default_api_key=DEFAULT_API_KEY)
