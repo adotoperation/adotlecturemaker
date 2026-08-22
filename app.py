@@ -174,8 +174,15 @@ def export_pdf():
         print("PDF export error:", e)
         return jsonify({'error': f'PDF 생성 실패: {str(e)}'}), 500
 
-SAVES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'saves')
-os.makedirs(SAVES_DIR, exist_ok=True)
+if os.environ.get('VERCEL') or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK):
+    SAVES_DIR = '/tmp/saves'
+else:
+    SAVES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'saves')
+
+try:
+    os.makedirs(SAVES_DIR, exist_ok=True)
+except Exception as e:
+    print("Warning creating SAVES_DIR:", e)
 
 GAS_URL = os.environ.get("GOOGLE_SHEET_API_URL", "") or "https://script.google.com/macros/s/AKfycbxFsfnKktu9HEzBBsMdJxlMPAGyKOrxuLYQA3uEHS8BwrIL2aVWPIV2GE-mAmAaIMfPAQ/exec"
 KV_URL = os.environ.get("KV_REST_API_URL")
