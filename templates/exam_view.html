@@ -157,7 +157,10 @@
                 </div>
 
                 <!-- Action & Print Buttons -->
-                <button id="btnSavePageBreaks" type="button" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="현재 페이지 나누기/합치기 설정을 구글 시트에 저장">
+                <button id="btnShuffleOrder" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="9개 문제의 출제 순서를 무작위로 섞기">
+                    <i class="fa-solid fa-shuffle"></i> <span>순서 섞기</span>
+                </button>
+                <button id="btnSavePageBreaks" type="button" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="현재 페이지 나누기/합치기 및 순서 설정을 구글 시트에 저장">
                     <i class="fa-solid fa-floppy-disk"></i> <span>페이지 설정 저장</span>
                 </button>
                 <button id="btnPrintQuestions" type="button" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5">
@@ -216,6 +219,7 @@
         const btnPrintQuestions = document.getElementById('btnPrintQuestions');
         const btnPrintAnswers = document.getElementById('btnPrintAnswers');
         const btnSavePageBreaks = document.getElementById('btnSavePageBreaks');
+        const btnShuffleOrder = document.getElementById('btnShuffleOrder');
         const btnCloseWindow = document.getElementById('btnCloseWindow');
 
         // State Variables
@@ -226,17 +230,25 @@
         // Default: breaks before Q3, Q5, Q7, Q9 (adjusts nicely to ~3-4 pages)
         let pageBreaks = [false, false, true, false, true, false, true, false, true];
 
-        const QUESTION_TYPES_META = [
-            { key: "topic_korean", num: 1, title: "다음 글의 주제로 가장 적절한 것은?" },
-            { key: "sentence_ordering", num: 2, title: "주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?" },
-            { key: "grammar_syntax", num: 3, title: "다음 글의 밑줄 친 부분 중, 어법상 어색한 것을 모두 골라 알맞은 형태로 고치시오." },
-            { key: "vocabulary", num: 4, title: "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것을 모두 골라 알맞은 낱말로 고치시오." },
-            { key: "passage_ordering", num: 5, title: "다음 주어진 문장들을 글의 흐름에 맞게 올바른 순서대로 배열하시오. (주관식)" },
-            { key: "descriptive_writing_2", num: 6, title: "다음 우리말 뜻에 맞게 <조건>을 모두 충족하여 영작하시오." },
-            { key: "topic_english", num: 7, title: "다음 글의 주제로 가장 적절한 것은?" },
-            { key: "descriptive_writing_1", num: 8, title: "다음 우리말 뜻에 맞게 <조건>을 모두 충족하여 영작하시오." },
-            { key: "vocab_blank", num: 9, title: "다음 글의 빈칸 (1) ~ (15)에 들어갈 알맞은 핵심 낱말을 쓰시오." }
+        const ALL_QUESTION_TYPES_MAP = {
+            "topic_korean": "다음 글의 주제로 가장 적절한 것은?",
+            "sentence_ordering": "주어진 글 다음에 이어질 글의 순서로 가장 적절한 것은?",
+            "grammar_syntax": "다음 글의 밑줄 친 부분 중, 어법상 어색한 것을 모두 골라 알맞은 형태로 고치시오.",
+            "vocabulary": "다음 글의 밑줄 친 부분 중, 문맥상 낱말의 쓰임이 적절하지 않은 것을 모두 골라 알맞은 낱말로 고치시오.",
+            "passage_ordering": "다음 주어진 문장들을 글의 흐름에 맞게 올바른 순서대로 배열하시오. (주관식)",
+            "descriptive_writing_2": "다음 우리말 뜻에 맞게 <조건>을 모두 충족하여 영작하시오.",
+            "topic_english": "다음 글의 주제로 가장 적절한 것은?",
+            "descriptive_writing_1": "다음 우리말 뜻에 맞게 <조건>을 모두 충족하여 영작하시오.",
+            "vocab_blank": "다음 글의 빈칸 (1) ~ (15)에 들어갈 알맞은 핵심 낱말을 쓰시오."
+        };
+
+        const DEFAULT_ORDER = [
+            "topic_korean", "sentence_ordering", "grammar_syntax", "vocabulary",
+            "passage_ordering", "descriptive_writing_2", "topic_english",
+            "descriptive_writing_1", "vocab_blank"
         ];
+
+        let currentQuestionOrder = [...DEFAULT_ORDER];
 
         // Parse Question Content into Question Body and Answer/Explanation
         function splitContent(typeKey, content) {
@@ -281,11 +293,15 @@
                         examTitle = data.title || filename.replace('.json', '');
                         if (data.analysis_data) {
                             if (data.analysis_data.questions) questionsData = data.analysis_data.questions;
+                            if (Array.isArray(data.analysis_data.question_order) && data.analysis_data.question_order.length === 9) {
+                                currentQuestionOrder = data.analysis_data.question_order;
+                            }
                             if (Array.isArray(data.analysis_data.page_breaks) && data.analysis_data.page_breaks.length === 9) {
                                 pageBreaks = data.analysis_data.page_breaks;
                             }
                         } else if (data.questions) {
                             questionsData = data.questions;
+                            if (Array.isArray(data.question_order)) currentQuestionOrder = data.question_order;
                         }
                     }
                 } catch (e) {
@@ -304,6 +320,7 @@
                         if (parsed.questions) {
                             questionsData = parsed.questions;
                             if (parsed.title) examTitle = parsed.title;
+                            if (Array.isArray(parsed.question_order)) currentQuestionOrder = parsed.question_order;
                         }
                     } catch (e) {}
                 }
@@ -331,13 +348,22 @@
         // Toggle page break before question at index
         function togglePageBreak(qIndex) {
             pageBreaks[qIndex] = !pageBreaks[qIndex];
+            localStorage.setItem('pagebreaks_' + examTitle, JSON.stringify(pageBreaks));
             renderExam();
+            showExamToast("페이지 나눔 설정이 임시 적용되었습니다. [페이지 설정 저장]을 눌러 구글 시트에 영구 저장할 수 있습니다.", "info");
         }
 
         // Render Questions and 2-Column Answers
         function renderExam() {
             examQuestionsContainer.innerHTML = '';
             answersListContainer.innerHTML = '';
+
+            // Construct QUESTION_TYPES_META dynamically from currentQuestionOrder
+            const QUESTION_TYPES_META = currentQuestionOrder.map((key, idx) => ({
+                key: key,
+                num: idx + 1,
+                title: ALL_QUESTION_TYPES_MAP[key] || "문제"
+            }));
 
             // Group questions into pages based on pageBreaks
             const pages = [];
@@ -496,6 +522,19 @@
             tabShowAnswers.className = 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5';
         });
 
+        // Shuffle Question Order Handler
+        if (btnShuffleOrder) {
+            btnShuffleOrder.addEventListener('click', () => {
+                // Fisher-Yates Shuffle
+                for (let i = currentQuestionOrder.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [currentQuestionOrder[i], currentQuestionOrder[j]] = [currentQuestionOrder[j], currentQuestionOrder[i]];
+                }
+                renderExam();
+                showExamToast("9개 문제 유형의 출제 순서가 무작위로 섞였습니다! [페이지 설정 저장]을 눌러 영구 저장할 수 있습니다.", "info");
+            });
+        }
+
         // Save Page Layout Handler
         if (btnSavePageBreaks) {
             btnSavePageBreaks.addEventListener('click', async () => {
@@ -513,20 +552,21 @@
                         body: JSON.stringify({
                             filename: fn,
                             label: lb,
-                            page_breaks: pageBreaks
+                            page_breaks: pageBreaks,
+                            question_order: currentQuestionOrder
                         })
                     });
                     
                     if (resp.ok) {
                         localStorage.setItem('pagebreaks_' + examTitle, JSON.stringify(pageBreaks));
-                        showExamToast("페이지 분할 설정이 구글 시트에 안전하게 저장되었습니다! 다음번에도 동일하게 유지됩니다.");
+                        showExamToast("페이지 분할 및 문항 순서 설정이 구글 시트에 안전하게 저장되었습니다! 다음번에도 동일하게 유지됩니다.");
                     } else {
                         const err = await resp.json().catch(() => ({}));
                         throw new Error(err.error || "서버 저장 실패");
                     }
                 } catch (e) {
                     localStorage.setItem('pagebreaks_' + examTitle, JSON.stringify(pageBreaks));
-                    showExamToast("로컬 브라우저에 페이지 분할 설정이 저장되었습니다.", "info");
+                    showExamToast("로컬 브라우저에 페이지 분할 및 문항 순서가 저장되었습니다.", "info");
                 } finally {
                     btnSavePageBreaks.disabled = false;
                     btnSavePageBreaks.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> <span>페이지 설정 저장</span>';

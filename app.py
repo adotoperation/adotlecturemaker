@@ -61,8 +61,18 @@ def generate_exam():
         title_1 = f"{title_clean} - 9종 변형문제 1차"
         title_2 = f"{title_clean} - 9종 변형문제 2차"
 
+        all_keys = [
+            "topic_korean", "sentence_ordering", "grammar_syntax", "vocabulary",
+            "passage_ordering", "descriptive_writing_2", "topic_english",
+            "descriptive_writing_1", "vocab_blank"
+        ]
+
         def _gen_exam(idx, t_name):
             q_data = generate_variation_exam(passage, topic=f"{topic} (세트 {idx}차)", api_key=api_key)
+            import random
+            shuffled_order = list(all_keys)
+            random.shuffle(shuffled_order)
+
             p_load = {
                 "title": t_name,
                 "label": "변형문제",
@@ -72,13 +82,14 @@ def generate_exam():
                     "passage": passage,
                     "topic": topic,
                     "questions": q_data,
+                    "question_order": shuffled_order,
                     "is_variation_exam": True,
                     "set_number": idx,
                     "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
                 }
             }
             f_name = save_db_handout(t_name, p_load, label='변형문제')
-            return {"title": t_name, "filename": f_name, "questions": q_data}
+            return {"title": t_name, "filename": f_name, "questions": q_data, "question_order": shuffled_order}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             future1 = executor.submit(_gen_exam, 1, title_1)
@@ -91,6 +102,7 @@ def generate_exam():
             'results': [res1, res2],
             'filename': res1['filename'],
             'questions': res1['questions'],
+            'question_order': res1['question_order'],
             'label': '변형문제'
         })
     except Exception as e:
@@ -103,6 +115,7 @@ def save_exam_layout():
     filename = data.get('filename', '').strip()
     label = data.get('label', '변형문제').strip()
     page_breaks = data.get('page_breaks', [])
+    question_order = data.get('question_order')
     
     if not filename:
         return jsonify({'error': '파일명이 필요합니다.'}), 400
@@ -112,6 +125,8 @@ def save_exam_layout():
         if not doc.get('analysis_data'):
             doc['analysis_data'] = {}
         doc['analysis_data']['page_breaks'] = page_breaks
+        if question_order and isinstance(question_order, list):
+            doc['analysis_data']['question_order'] = question_order
         saved_fn = save_db_handout(doc.get('title', filename.replace('.json', '')), doc, label=label)
         return jsonify({'success': True, 'filename': saved_fn})
     except Exception as e:
