@@ -302,13 +302,15 @@ def save_db_handout(title, data, label="모의고사"):
             json.dump(data, f, ensure_ascii=False, indent=2)
         return filename
 
-def load_db_handout(filename, label="강의용교안"):
-    filename = safe_korean_filename(filename)
-    if not filename.endswith('.json'):
-        filename += '.json'
+from urllib.parse import unquote
+
+def load_db_handout(filename, label="모의고사"):
+    filename = unquote(filename)
+    title = filename.replace(".json", "").strip()
+    safe_fn = safe_korean_filename(title) + '.json'
         
     if GAS_URL:
-        title = filename.replace(".json", "")
+        # 1. Try with given label
         payload = {
             "action": "load",
             "label": label,
@@ -318,11 +320,27 @@ def load_db_handout(filename, label="강의용교안"):
             res = requests.post(GAS_URL, json=payload, timeout=10)
             if res.status_code == 200:
                 res_data = res.json()
-                if "error" in res_data:
-                    raise Exception("저장된 파일을 찾을 수 없습니다.")
-                return res_data
-            else:
-                raise Exception("Google Sheet Load failed")
+                if "error" not in res_data:
+                    return res_data
+            
+            # 2. Fallback: Query list to find matching item regardless of label
+            list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+            if list_res.status_code == 200:
+                all_saves = list_res.json().get("saves", [])
+                for item in all_saves:
+                    item_title = item.get("title", "")
+                    if item_title == title or item.get("filename") == safe_fn or item_title.replace(" ", "") == title.replace(" ", ""):
+                        real_label = item.get("label", label)
+                        fallback_payload = {
+                            "action": "load",
+                            "label": real_label,
+                            "title": item_title
+                        }
+                        f_res = requests.post(GAS_URL, json=fallback_payload, timeout=10)
+                        if f_res.status_code == 200 and "error" not in f_res.json():
+                            return f_res.json()
+
+            raise Exception("저장된 파일을 찾을 수 없습니다.")
         except Exception as e:
             raise Exception(f"Google Sheet Load error: {str(e)}")
             
@@ -345,13 +363,12 @@ def load_db_handout(filename, label="강의용교안"):
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-def delete_db_handout(filename, label="강의용교안"):
-    filename = safe_korean_filename(filename)
-    if not filename.endswith('.json'):
-        filename += '.json'
+def delete_db_handout(filename, label="모의고사"):
+    filename = unquote(filename)
+    title = filename.replace(".json", "").strip()
+    safe_fn = safe_korean_filename(title) + '.json'
         
     if GAS_URL:
-        title = filename.replace(".json", "")
         payload = {
             "action": "delete",
             "label": label,
@@ -361,8 +378,20 @@ def delete_db_handout(filename, label="강의용교안"):
             res = requests.post(GAS_URL, json=payload, timeout=10)
             if res.status_code == 200 and res.json().get("success"):
                 return True
-            else:
-                raise Exception("Google Sheet Delete failed")
+            
+            # Fallback delete search
+            list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+            if list_res.status_code == 200:
+                all_saves = list_res.json().get("saves", [])
+                for item in all_saves:
+                    item_title = item.get("title", "")
+                    if item_title == title or item.get("filename") == safe_fn:
+                        real_label = item.get("label", label)
+                        f_del = requests.post(GAS_URL, json={"action": "delete", "label": real_label, "title": item_title}, timeout=10)
+                        if f_del.status_code == 200 and f_del.json().get("success"):
+                            return True
+
+            raise Exception("Google Sheet Delete failed")
         except Exception as e:
             raise Exception(f"Google Sheet Delete error: {str(e)}")
             
