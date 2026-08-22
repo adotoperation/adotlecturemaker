@@ -183,14 +183,9 @@
             
             <div class="flex-1 space-y-6">
                 <!-- Answer Sheet Header -->
-                <div class="border-b-2 border-slate-900 pb-3 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-                    <div>
-                        <div class="text-[10px] font-black text-violet-700 tracking-wider uppercase">에이닷 내신자료 메이커 • Answer Key & Explanations</div>
-                        <h2 id="answerExamTitle" class="text-lg sm:text-xl font-black text-slate-900 tracking-tight">정답 및 상세 해설 (2단 분할)</h2>
-                    </div>
-                    <div class="text-xs font-bold text-slate-500">
-                        <span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded font-black mr-1">강사용 / 배포용</span> 9문항 정답/해설
-                    </div>
+                <div class="border-b-2 border-slate-900 pb-3 mb-4 space-y-1">
+                    <div class="text-xl font-black text-violet-700 tracking-tight">에이닷 내신자료 메이커</div>
+                    <h2 id="answerExamTitle" class="text-xl font-black text-slate-900 tracking-tight">정답 및 상세 해설 (2단 분할)</h2>
                 </div>
 
                 <!-- 2-Column Answer Cards Grid -->
@@ -310,7 +305,7 @@
             // Update Titles
             headerExamTitle.innerText = `${examTitle} - 9종 변형문제`;
             answerExamTitle.innerText = `[${examTitle}] 정답 및 상세 해설 (2단)`;
-            document.title = `${examTitle}_내신대비_9종변형문제`;
+            document.title = '';
 
             renderExam();
         }
@@ -355,8 +350,8 @@
                 let pageHeaderHtml = '';
                 if (pageNum === 1) {
                     pageHeaderHtml = `
-                        <div class="border-b-2 border-slate-900 pb-3 mb-4">
-                            <div class="text-[10px] font-black text-indigo-700 tracking-wider uppercase">에이닷 내신자료 메이커</div>
+                        <div class="border-b-2 border-slate-900 pb-3 mb-4 space-y-1">
+                            <div class="text-xl font-black text-indigo-700 tracking-tight">에이닷 내신자료 메이커</div>
                             <h2 class="text-xl font-black text-slate-900 tracking-tight">[${examTitle}] 내신 대비 변형문제</h2>
                         </div>
                     `;
