@@ -604,9 +604,14 @@
 
                 <!-- Action Buttons -->
                 <div class="space-y-2 pt-2">
-                    <button id="btnAnalyze" type="button" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-diagram-project"></i>
+                    <button id="btnAnalyze" type="button" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
+                        <i class="fa-solid fa-diagram-project text-sm"></i>
                         <span>직독직해 & 구문분석 교안 생성</span>
+                    </button>
+
+                    <button id="btnSaveLectureHandout" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
+                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                        <span>강의용교안 저장하기</span>
                     </button>
 
                     <button id="btnCreateVocabTest" type="button" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
@@ -3137,6 +3142,75 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
             }
         });
+
+        // ================= SAVE LECTURE HANDOUT (MANUAL BUTTON) =================
+        const btnSaveLectureHandout = document.getElementById('btnSaveLectureHandout');
+        if (btnSaveLectureHandout) {
+            btnSaveLectureHandout.addEventListener('click', async () => {
+                const title = titleInput.value.trim();
+                if (!title) {
+                    showToast('지문 제목을 입력해 주세요.', 'error');
+                    titleInput.focus();
+                    return;
+                }
+
+                if (!currentAnalysisData || !currentAnalysisData.sentences || currentAnalysisData.sentences.length === 0) {
+                    showToast('먼저 [직독직해 & 구문분석 교안 생성]을 실행해 주세요.', 'error');
+                    return;
+                }
+
+                // Gather current sentences and page breaks
+                const pairs = [];
+                const rows = pairContainer.querySelectorAll('.pair-row');
+                rows.forEach(r => {
+                    const en = r.querySelector('.pair-en').value.trim();
+                    const kr = r.querySelector('.pair-kr').value.trim();
+                    const pbInput = r.querySelector('.pair-page-break');
+                    const pb = pbInput ? pbInput.checked : false;
+                    if (en) {
+                        pairs.push({ english: en, korean: kr, page_break: pb });
+                    }
+                });
+
+                // Ensure current illustration URL is synced
+                const ghibliImg = document.getElementById('ghibliImg');
+                if (ghibliImg && ghibliImg.src) {
+                    currentAnalysisData.illustration_url = ghibliImg.src;
+                }
+
+                const payload = {
+                    title: title,
+                    material_type: selectedMaterialType,
+                    doc_type: '강의용교안',
+                    label: selectedMaterialType,
+                    branch: getCurrentBranch(),
+                    sentence_pairs: pairs,
+                    analysis_data: currentAnalysisData
+                };
+
+                btnSaveLectureHandout.disabled = true;
+                btnSaveLectureHandout.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+                showLoading("강의용 교안 저장 중", "수정된 삽화 및 교안 정보를 서버 데이터베이스에 안전하게 기록하고 있습니다...");
+
+                try {
+                    const response = await fetch('/api/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error('서버 저장 실패');
+                    hideLoading();
+                    showToast(`'${title}' 강의용 교안(수정사항 반영)이 서버에 성공적으로 저장되었습니다!`);
+                } catch (err) {
+                    hideLoading();
+                    showToast(err.message, 'error');
+                } finally {
+                    btnSaveLectureHandout.disabled = false;
+                    btnSaveLectureHandout.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-sm"></i> <span>강의용교안 저장하기</span>';
+                }
+            });
+        }
 
         // Vocab Test Event Listeners
         btnCreateVocabTest.addEventListener('click', async () => {
