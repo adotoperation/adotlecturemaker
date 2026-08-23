@@ -1820,7 +1820,45 @@
                     `;
 
                     if (s.tokens && s.tokens.length > 0) {
-                        s.tokens.forEach((t) => {
+                        const pureConjunctions = ['and', 'or', 'but', 'so', 'yet', 'for', 'nor', 'however', 'therefore', 'furthermore', 'moreover', 'thus', 'consequently', 'nonetheless', 'nevertheless', 'while', 'although', 'though', 'because', 'since', 'if', 'unless', 'as', 'whereas'];
+                        
+                        // Pre-sanitize tokens: split multi-word conjunction tokens (e.g. "or Colorado" -> "or" + "Colorado")
+                        const sanitizedTokens = [];
+                        s.tokens.forEach(t => {
+                            if (!t.text) return;
+                            const textTrim = t.text.trim();
+                            if (textTrim === '/' || textTrim === '//') {
+                                sanitizedTokens.push(t);
+                                return;
+                            }
+                            const words = textTrim.split(/\s+/);
+                            if (words.length > 1) {
+                                const firstClean = words[0].replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
+                                const isConj = t.is_conjunction || pureConjunctions.includes(firstClean) || (t.sub_tag && t.sub_tag.includes('접속'));
+                                if (isConj && pureConjunctions.includes(firstClean)) {
+                                    sanitizedTokens.push({
+                                        text: words[0],
+                                        top_label: '',
+                                        color: 'slate',
+                                        sub_tag: '',
+                                        underline: false,
+                                        is_conjunction: true
+                                    });
+                                    sanitizedTokens.push({
+                                        text: words.slice(1).join(' '),
+                                        top_label: t.top_label || '',
+                                        color: t.color || 'slate',
+                                        sub_tag: (t.sub_tag && !t.sub_tag.includes('접속')) ? t.sub_tag : '',
+                                        underline: t.underline || false,
+                                        is_conjunction: false
+                                    });
+                                    return;
+                                }
+                            }
+                            sanitizedTokens.push(t);
+                        });
+
+                        sanitizedTokens.forEach((t) => {
                             if (t.text && t.text.trim() === '/') {
                                 pageHtml += `
                                     <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
@@ -1831,14 +1869,12 @@
                                 const colorClass = colorClasses[t.color] || 'text-slate-900 border-transparent';
                                 const hasUnderline = t.underline ? 'border-b-2' : '';
                                 
+                                const textClean = t.text.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 let isConjunctionOrAdverb = false;
-                                if (t.is_conjunction === true) {
+                                
+                                // Triangle SVG applies ONLY if the single word itself is a conjunction!
+                                if (pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && t.sub_tag.includes('접속')) || ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus'].includes(textClean))) {
                                     isConjunctionOrAdverb = true;
-                                } else {
-                                    const textClean = t.text.replace(/[\(\)\[\]]/g, '').trim().toLowerCase();
-                                    if (conjAdverbsList.includes(textClean)) {
-                                        isConjunctionOrAdverb = true;
-                                    }
                                 }
 
                                 let subTag = t.sub_tag || '';

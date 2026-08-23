@@ -15,9 +15,79 @@ def load_env():
 load_env()
 DEFAULT_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
+CONJUNCTIONS_LIST = [
+    'and', 'or', 'but', 'so', 'yet', 'for', 'nor',
+    'however', 'therefore', 'furthermore', 'moreover', 'thus', 'consequently',
+    'nonetheless', 'nevertheless', 'while', 'although', 'though', 'because', 'since',
+    'if', 'unless', 'as', 'whereas'
+]
+
+def sanitize_conjunction_tokens(analysis_data):
+    """
+    Ensures conjunctions (and, or, but, so, etc.) are strictly isolated into single-word tokens.
+    Prevents trailing words (e.g. 'or Colorado', 'and work') from having triangles applied over them.
+    """
+    if not analysis_data or 'sentences' not in analysis_data:
+        return analysis_data
+
+    for s in analysis_data.get('sentences', []):
+        old_tokens = s.get('tokens', [])
+        new_tokens = []
+
+        for t in old_tokens:
+            text = t.get('text', '')
+            if not text or text.strip() == '/' or text.strip() == '//':
+                new_tokens.append(t)
+                continue
+
+            words = text.split()
+            if len(words) > 1:
+                first_clean = re.sub(r'^[\[\(]+|[\]\),]+$', '', words[0]).strip().lower()
+                is_conj_token = t.get('is_conjunction', False) or (first_clean in CONJUNCTIONS_LIST and ('접속' in t.get('sub_tag', '') or first_clean in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus']))
+
+                if is_conj_token and first_clean in CONJUNCTIONS_LIST:
+                    conj_word = words[0]
+                    rest_text = " ".join(words[1:])
+                    
+                    conj_token = {
+                        "text": conj_word,
+                        "top_label": "",
+                        "color": "slate",
+                        "sub_tag": "접속사",
+                        "underline": False,
+                        "is_conjunction": True
+                    }
+                    rest_token = {
+                        "text": rest_text,
+                        "top_label": t.get('top_label', ''),
+                        "color": t.get('color', 'slate'),
+                        "sub_tag": t.get('sub_tag', '') if '접속' not in t.get('sub_tag', '') else '',
+                        "underline": t.get('underline', False),
+                        "is_conjunction": False
+                    }
+                    new_tokens.append(conj_token)
+                    new_tokens.append(rest_token)
+                    continue
+
+            clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', text).strip().lower()
+            if clean_word in CONJUNCTIONS_LIST and (t.get('is_conjunction') or '접속' in t.get('sub_tag', '') or clean_word in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus']):
+                t['is_conjunction'] = True
+                if not t.get('sub_tag'):
+                    t['sub_tag'] = '접속사'
+            elif t.get('is_conjunction') and clean_word not in CONJUNCTIONS_LIST and len(words) == 1:
+                t['is_conjunction'] = False
+
+            new_tokens.append(t)
+
+        s['tokens'] = new_tokens
+
+    return analysis_data
+
 def post_process_adverbs(analysis_data):
     if not analysis_data or 'sentences' not in analysis_data:
         return analysis_data
+        
+    analysis_data = sanitize_conjunction_tokens(analysis_data)
         
     for s in analysis_data.get('sentences', []):
         tokens = s.get('tokens', [])
@@ -99,7 +169,7 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 제공되는 [영어 지문]과 [한글 해석 지문]을 바탕으로:
 1. 1페이지용 [지문 핵심 정리] (기승전결 구조를 반영한 정교한 주제, 주제 직결 핵심 키워드 3개, 개조식 3단 내용 정리)를 생성하십시오. (중요: 인쇄 시 줄바꿈(줄넘김)이 일어나서 레이아웃이 깨지지 않도록, 'subject'(주제)와 3단 정리의 각 요약문은 공백 포함 반드시 38자 이하로 매우 짧고 압축적으로 작성하셔야 합니다!)
 2. 2페이지용 [구문 분석] 및 [1:1 끊어읽기 직독직해] 토큰을 **지문의 모든 문장(문장 1, 2, 3, 4, 5... 100% 빠짐없이)**에 대해 생성하십시오.
-3. [중요 어법 포인트]: 각 문장별로 해당 문장에서 쓰인 중요한 어법 요소를 최대 3개, 최소 1개 찾아 구체적이고 친절한 설명과 함께 'grammar_points' 필드에 줄바꿈(\n)으로 구분하여 작성해 주십시오. (예: 'who는 주격 관계대명사이므로, 접속사 who 다음에 주어 없이 동사 were working 이 왔다.'와 같이 해당 문장의 단어와 문맥에 맞춘 구체적인 분석 및 원리를 설명해야 합니다. 단순 명칭만 적지 말고 원리 설명이 반드시 포함되어야 합니다.)
+3. [중요 어법 포인트]: 각 문장별로 해당 문장에서 쓰인 중요한 어법 요소를 최대 3개, 최소 1개 찾아 구체적이고 친절한 설명과 함께 'grammar_points' 필드에 줄바꿈(\\n)으로 구분하여 작성해 주십시오.
 4. [주요 어휘 16개]: 고유명사 및 기능어(that, were, the, of 등)를 제외하고 핵심 동사/명사/형용사/부사를 **단수/원형(lemma)**으로 16개 추출하고, 뜻 앞에 원문자 품사 `(명)`, `(동)`, `(형)`, `(부)`를 표기하십시오!
 
 [★필수 작성 규칙 1: 직독직해 한글 번역에 (), [] 괄호 금지!★]
@@ -119,32 +189,27 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 - **형용사구 역할** (앞의 명사를 후치수식): sub_tag에 반드시 ⬑를 붙여 '⬑ 전치사구'로 표기하십시오! (예: `(in older generations)` -> `⬑ 전치사구`)
 
 [★필수 작성 규칙 5: 부사, 부사구, 부사절 및 모든 종속절 내부 문장기호(S, V, O, C) 필수 표기 규칙★]
-- 부사(한 단어), 부사구(두 단어 이상), 부사절(절 형태)은 소괄호 `()`를 사용하십시오! (예: 부사절의 경우 `(as` 로 시작하여 `))` 로 닫음)
-- 부사/부사구 자체의 껍데기("부사", "부사구", "부사절")는 sub_tag에 적지 않지만, **부사절, 명사절, 관계사절 등 모든 종속절 내부의 주어, 서술어(동사), 목적어, 보어에는 빠짐없이 문장성분 기호(S, Vi, Vt, O, C, SC 등)를 sub_tag에 반드시 표기**해야 합니다! (색상만 칠하고 기호를 빠뜨리면 안 됩니다!)
-  - 예 1: 부사절 `(as others / have been (in the past))` 파싱 구조:
-    * `(as` ➔ `sub_tag`: "", `color`: "slate", `underline`: false
-    * `others` ➔ 종속절(부사절)의 주어이므로 `sub_tag`: "S", `color`: "blue", `underline`: false
-    * ` / ` ➔ 슬래시 끊어읽기 토큰
-    * `have been` ➔ 종속절(부사절)의 동사이므로 `sub_tag`: "Vi", `color`: "rose", `underline`: false
-    * `(in the past))` ➔ `sub_tag`: "", `color`: "slate", `underline`: false
-  - 예 2: 목적어 명사절 `[that young people / reported / more difficulties]` 파싱 구조:
-    * `[that` ➔ `sub_tag`: "목적어절", `color`: "emerald", `underline`: false
-    * `young people` ➔ 종속절의 주어이므로 `sub_tag`: "S", `color`: "blue", `underline`: false
-    * ` / ` ➔ 슬래시 끊어읽기 토큰
-    * `reported` ➔ 종속절의 동사이므로 `sub_tag`: "Vt", `color`: "rose", `underline`: false
-    * `more difficulties]` ➔ 종속절의 목적어이므로 `sub_tag`: "O", `color`: "emerald", `underline`: false
-  - 예 3: 관계사절 `(who / were working / remotely)` 파싱 구조:
-    * `(who` ➔ `sub_tag`: "⬑ 주격관계대명사", `color`: "blue", `underline`: false
-    * ` / ` ➔ 슬래시 끊어읽기 토큰
-    * `were working` ➔ 관계사절의 동사이므로 `sub_tag`: "Vi", `color`: "rose", `underline`: false
-    * `remotely)` ➔ `sub_tag`: "", `color`: "slate", `underline`: false
+- 부사(한 단어), 부사구(두 단어 이상), 부사절(절 형태)은 소괄호 `()`를 사용하십시오!
+- 종속절 내부의 주어, 동사, 목적어, 보어에는 빠짐없이 문장성분 기호(S, Vi, Vt, O, C, SC 등)를 sub_tag에 반드시 표기해야 합니다!
 
 [★필수 작성 규칙 6: 상관접속사 설명 규정 (교과외 용어 금지)★]
-- 'not only A but (also) B' 등 대조/병렬 구조를 설명할 때 '상관쌍', '상관쌍 parallel structure' 등 대학교재나 교육과정 외의 생소한 용어는 절대로 작성하지 마십시오! 대신 반드시 중·고등학교 교육과정 표준 용어인 '상관접속사' 또는 '상관접속사 병렬구조'를 사용하여 grammar_points 등을 설명해야 합니다.
+- 'not only A but (also) B' 등 대조/병렬 구조를 설명할 때 '상관접속사' 또는 '상관접속사 병렬구조' 표준 용어를 사용하십시오.
 
 [★필수 작성 규칙 7: 준동사(동명사, 분사, to부정사) 내부 구조분석 및 상하단 기호 분리 표기★]
-- 준동사구(동명사구, 분사구문, to부정사구)는 문장 전체에서 주어나 목적어/보어 역할을 하므로, 구 전체의 시작 단어 `sub_tag`에는 구 전체의 역할(S, O, C 등 대문자)을 표기하여 아래쪽에 나오게 하십시오!
-- 동시에, 준동사구 내부 단어들이 지닌 원래 준동사로서의 형식(서술어, 목적어, 보어 등)은 단어별 `top_label`에 소문자 `vt`, `vi`, `v`, `o`, `c` 등으로 적어 영단어 위에 배치되도록 하십시오!
+- 준동사구 전체의 시작 단어 `sub_tag`에는 구 전체의 역할(S, O, C 등 대문자)을 표기하고, 내부 단어들의 준동사 서술어/목적어 역할은 `top_label`에 소문자 `vt`, `vi`, `v`, `o`, `c` 등으로 표기하십시오.
+
+[★필수 작성 규칙 8: 밑줄(underline: true) 적용 기준 규칙★]
+- **주절의 주어 및 주절의 서술어(동사)인 경우에만** `underline: true`를 설정하여 밑줄을 쳐주십시오!
+
+[★필수 작성 규칙 9: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
+- `however`, `therefore`, `furthermore`, `moreover`, `thus` 등은 grammar_points에서 '접속부사'로 표기하십시오.
+
+[★필수 작성 규칙 10: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+- `summary_info`의 `illustration_scene_en` 필드에는 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
+
+[★필수 작성 규칙 11: 접속사(and, or, but, so 등)는 무조건 1개 단어 단독 토큰으로 분리!★]
+- 접속사(`and`, `or`, `but`, `so`, `yet` 등)나 접속부사(`however`, `therefore` 등)는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
+- 절대 `{"text": "or Colorado", ...}` 나 `{"text": "and work", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오! (묶을 경우 세모 기호가 다음 단어까지 침범하게 됩니다!) `vi`, `v`, `o`, `c` 등으로 적어 영단어 위에 배치되도록 하십시오!
 - 준동사구 내의 단어 사이에는 끊어읽기 슬래시 토큰 `{"text": " / ", "color": "purple"}`을 명확히 삽입하십시오!
   - 예: 주어로 쓰인 동명사구 `[committing himself (to a painting)]` 파싱 구조:
     * `[committing` ➔ `sub_tag`: "S" (주어구의 시작이므로 아래쪽에 S 표시), `top_label`: "vt" (준동사 서술어이므로 위에 소문자 vt 표시), `color`: "rose"
