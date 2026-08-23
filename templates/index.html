@@ -998,73 +998,174 @@
             </div>
         </div>
 
-        <!-- ==================== VIEW C: USAGE STATISTICS ==================== -->
+        <!-- ==================== VIEW C: USAGE STATISTICS & TOKEN BILLING ==================== -->
         <div id="viewStats" class="hidden space-y-6 no-print">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
                 
-                <!-- Stats Header -->
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
+                <!-- Stats Header & Period Selector -->
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-100 pb-5">
                     <div>
                         <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
-                            <i class="fa-solid fa-chart-pie text-violet-600"></i>
-                            전국 에이닷 내신자료 제작 현황 & 사용량 통계
+                            <i class="fa-solid fa-coins text-amber-500"></i>
+                            전국 에이닷 내신자료 토큰 사용량 & 정산 대시보드
                         </h2>
-                        <p class="text-xs text-slate-500 mt-0.5">전국 지점별 교안 생성 건수 및 자료 유형별 누적 현황을 실시간으로 집계합니다.</p>
+                        <p class="text-xs text-slate-500 mt-1">
+                            전월 26일 00:00부터 당월 25일 24:00까지의 <b>토큰 사용량 및 정산 예상 비용</b>을 실시간으로 집계합니다.
+                        </p>
                     </div>
-                    <button id="btnRefreshStats" type="button" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition flex items-center gap-1.5 self-start sm:self-auto shadow-xs">
-                        <i class="fa-solid fa-rotate text-slate-500"></i> 새로고침
-                    </button>
+
+                    <!-- Year & Month Period Selector Controls -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1">
+                            <i class="fa-solid fa-calendar-days text-indigo-600 text-xs ml-1.5"></i>
+                            <select id="statsYearSelect" class="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer py-1">
+                                <option value="2025">2025년</option>
+                                <option value="2026" selected>2026년</option>
+                                <option value="2027">2027년</option>
+                            </select>
+                            <span class="text-slate-300">|</span>
+                            <select id="statsMonthSelect" class="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer py-1">
+                                <option value="1">1월</option>
+                                <option value="2">2월</option>
+                                <option value="3">3월</option>
+                                <option value="4">4월</option>
+                                <option value="5">5월</option>
+                                <option value="6">6월</option>
+                                <option value="7">7월</option>
+                                <option value="8" selected>8월</option>
+                                <option value="9">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                            </select>
+                        </div>
+                        <button id="btnRefreshStats" type="button" class="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-rotate"></i> 조회
+                        </button>
+                    </div>
                 </div>
 
-                <!-- 4 Summary KPI Cards -->
+                <!-- Current Active Period Badge Info -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/70 border border-indigo-200 rounded-xl px-4 py-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded">정산 주기</span>
+                        <span id="statsPeriodLabel" class="text-xs font-bold text-indigo-950">2026년 8월 정산 주기 (2026.07.26 00:00 ~ 2026.08.25 24:00)</span>
+                    </div>
+                    <div class="text-[11px] text-indigo-700 font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info"></i> 매월 26일~익월 25일 자동 마감 기준
+                    </div>
+                </div>
+
+                <!-- 4 Summary KPI Cards (Billing Period Based) -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-slate-500">해당 주기 총 제작 자료</div>
+                        <div id="statTotalCount" class="text-2xl font-black text-slate-900">0건</div>
+                        <div class="text-[10px] text-slate-400">전국 누적 제작 건수</div>
+                    </div>
                     <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-indigo-600">총 제작 자료수</div>
-                        <div id="statTotalCount" class="text-2xl font-black text-indigo-950">0건</div>
-                    </div>
-                    <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-emerald-600">우리 지점 제작수</div>
-                        <div id="statMyCount" class="text-2xl font-black text-emerald-950">0건</div>
-                    </div>
-                    <div class="bg-violet-50/70 border border-violet-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-violet-600">참여 지점 수</div>
-                        <div id="statTotalBranches" class="text-2xl font-black text-violet-950">0곳</div>
+                        <div class="text-[11px] font-bold text-indigo-600">우리 지점 제작수 / 토큰</div>
+                        <div id="statMyCount" class="text-2xl font-black text-indigo-950">0건</div>
+                        <div id="statMyTokensSub" class="text-[10px] text-indigo-600 font-bold">0 토큰 사용</div>
                     </div>
                     <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-amber-600">변형문제 생성수</div>
-                        <div id="statExamCount" class="text-2xl font-black text-amber-950">0건</div>
+                        <div class="text-[11px] font-bold text-amber-700">우리 지점 정산 예상 비용</div>
+                        <div id="statMyCost" class="text-2xl font-black text-amber-950">0원</div>
+                        <div class="text-[10px] text-amber-700 font-medium">1,000 토큰당 약 0.35원 기준</div>
+                    </div>
+                    <div class="bg-rose-50/70 border border-rose-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-rose-600">변형문제 출제 건수</div>
+                        <div id="statExamCount" class="text-2xl font-black text-rose-950">0건</div>
+                        <div class="text-[10px] text-rose-500">9종 변형문제 1·2차 세트</div>
                     </div>
                 </div>
 
-                <!-- 2-Column: Material Type Distribution & Branch Ranking Leaderboard -->
+                <!-- Gemini API Token Pricing Standard Banner -->
+                <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-4 sm:p-5 border border-slate-800 shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">단가 기준표</span>
+                            <h4 class="text-xs sm:text-sm font-bold text-white">Google Gemini API 공식 토큰 단가 기준 (환율 1,380원 환산)</h4>
+                        </div>
+                        <p class="text-[11px] text-slate-300 leading-relaxed">
+                            입력(프롬프트) $0.075/1M, 출력(응답) $0.300/1M ➔ <b>평균 1,000 토큰당 약 0.35원 (1토큰 ≈ 0.00035원)</b>
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-[10px] font-semibold shrink-0">
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            강의용 교안: <b class="text-amber-300 font-bold">~4,500T (약 1.6원)</b>
+                        </span>
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            단어 TEST: <b class="text-violet-300 font-bold">~2,000T (약 0.7원)</b>
+                        </span>
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            변형문제(1·2차): <b class="text-rose-300 font-bold">~22,000T (약 7.7원)</b>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 2-Column: My Branch Audit Logs (Permanent) & Nationwide Branch Ranking Table -->
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
-                    <!-- Left: Material Type Breakdown -->
-                    <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
-                        <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <i class="fa-solid fa-tags text-indigo-600"></i> 자료 유형별 제작 분포
-                        </h3>
-                        <div id="statTypeBreakdown" class="space-y-2.5 pt-1">
-                            <!-- Type progress bars injected dynamically -->
+                    <!-- Left: My Branch Material Creation History (Permanent Audit Log) -->
+                    <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-receipt text-indigo-600"></i> 
+                                    <span id="logTableTitle">우리 지점 내신자료 제작 내역</span>
+                                </h3>
+                                <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
+                                    <i class="fa-solid fa-shield-halved text-[9px]"></i> 삭제 후에도 영구 보존
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-2">
+                                해당 정산 기간 동안 제작된 자료 내역입니다. 자료 저장소에서 삭제하더라도 정산 로그는 보존됩니다.
+                            </p>
                         </div>
-                    </div>
-
-                    <!-- Right: Branch Ranking Leaderboard Table -->
-                    <div class="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
-                        <h3 class="text-xs font-bold text-slate-800 flex items-center justify-between">
-                            <span class="flex items-center gap-1.5">
-                                <i class="fa-solid fa-trophy text-amber-500"></i> 전국 지점별 제작 랭킹
-                            </span>
-                            <span class="text-[11px] font-normal text-slate-500">실시간 누적 기준</span>
-                        </h3>
-                        <div class="overflow-x-auto max-h-80 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                        
+                        <div class="overflow-x-auto max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white">
                             <table class="w-full text-xs text-left">
                                 <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0">
                                     <tr>
-                                        <th class="py-2.5 px-3 text-center w-12">순위</th>
-                                        <th class="py-2.5 px-4">지점명</th>
-                                        <th class="py-2.5 px-3 text-center w-24">제작 건수</th>
-                                        <th class="py-2.5 px-4 text-right">최근 활동</th>
+                                        <th class="py-2.5 px-3">일시</th>
+                                        <th class="py-2.5 px-2.5">구분</th>
+                                        <th class="py-2.5 px-3">자료 제목</th>
+                                        <th class="py-2.5 px-3 text-right">토큰수</th>
+                                        <th class="py-2.5 px-3 text-right">예상 비용</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statMyLogsTableBody" class="divide-y divide-slate-100">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right: Nationwide Branch Token Ranking Leaderboard Table -->
+                    <div class="lg:col-span-6 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+                                <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-trophy text-amber-500"></i> 전국 지점별 토큰 사용량 & 정산 랭킹
+                                </h3>
+                                <span class="text-[10px] text-slate-500 font-semibold">선택 정산 주기 기준</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 mb-2">
+                                전국 에이닷 지점별 총 토큰 사용량과 산출된 정산 예상 비용 랭킹입니다.
+                            </p>
+                        </div>
+
+                        <div class="overflow-x-auto max-h-96 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0">
+                                    <tr>
+                                        <th class="py-2.5 px-2 text-center w-10">순위</th>
+                                        <th class="py-2.5 px-3">지점명</th>
+                                        <th class="py-2.5 px-2 text-center">건수</th>
+                                        <th class="py-2.5 px-3 text-right">토큰 사용량</th>
+                                        <th class="py-2.5 px-3 text-right">정산 예상 비용</th>
+                                        <th class="py-2.5 px-3 text-right">최근 활동</th>
                                     </tr>
                                 </thead>
                                 <tbody id="statRankingTableBody" class="divide-y divide-slate-100">
@@ -2618,101 +2719,165 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             }
         }
 
-        // ================= USAGE STATS VIEW LOGIC =================
+        // ================= USAGE STATS & TOKEN BILLING VIEW LOGIC =================
         const btnRefreshStats = document.getElementById('btnRefreshStats');
+        const statsYearSelect = document.getElementById('statsYearSelect');
+        const statsMonthSelect = document.getElementById('statsMonthSelect');
+
         if (btnRefreshStats) {
             btnRefreshStats.addEventListener('click', () => refreshStatsView());
+        }
+        if (statsYearSelect) {
+            statsYearSelect.addEventListener('change', () => refreshStatsView());
+        }
+        if (statsMonthSelect) {
+            statsMonthSelect.addEventListener('change', () => refreshStatsView());
         }
 
         async function refreshStatsView() {
             const statTotalCount = document.getElementById('statTotalCount');
             const statMyCount = document.getElementById('statMyCount');
-            const statTotalBranches = document.getElementById('statTotalBranches');
+            const statMyTokensSub = document.getElementById('statMyTokensSub');
+            const statMyCost = document.getElementById('statMyCost');
             const statExamCount = document.getElementById('statExamCount');
-            const statTypeBreakdown = document.getElementById('statTypeBreakdown');
+            const statsPeriodLabel = document.getElementById('statsPeriodLabel');
+            const logTableTitle = document.getElementById('logTableTitle');
+            const statMyLogsTableBody = document.getElementById('statMyLogsTableBody');
             const statRankingTableBody = document.getElementById('statRankingTableBody');
 
+            const year = statsYearSelect ? statsYearSelect.value : '2026';
+            const month = statsMonthSelect ? statsMonthSelect.value : '8';
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
+
             try {
-                const res = await fetch('/api/stats');
+                const res = await fetch(`/api/stats?year=${year}&month=${month}&branch=${encodeURIComponent(myBranch)}`);
                 if (!res.ok) throw new Error('통계 데이터 로드 실패');
                 const data = await res.json();
 
-                const myBranch = getCurrentBranch();
-                const total = data.total_count || 0;
-                
-                // Find my branch count
-                let myCount = 0;
-                if (data.branch_ranking) {
-                    const found = data.branch_ranking.find(b => b.branch === myBranch);
-                    if (found) myCount = found.count;
+                // 1. Update Period Label
+                if (statsPeriodLabel && data.period) {
+                    statsPeriodLabel.innerText = data.period.label || `${year}년 ${month}월 정산 주기`;
                 }
 
-                statTotalCount.innerText = `${total}건`;
-                statMyCount.innerText = `${myCount}건`;
-                statTotalBranches.innerText = `${data.total_branches || 0}곳`;
-                statExamCount.innerText = `${(data.doc_type_counts && (data.doc_type_counts['변형문제 1차'] + data.doc_type_counts['변형문제 2차'])) || (data.label_counts && data.label_counts['변형문제']) || 0}건`;
+                // 2. Update KPI Summary Cards
+                const summary = data.summary || {};
+                const totalCount = summary.total_count || 0;
+                const myCount = summary.my_count || 0;
+                const myTokens = summary.my_tokens || 0;
+                const myCost = summary.my_cost_krw || 0;
+                const examCount = summary.exam_count || 0;
 
-                // Render Type Breakdown Bars
-                if (statTypeBreakdown && data.label_counts) {
-                    const types = [
-                        { label: '모의고사', color: 'bg-indigo-600' },
-                        { label: '교과서', color: 'bg-emerald-600' },
-                        { label: '부교재', color: 'bg-amber-500' },
-                        { label: '기타', color: 'bg-slate-500' }
-                    ];
+                if (statTotalCount) statTotalCount.innerText = `${totalCount}건`;
+                if (statMyCount) statMyCount.innerText = `${myCount}건`;
+                if (statMyTokensSub) statMyTokensSub.innerText = `${myTokens.toLocaleString()} 토큰 사용`;
+                if (statMyCost) statMyCost.innerText = `약 ${myCost.toLocaleString()}원`;
+                if (statExamCount) statExamCount.innerText = `${examCount}건`;
 
-                    let breakdownHtml = '';
-                    types.forEach(t => {
-                        const count = data.label_counts[t.label] || 0;
-                        const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-                        breakdownHtml += `
-                            <div>
-                                <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
-                                    <span>${t.label}</span>
-                                    <span class="text-slate-500">${count}건 (${pct}%)</span>
-                                </div>
-                                <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                                    <div class="${t.color} h-full rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    statTypeBreakdown.innerHTML = breakdownHtml;
+                if (logTableTitle) {
+                    logTableTitle.innerText = `${admin ? '전국 지점' : myBranch} 내신자료 제작 내역 (${(data.my_logs || []).length}건)`;
                 }
 
-                // Render Branch Ranking Table
-                if (statRankingTableBody && data.branch_ranking) {
-                    let rowsHtml = '';
-                    data.branch_ranking.forEach((b, idx) => {
-                        const isTop3 = idx < 3;
-                        let rankBadge = `<span class="font-bold text-slate-500 text-xs">${idx + 1}위</span>`;
-                        if (idx === 0) rankBadge = `<span class="bg-amber-100 text-amber-800 font-black text-xs px-2 py-0.5 rounded-full"><i class="fa-solid fa-crown text-amber-500"></i> 1위</span>`;
-                        else if (idx === 1) rankBadge = `<span class="bg-slate-200 text-slate-700 font-black text-xs px-2 py-0.5 rounded-full">2위</span>`;
-                        else if (idx === 2) rankBadge = `<span class="bg-amber-50 text-amber-700 border border-amber-200 font-black text-xs px-2 py-0.5 rounded-full">3위</span>`;
-
-                        const isCurrent = (b.branch === myBranch);
-                        const rowBg = isCurrent ? 'bg-indigo-50/70 border-l-4 border-l-indigo-600 font-bold' : (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
-
-                        let lastActiveStr = '활동 없음';
-                        if (b.last_active && b.last_active > 100000) {
-                            lastActiveStr = new Date(b.last_active * 1000).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                        }
-
-                        rowsHtml += `
-                            <tr class="${rowBg} hover:bg-slate-100/80 transition text-xs border-b border-slate-100">
-                                <td class="px-4 py-3 text-center">${rankBadge}</td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-bold text-slate-800">${b.branch}</span>
-                                        ${isCurrent ? '<span class="text-[10px] bg-indigo-600 text-white font-black px-1.5 py-0.2 rounded">내 지점</span>' : ''}
-                                    </div>
+                // 3. Render My Branch Audit Logs (Permanent)
+                if (statMyLogsTableBody) {
+                    const logs = data.my_logs || [];
+                    if (logs.length === 0) {
+                        statMyLogsTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
+                                    <i class="fa-solid fa-folder-open text-base mb-1 block text-slate-300"></i>
+                                    해당 정산 주기에 제작된 내신자료 내역이 없습니다.
                                 </td>
-                                <td class="px-4 py-3 text-right font-black text-indigo-600">${b.count}건</td>
-                                <td class="px-4 py-3 text-right text-slate-400 text-[11px]">${lastActiveStr}</td>
                             </tr>
                         `;
-                    });
-                    statRankingTableBody.innerHTML = rowsHtml;
+                    } else {
+                        let logRows = '';
+                        logs.forEach((l, idx) => {
+                            let dateStr = l.timestamp || '';
+                            if (dateStr.includes('T')) {
+                                const parts = dateStr.split('T');
+                                const timeParts = parts[1].split(':');
+                                dateStr = `${parts[0].slice(5)} ${timeParts[0]}:${timeParts[1]}`;
+                            }
+
+                            const matType = l.material_type || '모의고사';
+                            const docType = l.doc_type || '강의용교안';
+                            const tokens = l.tokens || 0;
+                            const cost = l.cost_krw || 0;
+
+                            let docBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                            if (docType.includes('단어')) docBadgeClass = 'bg-violet-50 text-violet-700 border-violet-200';
+                            else if (docType.includes('2차')) docBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                            else if (docType.includes('변형문제')) docBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                            const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+
+                            logRows += `
+                                <tr class="${rowBg} hover:bg-indigo-50/40 transition text-xs border-b border-slate-100">
+                                    <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">${dateStr}</td>
+                                    <td class="py-2.5 px-2.5 whitespace-nowrap">
+                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${docBadgeClass}">
+                                            ${docType}
+                                        </span>
+                                    </td>
+                                    <td class="py-2.5 px-3 font-semibold text-slate-800 truncate max-w-[140px]" title="${l.title}">
+                                        ${l.title}
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-indigo-700">${tokens.toLocaleString()} T</td>
+                                    <td class="py-2.5 px-3 text-right font-bold text-amber-900">${cost}원</td>
+                                </tr>
+                            `;
+                        });
+                        statMyLogsTableBody.innerHTML = logRows;
+                    }
+                }
+
+                // 4. Render Nationwide Branch Token Ranking Table
+                if (statRankingTableBody) {
+                    const rankings = data.branch_ranking || [];
+                    if (rankings.length === 0) {
+                        statRankingTableBody.innerHTML = `
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+                                    해당 정산 주기 활동 데이터가 없습니다.
+                                </td>
+                            </tr>
+                        `;
+                    } else {
+                        let rankRows = '';
+                        rankings.forEach((b, idx) => {
+                            const rankNum = idx + 1;
+                            let rankBadge = `<span class="font-bold text-slate-500 text-xs">${rankNum}위</span>`;
+                            if (rankNum === 1) rankBadge = `<span class="bg-amber-100 text-amber-800 font-black text-xs px-2 py-0.5 rounded-full"><i class="fa-solid fa-crown text-amber-500"></i> 1위</span>`;
+                            else if (rankNum === 2) rankBadge = `<span class="bg-slate-200 text-slate-700 font-black text-xs px-2 py-0.5 rounded-full">2위</span>`;
+                            else if (rankNum === 3) rankBadge = `<span class="bg-amber-50 text-amber-700 border border-amber-200 font-black text-xs px-2 py-0.5 rounded-full">3위</span>`;
+
+                            const isCurrent = (b.branch === myBranch || (admin && b.branch === '본사'));
+                            const rowBg = isCurrent ? 'bg-indigo-50/80 border-l-4 border-l-indigo-600 font-bold' : (idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50');
+
+                            let lastActiveStr = '활동 없음';
+                            if (b.last_active && b.last_active > 100000) {
+                                lastActiveStr = new Date(b.last_active * 1000).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                            }
+
+                            rankRows += `
+                                <tr class="${rowBg} hover:bg-slate-100/80 transition text-xs border-b border-slate-100">
+                                    <td class="py-2.5 px-2 text-center">${rankBadge}</td>
+                                    <td class="py-2.5 px-3">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="font-bold text-slate-900">${b.branch}</span>
+                                            ${isCurrent ? '<span class="text-[10px] bg-indigo-600 text-white font-black px-1.5 py-0.2 rounded">내 지점</span>' : ''}
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-2 text-center font-bold text-slate-700">${b.count}건</td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-black text-indigo-700">${(b.tokens || 0).toLocaleString()} T</td>
+                                    <td class="py-2.5 px-3 text-right font-bold text-amber-900">약 ${(b.cost_krw || 0).toLocaleString()}원</td>
+                                    <td class="py-2.5 px-3 text-right text-slate-400 text-[11px]">${lastActiveStr}</td>
+                                </tr>
+                            `;
+                        });
+                        statRankingTableBody.innerHTML = rankRows;
+                    }
                 }
 
             } catch (err) {

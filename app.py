@@ -132,6 +132,10 @@ def generate_exam():
                 }
             }
             f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch)
+            try:
+                append_usage_log(branch, material_type, doc_type_val, t_name, 11000)
+            except Exception:
+                pass
             return {"title": t_name, "filename": f_name, "material_type": material_type, "doc_type": doc_type_val, "questions": q_data, "question_order": shuffled_order, "branch": branch}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
@@ -548,65 +552,230 @@ def get_saves():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Token pricing constants (Gemini API standard with USD/KRW 1,380)
+# Prompt: $0.075 / 1M tokens, Output: $0.300 / 1M tokens -> Blended: ~0.00035 KRW / token
+TOKEN_PRICE_PER_TOKEN_KRW = 0.00035
+
+def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
+    dt = (doc_type or '강의용교안').strip()
+    if '변형문제' in dt:
+        return 11000  # 9종 변형문제 세트당 약 11,000 토큰
+    elif '단어' in dt:
+        return 2000   # 15개 어휘 추출 및 단어 테스트 약 2,000 토큰
+    else:
+        # 강의용 교안: 문장 수 및 구문분석 데이터 크기 반영
+        sentence_count = len(sentence_pairs) if sentence_pairs else 7
+        return max(4000, min(8000, 3000 + sentence_count * 300))
+
+def get_billing_period_bounds(year, month):
+    """
+    Returns (start_timestamp, end_timestamp) for the billing cycle in KST.
+    Cycle: Previous month 26th 00:00:00 KST to Target month 25th 23:59:59 KST.
+    """
+    import datetime
+    # Target month 25th 23:59:59
+    end_dt = datetime.datetime(year, month, 25, 23, 59, 59)
+    
+    # Previous month 26th 00:00:00
+    if month == 1:
+        start_dt = datetime.datetime(year - 1, 12, 26, 0, 0, 0)
+    else:
+        start_dt = datetime.datetime(year, month - 1, 26, 0, 0, 0)
+        
+    start_ts = start_dt.timestamp()
+    end_ts = end_dt.timestamp()
+    return start_ts, end_ts, start_dt.strftime('%Y.%m.%d 00:00'), end_dt.strftime('%Y.%m.%d 24:00')
+
+USAGE_LOGS_FILE = os.path.join(SAVES_DIR, 'usage_audit_logs.json')
+
+def append_usage_log(branch, material_type, doc_type, title, tokens=None):
+    if tokens is None:
+        tokens = estimate_tokens_for_item(doc_type)
+    cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
+    log_entry = {
+        'id': f"log_{int(time.time()*1000)}",
+        'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S'),
+        'mtime': time.time(),
+        'branch': branch or '본사',
+        'material_type': material_type or '모의고사',
+        'doc_type': doc_type or '강의용교안',
+        'title': title,
+        'tokens': tokens,
+        'cost_krw': cost
+    }
+    
+    # Save to local audit logs
+    try:
+        logs = []
+        if os.path.exists(USAGE_LOGS_FILE):
+            with open(USAGE_LOGS_FILE, 'r', encoding='utf-8') as f:
+                logs = json.load(f)
+        logs.append(log_entry)
+        with open(USAGE_LOGS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(logs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("[append_usage_log] Error writing local log:", e)
+
+    # Save to GAS RDB_로그 sheet if GAS is available
+    if GAS_URL:
+        try:
+            requests.post(GAS_URL, json={
+                "action": "log",
+                "branch": log_entry['branch'],
+                "material_type": log_entry['material_type'],
+                "doc_type": log_entry['doc_type'],
+                "title": log_entry['title'],
+                "tokens": log_entry['tokens'],
+                "cost_krw": log_entry['cost_krw'],
+                "timestamp": log_entry['timestamp']
+            }, timeout=5)
+        except Exception:
+            pass
+
+    return log_entry
+
+def get_all_usage_logs():
+    """
+    Returns all usage logs (from GAS log sheet, local file, and existing saves).
+    Logs are permanent and never deleted even if document is deleted.
+    """
+    logs_map = {}
+    
+    # 1. From local persistent audit log file
+    if os.path.exists(USAGE_LOGS_FILE):
+        try:
+            with open(USAGE_LOGS_FILE, 'r', encoding='utf-8') as f:
+                saved_logs = json.load(f)
+                for l in saved_logs:
+                    key = f"{l.get('branch')}_{l.get('title')}_{l.get('doc_type')}_{l.get('timestamp')}"
+                    logs_map[key] = l
+        except Exception:
+            pass
+
+    # 2. From current saves (ensures existing items are accounted for)
+    current_saves = get_db_saves()
+    for s in current_saves:
+        t = s.get('title', '')
+        br = s.get('branch', '본사')
+        mat = s.get('material_type', '모의고사')
+        doc = s.get('doc_type', '강의용교안')
+        mt = s.get('mtime', 0.0)
+        tokens = estimate_tokens_for_item(doc)
+        cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
+        
+        iso_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(mt)) if mt > 100000 else time.strftime('%Y-%m-%dT%H:%M:%S')
+        key = f"{br}_{t}_{doc}_{iso_time[:10]}"
+        if key not in logs_map:
+            logs_map[key] = {
+                'id': f"save_{int(mt*1000) if mt > 100000 else int(time.time()*1000)}",
+                'timestamp': iso_time,
+                'mtime': mt if mt > 100000 else time.time(),
+                'branch': br,
+                'material_type': mat,
+                'doc_type': doc,
+                'title': t,
+                'tokens': tokens,
+                'cost_krw': cost
+            }
+
+    all_logs = list(logs_map.values())
+    all_logs.sort(key=lambda x: x.get('mtime', 0.0), reverse=True)
+    return all_logs
+
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     try:
-        saves = get_db_saves()
-        total_count = len(saves)
+        now = time.localtime()
+        current_year = int(request.args.get('year', now.tm_year))
+        current_month = int(request.args.get('month', now.tm_mon))
+        user_branch = request.args.get('branch', '').strip()
         
-        label_counts = {
-            "교과서": 0,
-            "모의고사": 0,
-            "부교재": 0,
-            "기타": 0
-        }
-        doc_type_counts = {
-            "강의용교안": 0,
-            "단어TEST": 0,
-            "변형문제 1차": 0,
-            "변형문제 2차": 0
-        }
+        # 1. Calculate Billing Period: (M-1)월 26일 00:00:00 ~ M월 25일 23:59:59
+        start_ts, end_ts, period_start_str, period_end_str = get_billing_period_bounds(current_year, current_month)
         
-        branch_counts = {}
-        branch_recent = {}
+        # 2. Retrieve All Permanent Logs
+        all_logs = get_all_usage_logs()
         
-        for s in saves:
-            lbl = s.get('material_type', s.get('label', '기타'))
-            if lbl in label_counts:
-                label_counts[lbl] += 1
-            else:
-                label_counts["기타"] += 1
+        # 3. Filter Logs within the Selected Billing Cycle
+        period_logs = []
+        for l in all_logs:
+            mt = l.get('mtime', 0.0)
+            if start_ts <= mt <= end_ts:
+                period_logs.append(l)
 
-            dt = s.get('doc_type', '강의용교안')
-            if dt in doc_type_counts:
-                doc_type_counts[dt] += 1
-            else:
-                doc_type_counts[dt] = doc_type_counts.get(dt, 0) + 1
-                
-            br = s.get('branch', '에이닷 본원').strip() or '에이닷 본원'
-            branch_counts[br] = branch_counts.get(br, 0) + 1
-            
-            mtime = s.get('mtime', 0)
-            if br not in branch_recent or mtime > branch_recent[br]:
-                branch_recent[br] = mtime
-                
-        branch_ranking = []
-        for br, cnt in sorted(branch_counts.items(), key=lambda x: x[1], reverse=True):
-            branch_ranking.append({
-                "branch": br,
-                "count": cnt,
-                "last_active": branch_recent.get(br, 0)
-            })
-            
+        # 4. Aggregations for the Selected Period
+        total_count = len(period_logs)
+        total_tokens = sum(l.get('tokens', 0) for l in period_logs)
+        total_cost_krw = round(total_tokens * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+
+        exam_count = sum(1 for l in period_logs if '변형문제' in l.get('doc_type', ''))
+        vocab_count = sum(1 for l in period_logs if '단어' in l.get('doc_type', ''))
+        lecture_count = sum(1 for l in period_logs if '강의용' in l.get('doc_type', ''))
+        
+        # Branch Aggregations
+        branch_stats = {}
+        for l in period_logs:
+            br = l.get('branch', '본사')
+            if br not in branch_stats:
+                branch_stats[br] = {
+                    'branch': br,
+                    'count': 0,
+                    'tokens': 0,
+                    'cost_krw': 0.0,
+                    'last_active': 0.0
+                }
+            branch_stats[br]['count'] += 1
+            branch_stats[br]['tokens'] += l.get('tokens', 0)
+            branch_stats[br]['cost_krw'] = round(branch_stats[br]['tokens'] * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+            if l.get('mtime', 0.0) > branch_stats[br]['last_active']:
+                branch_stats[br]['last_active'] = l.get('mtime', 0.0)
+
+        branch_ranking = sorted(branch_stats.values(), key=lambda x: x['tokens'], reverse=True)
+
+        # User's branch specific logs (or all logs for admin)
+        if user_branch and user_branch != 'admin':
+            my_logs = [l for l in period_logs if l.get('branch') == user_branch]
+            my_count = len(my_logs)
+            my_tokens = sum(l.get('tokens', 0) for l in my_logs)
+            my_cost_krw = round(my_tokens * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+        else:
+            my_logs = period_logs
+            my_count = total_count
+            my_tokens = total_tokens
+            my_cost_krw = total_cost_krw
+
         return jsonify({
             "success": True,
-            "total_count": total_count,
-            "total_branches": len(branch_counts),
-            "label_counts": label_counts,
-            "doc_type_counts": doc_type_counts,
-            "branch_ranking": branch_ranking
+            "year": current_year,
+            "month": current_month,
+            "period": {
+                "start": period_start_str,
+                "end": period_end_str,
+                "label": f"{current_year}년 {current_month}월 정산 주기 ({period_start_str} ~ {period_end_str})"
+            },
+            "pricing_standard": {
+                "token_unit_price_krw": TOKEN_PRICE_PER_TOKEN_KRW,
+                "per_1k_tokens_krw": 0.35,
+                "exchange_rate": 1380,
+                "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.35원)"
+            },
+            "summary": {
+                "total_count": total_count,
+                "total_tokens": total_tokens,
+                "total_cost_krw": total_cost_krw,
+                "total_branches": len(branch_stats),
+                "exam_count": exam_count,
+                "vocab_count": vocab_count,
+                "lecture_count": lecture_count,
+                "my_count": my_count,
+                "my_tokens": my_tokens,
+                "my_cost_krw": my_cost_krw
+            },
+            "branch_ranking": branch_ranking,
+            "my_logs": my_logs[:100]  # Max 100 recent entries in period
         })
     except Exception as e:
+        print("[get_stats] Error:", e)
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/save', methods=['POST'])
@@ -620,6 +789,11 @@ def save_handout():
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400
     try:
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch)
+        try:
+            tokens = estimate_tokens_for_item(doc_type, data.get('analysis_data'), data.get('sentence_pairs'))
+            append_usage_log(branch, material_type, doc_type, title, tokens)
+        except Exception:
+            pass
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
