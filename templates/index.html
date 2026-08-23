@@ -6,6 +6,8 @@
     <title>에이닷 내신자료 메이커 v1.0 | supported by 영업지원팀</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -1069,7 +1071,7 @@
                         <div id="statMyTokensSub" class="text-[10px] text-indigo-600 font-bold">0 토큰 사용</div>
                     </div>
                     <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-amber-700">우리 지점 정산 예상 비용</div>
+                        <div class="text-[11px] font-bold text-amber-700">우리 지점 정산 비용</div>
                         <div id="statMyCost" class="text-2xl font-black text-amber-950">0원</div>
                         <div class="text-[10px] text-amber-700 font-medium">1,000 토큰당 약 0.35원 기준</div>
                     </div>
@@ -1132,7 +1134,7 @@
                                         <th class="py-2.5 px-2.5">구분</th>
                                         <th class="py-2.5 px-3">자료 제목</th>
                                         <th class="py-2.5 px-3 text-right">토큰수</th>
-                                        <th class="py-2.5 px-3 text-right">예상 비용</th>
+                                        <th class="py-2.5 px-3 text-right">비용</th>
                                     </tr>
                                 </thead>
                                 <tbody id="statMyLogsTableBody" class="divide-y divide-slate-100">
@@ -1149,10 +1151,12 @@
                                 <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-trophy text-amber-500"></i> 전국 지점별 토큰 사용량 & 정산 랭킹
                                 </h3>
-                                <span class="text-[10px] text-slate-500 font-semibold">선택 정산 주기 기준</span>
+                                <button id="btnExportStatsExcel" type="button" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg transition flex items-center gap-1 shadow-xs cursor-pointer">
+                                    <i class="fa-solid fa-file-excel text-emerald-100"></i> 엑셀 다운로드
+                                </button>
                             </div>
                             <p class="text-[11px] text-slate-500 mb-2">
-                                전국 에이닷 지점별 총 토큰 사용량과 산출된 정산 예상 비용 랭킹입니다.
+                                전국 에이닷 지점별 총 토큰 사용량과 산출된 정산 비용 랭킹입니다.
                             </p>
                         </div>
 
@@ -1164,7 +1168,7 @@
                                         <th class="py-2.5 px-3">지점명</th>
                                         <th class="py-2.5 px-2 text-center">건수</th>
                                         <th class="py-2.5 px-3 text-right">토큰 사용량</th>
-                                        <th class="py-2.5 px-3 text-right">정산 예상 비용</th>
+                                        <th class="py-2.5 px-3 text-right">비용</th>
                                         <th class="py-2.5 px-3 text-right">최근 활동</th>
                                     </tr>
                                 </thead>
@@ -2755,6 +2759,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 if (!res.ok) throw new Error('통계 데이터 로드 실패');
                 const data = await res.json();
 
+                window.latestStatsData = data;
+
                 // 1. Update Period Label
                 if (statsPeriodLabel && data.period) {
                     statsPeriodLabel.innerText = data.period.label || `${year}년 ${month}월 정산 주기`;
@@ -2771,7 +2777,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 if (statTotalCount) statTotalCount.innerText = `${totalCount}건`;
                 if (statMyCount) statMyCount.innerText = `${myCount}건`;
                 if (statMyTokensSub) statMyTokensSub.innerText = `${myTokens.toLocaleString()} 토큰 사용`;
-                if (statMyCost) statMyCost.innerText = `약 ${myCost.toLocaleString()}원`;
+                if (statMyCost) statMyCost.innerText = `${myCost.toLocaleString()}원`;
                 if (statExamCount) statExamCount.innerText = `${examCount}건`;
 
                 if (logTableTitle) {
@@ -2871,7 +2877,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                                     </td>
                                     <td class="py-2.5 px-2 text-center font-bold text-slate-700">${b.count}건</td>
                                     <td class="py-2.5 px-3 text-right font-mono font-black text-indigo-700">${(b.tokens || 0).toLocaleString()} T</td>
-                                    <td class="py-2.5 px-3 text-right font-bold text-amber-900">약 ${(b.cost_krw || 0).toLocaleString()}원</td>
+                                    <td class="py-2.5 px-3 text-right font-bold text-amber-900">${(b.cost_krw || 0).toLocaleString()}원</td>
                                     <td class="py-2.5 px-3 text-right text-slate-400 text-[11px]">${lastActiveStr}</td>
                                 </tr>
                             `;
@@ -2884,6 +2890,78 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 console.error("Stats Error:", err);
                 showToast("통계 데이터를 불러오지 못했습니다.", "error");
             }
+        }
+
+        // ================= EXCEL EXPORT LOGIC =================
+        const btnExportStatsExcel = document.getElementById('btnExportStatsExcel');
+        if (btnExportStatsExcel) {
+            btnExportStatsExcel.addEventListener('click', () => {
+                if (!window.latestStatsData) {
+                    showToast('먼저 통계 데이터를 조회해 주세요.', 'error');
+                    return;
+                }
+
+                const data = window.latestStatsData;
+                const year = data.year || 2026;
+                const month = data.month || 8;
+                const periodLabel = data.period ? data.period.label : `${year}년 ${month}월 정산 주기`;
+
+                // 1. Ranking Dataset: 순위, 지점, 비용(원), 제작건수, 토큰사용량(T), 최근활동
+                const rankingRows = (data.branch_ranking || []).map((b, idx) => ({
+                    '순위': `${idx + 1}위`,
+                    '지점': b.branch,
+                    '비용(원)': b.cost_krw || 0,
+                    '제작 건수': b.count,
+                    '토큰 사용량(T)': b.tokens || 0,
+                    '최근 활동': (b.last_active && b.last_active > 100000) 
+                        ? new Date(b.last_active * 1000).toLocaleString('ko-KR')
+                        : '활동 없음'
+                }));
+
+                // 2. Material Log Dataset: 번호, 일시, 지점, 교재구분, 문서구분, 자료제목, 토큰수, 비용
+                const logRows = (data.my_logs || []).map((l, idx) => ({
+                    '번호': idx + 1,
+                    '일시': (l.timestamp || '').replace('T', ' '),
+                    '지점': l.branch,
+                    '교재구분': l.material_type,
+                    '문서구분': l.doc_type,
+                    '자료 제목': l.title,
+                    '토큰수(T)': l.tokens,
+                    '비용(원)': l.cost_krw
+                }));
+
+                if (typeof XLSX !== 'undefined') {
+                    const wb = XLSX.utils.book_new();
+                    
+                    // Sheet 1: 지점별 정산 현황 (지점, 비용 중심)
+                    const ws1 = XLSX.utils.json_to_sheet(rankingRows.length > 0 ? rankingRows : [{'순위': '1위', '지점': '데이터 없음', '비용(원)': 0}]);
+                    XLSX.utils.book_append_sheet(wb, ws1, '지점별_정산현황');
+                    
+                    // Sheet 2: 상세 제작 내역
+                    if (logRows.length > 0) {
+                        const ws2 = XLSX.utils.json_to_sheet(logRows);
+                        XLSX.utils.book_append_sheet(wb, ws2, '상세_제작로그');
+                    }
+
+                    const filename = `에이닷_내신자료_토큰정산_${year}년_${month}월.xlsx`;
+                    XLSX.writeFile(wb, filename);
+                    showToast(`'${filename}' 엑셀 파일이 성공적으로 다운로드되었습니다!`);
+                } else {
+                    // Fallback to CSV UTF-8 with BOM
+                    let csvContent = "\uFEFF순위,지점,비용(원),제작건수,토큰사용량,최근활동\n";
+                    rankingRows.forEach(r => {
+                        csvContent += `"${r['순위']}","${r['지점']}",${r['비용(원)']},${r['제작 건수']},${r['토큰 사용량(T)']},"${r['최근 활동']}"\n`;
+                    });
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute("download", `에이닷_내신자료_토큰정산_${year}년_${month}월.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast(`정산 데이터가 CSV 파일로 다운로드되었습니다!`);
+                }
+            });
         }
 
         // ================= SAVE TO SERVER (BUTTON) =================
