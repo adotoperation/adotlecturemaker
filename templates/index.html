@@ -3042,7 +3042,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             btnGenerateAiIllustration.addEventListener('click', async () => {
                 const userTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '지문 삽화';
                 const sInfo = (currentAnalysisData && currentAnalysisData.summary_info) || {};
-                const topic = sInfo.subject || userTitle;
+                const topic = sInfo.subject || summarySubject.innerText || userTitle;
+                const keywords = sInfo.keywords || summaryKeywords.innerText || '';
+                const summary = (sInfo.summary && sInfo.summary.join('\n')) || summaryPoints.innerText || '';
 
                 const pairs = [];
                 const rows = pairContainer.querySelectorAll('.pair-row');
@@ -3052,7 +3054,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
                 const fullPassage = pairs.join(' ');
 
-                showLoading("지문 맞춤 AI 삽화 생성 중", `[${userTitle}] 지문 주제를 바탕으로 고품질 교육용 일러스트를 생성하여 인코딩하고 있습니다. (약 5~15초 소요)`);
+                showLoading("지문 맞춤 AI 삽화 생성 중", `[지문 핵심정리: ${topic}]를 바탕으로 고품질 교육용 일러스트를 생성하여 인코딩하고 있습니다. (약 5~15초 소요)`);
                 try {
                     const res = await fetch('/api/generate_illustration', {
                         method: 'POST',
@@ -3060,6 +3062,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         body: JSON.stringify({ 
                             title: userTitle, 
                             topic: topic,
+                            keywords: keywords,
+                            summary: summary,
                             passage: fullPassage 
                         })
                     });
@@ -3082,18 +3086,57 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         }
 
         if (btnInputImageUrl) {
-            btnInputImageUrl.addEventListener('click', () => {
-                const url = prompt('적용하실 이미지 URL 링크를 입력해 주세요:');
+            btnInputImageUrl.addEventListener('click', async () => {
+                const url = prompt('적용하실 이미지 URL 링크(구글 이미지 검색 주소 또는 웹 이미지 주소)를 입력해 주세요:');
                 if (url && url.trim()) {
                     const cleanUrl = url.trim();
-                    const ghibliImg = document.getElementById('ghibliImg');
-                    if (ghibliImg) ghibliImg.src = cleanUrl;
-                    if (!currentAnalysisData) currentAnalysisData = {};
-                    currentAnalysisData.illustration_url = cleanUrl;
-                    showToast('입력하신 이미지 URL이 교안에 적용되었습니다!');
+                    showLoading("이미지 불러오는 중", "외부 이미지 주소에서 사진을 안전하게 다운로드하여 인코딩하고 있습니다...");
+                    try {
+                        const res = await fetch('/api/fetch_image_url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: cleanUrl })
+                        });
+                        const resData = await res.json();
+                        if (!res.ok) throw new Error(resData.error || '이미지를 불러올 수 없습니다.');
+
+                        const ghibliImg = document.getElementById('ghibliImg');
+                        if (ghibliImg && resData.illustration_url) {
+                            ghibliImg.src = resData.illustration_url;
+                            if (!currentAnalysisData) currentAnalysisData = {};
+                            currentAnalysisData.illustration_url = resData.illustration_url;
+                        }
+                        hideLoading();
+                        showToast('입력하신 이미지 URL이 교안에 성공적으로 적용되었습니다!');
+                    } catch (err) {
+                        hideLoading();
+                        showToast(err.message, 'error');
+                    }
                 }
             });
         }
+
+        // Global Clipboard Paste (Ctrl+V) for instant image paste
+        window.addEventListener('paste', (e) => {
+            if (!e.clipboardData || !e.clipboardData.items) return;
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const dataUrl = event.target.result;
+                        const ghibliImg = document.getElementById('ghibliImg');
+                        if (ghibliImg) ghibliImg.src = dataUrl;
+                        if (!currentAnalysisData) currentAnalysisData = {};
+                        currentAnalysisData.illustration_url = dataUrl;
+                        showToast('클립보드 이미지가 교안 삽화로 붙여넣어졌습니다!');
+                    };
+                    reader.readAsDataURL(blob);
+                    break;
+                }
+            }
+        });
 
         // Vocab Test Event Listeners
         btnCreateVocabTest.addEventListener('click', async () => {

@@ -175,6 +175,12 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
     * `it` ➔ 두 번째 주절의 주어이므로 `underline: true`, `sub_tag: "S"`
     * `is` ➔ 두 번째 주절의 동사이므로 `underline: true`, `sub_tag: "Vi"`
 
+[★필수 작성 규칙 10: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+- `summary_info`의 `illustration_scene_en` 필드에는, 지문의 [주제, 핵심어휘, 3단 정리]의 핵심 상황과 시각적 장면을 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
+  - 예 (빌딩 와류 지문): "A towering modern architectural skyscraper with aerodynamic curved edges surrounded by swirling wind vortex airflows under clear sky"
+  - 예 (미술 수집가 지문): "An art collector thoughtfully evaluating classical masterpiece paintings in a warm art gallery"
+  - 예 (원격 근무 지문): "Young professionals working on laptops in a cozy home office with warm sunlight"
+
 [★필수 JSON 출력 스키마★]
 Return ONLY a valid JSON object matching this exact schema:
 {
@@ -182,7 +188,7 @@ Return ONLY a valid JSON object matching this exact schema:
     "title_en": "Difficulties Experienced by Remote Young Workers and the Need for Fluid Options",
     "subject": "원격 근무 젊은 직원의 직장 적응 어려움과 유연성",
     "keywords": "① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)",
-    "illustration_scene_en": "Young professional working on a laptop in a cozy room with soft sunlight",
+    "illustration_scene_en": "Young professionals working on laptops in a cozy home office with warm sunlight",
     "summary": [
       "① 원격 근무 젊은 직원은 동료보다 업무 및 관계 형성에 어려움을 겪음.",
       "② 적절한 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.",

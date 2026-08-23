@@ -249,34 +249,44 @@ def generate_illustration_endpoint():
     data = request.json or {}
     title = data.get('title', '').strip()
     topic = data.get('topic', '').strip()
+    keywords = data.get('keywords', '').strip()
+    summary = data.get('summary', '').strip()
     passage = data.get('passage', '').strip()
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
     
-    # 1. Translate Korean/English topic to concise English visual scene using Gemini or heuristic
+    # 1. Translate full summary context into concise English visual scene
     english_scene = "students studying English in a cozy library with warm sunlight"
+    combined_context = f"Title: {title}\nSubject/Topic: {topic}\nKeywords: {keywords}\nSummary: {summary}\nPassage: {passage[:300]}"
     
-    if api_key and (passage or topic or title):
+    if api_key and (topic or summary or title or passage):
         try:
-            prompt_trans = f"""Translate and convert this Korean/English high school reading passage topic into a concise (under 15 words) English visual scene description suitable for an artistic educational illustration:
-Topic/Title: {topic or title}
-Passage: {passage[:300]}
+            prompt_trans = f"""You are an art director creating educational illustrations for high school reading materials.
+Based on the following reading passage summary:
+{combined_context}
+
+Task:
+Create a single concise (10~15 words) English visual scene description that vividly captures the main subject, setting, and core concepts described in the summary.
+
+Examples:
+- Skyscraper vortex: "A towering aerodynamic skyscraper with swirling wind vortex airflows around its curved corners under sunlight"
+- Art collector: "An art collector thoughtfully evaluating classical masterpiece paintings in a sunlit art gallery"
 
 Rules:
-- Output ONLY the English scene description (e.g. "An art collector admiring paintings in a gallery" or "Young remote workers in a modern cafe").
-- Do not write any preamble or explanations."""
+- Output ONLY the English visual scene description.
+- Do not write any explanations or conversational text."""
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-            resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=10)
+            resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=12)
             if resp.status_code == 200:
                 english_scene = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
                 english_scene = re.sub(r'[\r\n"]+', ' ', english_scene).strip()
         except Exception as e:
             print("[generate_illustration] Prompt translation warning:", e)
-    elif topic or title:
-        # Simple heuristic extraction
-        clean_t = re.sub(r'[\d년월고호번\-]+', '', topic or title).strip()
+    elif topic or title or summary:
+        # Heuristic extraction
+        clean_t = re.sub(r'[\d년월고호번\-]+', '', f"{topic} {summary} {title}").strip()
         if "빌딩" in clean_t or "skyscraper" in clean_t.lower() or "와류" in clean_t or "vortex" in clean_t.lower():
             english_scene = "Modern architectural aerodynamic skyscraper with swirling wind vortex shedding airflows around curved building corners"
-        elif "미술" in clean_t or "art" in clean_t.lower():
+        elif "미술" in clean_t or "art" in clean_t.lower() or "수집" in clean_t:
             english_scene = "Art collector and gallery curator viewing classical paintings"
         elif "원격" in clean_t or "remote" in clean_t.lower():
             english_scene = "Young professional working on a laptop in a cozy room"
@@ -285,7 +295,7 @@ Rules:
         elif "과학" in clean_t or "science" in clean_t.lower():
             english_scene = "Scientific discovery laboratory with vintage equipment"
         else:
-            english_scene = f"Aesthetic scenery depicting {clean_t}"
+            english_scene = f"Aesthetic educational scenery depicting {clean_t}"
 
     # 2. Build Ghibli/Watercolor prompt
     import urllib.parse
@@ -315,6 +325,62 @@ Rules:
         'illustration_url': image_url,
         'prompt': ghibli_prompt
     })
+
+@app.route('/api/fetch_image_url', methods=['POST'])
+def fetch_image_url_endpoint():
+    data = request.json or {}
+    raw_url = data.get('url', '').strip()
+    if not raw_url:
+        return jsonify({'error': '이미지 URL을 입력해 주세요.'}), 400
+
+    if raw_url.startswith('blob:'):
+        return jsonify({'error': 'blob 주소는 브라우저 내부 임시 주소입니다. 이미지를 마우스 우클릭 후 [이미지 복사]를 하신 뒤 화면에서 Ctrl+V 로 붙여넣으시거나, [이미지 주소 복사]를 이용해 주세요.'}), 400
+
+    import urllib.parse
+    import base64
+
+    target_url = raw_url
+    # 1. Parse Google Image Search result URL: google.com/imgres?...&imgurl=...
+    if "imgurl=" in raw_url:
+        try:
+            parsed = urllib.parse.urlparse(raw_url)
+            params = urllib.parse.parse_qs(parsed.query)
+            if 'imgurl' in params and params['imgurl']:
+                target_url = params['imgurl'][0]
+        except Exception:
+            pass
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Referer': target_url
+    }
+
+    try:
+        res = requests.get(target_url, headers=headers, timeout=20)
+        if res.status_code == 200 and len(res.content) > 200:
+            content_type = res.headers.get('Content-Type', 'image/jpeg')
+            if 'text/html' in content_type.lower():
+                # Extract og:image meta tag from HTML page
+                og_match = re.search(r'<meta[^>]*property=["\']og:image["\'][^>]*content=["\']([^"\']+)["\']', res.text, re.IGNORECASE)
+                if not og_match:
+                    og_match = re.search(r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']og:image["\']', res.text, re.IGNORECASE)
+                
+                if og_match:
+                    og_url = og_match.group(1)
+                    res_og = requests.get(og_url, headers=headers, timeout=20)
+                    if res_og.status_code == 200 and len(res_og.content) > 200:
+                        ct = res_og.headers.get('Content-Type', 'image/jpeg')
+                        b64 = base64.b64encode(res_og.content).decode('utf-8')
+                        return jsonify({'success': True, 'illustration_url': f'data:{ct};base64,{b64}'})
+                return jsonify({'error': '해당 주소는 이미지 파일 주소가 아닌 웹페이지입니다. 이미지에서 마우스 우클릭 후 [이미지 주소 복사]를 하거나 [이미지 복사] 후 Ctrl+V로 붙여넣어 주세요.'}), 400
+
+            b64 = base64.b64encode(res.content).decode('utf-8')
+            return jsonify({'success': True, 'illustration_url': f'data:{content_type};base64,{b64}'})
+        else:
+            return jsonify({'error': f'이미지를 불러올 수 없습니다 (상태: {res.status_code})'}), 400
+    except Exception as e:
+        return jsonify({'error': f'이미지 다운로드 실패: {str(e)}'}), 500
 
 @app.route('/api/upload_illustration', methods=['POST'])
 def upload_illustration_endpoint():
