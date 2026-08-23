@@ -338,19 +338,30 @@ def get_db_saves():
     for s in raw_saves:
         t = (s.get('title') or '').strip()
         lbl = (s.get('label') or '').strip()
+        br = (s.get('branch') or '').strip()
         
+        # Detect legacy GAS shifted columns (e.g., label='2026년', title='5월', branch=Passage/Title)
+        if t in ['5월', '3월', '6월', '9월', '11월', '1월', '2월', '4월', '7월', '8월', '10월', '12월'] and ('202' in lbl or '년' in lbl):
+            if len(br) > 3:
+                t = br
+            else:
+                t = f"{lbl} {t} 모의고사"
+            lbl = "모의고사"
+            br = "본사"
+
         # Skip empty titles or sheet header artifacts
         if not t or t in ignored_titles or lbl in ignored_titles:
             continue
         if len(t) < 2 and not t.isalnum():
             continue
 
-        br = (s.get('branch') or '').strip()
         if not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin', '본사제작']:
             s['branch'] = '본사'
         else:
             s['branch'] = br
 
+        s['title'] = t
+        s['label'] = lbl
         clean_saves.append(s)
 
     clean_saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
