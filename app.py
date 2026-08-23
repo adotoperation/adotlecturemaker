@@ -254,11 +254,11 @@ def generate_illustration_endpoint():
     passage = data.get('passage', '').strip()
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
     
-    # 1. Translate full summary context into concise English visual scene
-    english_scene = "students studying English in a cozy library with warm sunlight"
     combined_context = f"Title: {title}\nSubject/Topic: {topic}\nKeywords: {keywords}\nSummary: {summary}\nPassage: {passage[:300]}"
     
-    if api_key and (topic or summary or title or passage):
+    # 1. First, create a concise English visual scene description using Gemini
+    english_scene = ""
+    if api_key:
         try:
             prompt_trans = f"""You are an art director creating educational illustrations for high school reading materials.
 Based on the following reading passage summary:
@@ -274,57 +274,59 @@ Examples:
 Rules:
 - Output ONLY the English visual scene description.
 - Do not write any explanations or conversational text."""
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-            resp = requests.post(url, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=12)
+            url_text = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+            resp = requests.post(url_text, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=12)
             if resp.status_code == 200:
                 english_scene = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
                 english_scene = re.sub(r'[\r\n"]+', ' ', english_scene).strip()
         except Exception as e:
-            print("[generate_illustration] Prompt translation warning:", e)
-    elif topic or title or summary:
-        # Heuristic extraction
+            print("[generate_illustration] Scene description warning:", e)
+
+    if not english_scene:
         clean_t = re.sub(r'[\d년월고호번\-]+', '', f"{topic} {summary} {title}").strip()
         if "빌딩" in clean_t or "skyscraper" in clean_t.lower() or "와류" in clean_t or "vortex" in clean_t.lower():
             english_scene = "Modern architectural aerodynamic skyscraper with swirling wind vortex shedding airflows around curved building corners"
         elif "미술" in clean_t or "art" in clean_t.lower() or "수집" in clean_t:
-            english_scene = "Art collector and gallery curator viewing classical paintings"
+            english_scene = "Art collector and gallery curator viewing classical paintings in warm gallery"
         elif "원격" in clean_t or "remote" in clean_t.lower():
             english_scene = "Young professional working on a laptop in a cozy room"
-        elif "기후" in clean_t or "climate" in clean_t.lower():
-            english_scene = "Lush green nature with wind turbines and blue sky"
-        elif "과학" in clean_t or "science" in clean_t.lower():
-            english_scene = "Scientific discovery laboratory with vintage equipment"
         else:
-            english_scene = f"Aesthetic educational scenery depicting {clean_t}"
+            english_scene = f"Aesthetic scenery depicting {clean_t}"
 
-    # 2. Build Ghibli/Watercolor prompt
-    import urllib.parse
-    import base64
-    ghibli_prompt = f"Studio Ghibli style watercolor illustration of {english_scene}, warm sunlight, aesthetic anime background, soft pastel colors, masterpiece, highly detailed"
-    encoded_prompt = urllib.parse.quote(ghibli_prompt)
-    image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=600&nologo=true&seed={int(time.time()*1000)}"
+    ghibli_prompt = f"Studio Ghibli style watercolor illustration of {english_scene}, aesthetic anime scenery, soft warm lighting, detailed background, peaceful anime art, masterpiece, 4k"
+
+    # 2. Generate Image directly via official Google Gemini Image API (gemini-2.5-flash-image)
+    if api_key:
+        for img_model in ["gemini-2.5-flash-image", "gemini-3.1-flash-image"]:
+            try:
+                img_url = f"https://generativelanguage.googleapis.com/v1beta/models/{img_model}:generateContent?key={api_key}"
+                img_payload = {
+                    "contents": [{
+                        "parts": [{"text": f"Generate an artistic, high-quality image: {ghibli_prompt}"}]
+                    }]
+                }
+                res = requests.post(img_url, json=img_payload, timeout=35)
+                if res.status_code == 200:
+                    res_json = res.json()
+                    parts = res_json.get('candidates', [{}])[0].get('content', {}).get('parts', [])
+                    for part in parts:
+                        inline_data = part.get('inlineData')
+                        if inline_data and inline_data.get('data'):
+                            mime = inline_data.get('mimeType', 'image/png')
+                            b64 = inline_data.get('data')
+                            return jsonify({
+                                'success': True,
+                                'illustration_url': f"data:{mime};base64,{b64}",
+                                'prompt': ghibli_prompt
+                            })
+            except Exception as gemini_img_err:
+                print(f"[generate_illustration] {img_model} error:", gemini_img_err)
+
+    # 3. Fallback to local high-res themes if offline
+    if "빌딩" in title or "와류" in title or "skyscraper" in passage.lower():
+        return jsonify({'success': True, 'illustration_url': '/static/skyscraper_vortex.jpg', 'prompt': ghibli_prompt})
     
-    # 3. Fetch image directly in backend and encode to Base64 to guarantee 100% reliable rendering without CORS/blocking
-    try:
-        img_res = requests.get(image_url, timeout=25, headers={'User-Agent': 'Mozilla/5.0'})
-        if img_res.status_code == 200 and len(img_res.content) > 1000:
-            b64_data = base64.b64encode(img_res.content).decode('utf-8')
-            content_type = img_res.headers.get('Content-Type', 'image/jpeg')
-            final_data_url = f"data:{content_type};base64,{b64_data}"
-            return jsonify({
-                'success': True,
-                'illustration_url': final_data_url,
-                'prompt': ghibli_prompt
-            })
-    except Exception as e:
-        print("[generate_illustration] Image download warning:", e)
-
-    # Fallback to direct URL if backend fetch timed out
-    return jsonify({
-        'success': True,
-        'illustration_url': image_url,
-        'prompt': ghibli_prompt
-    })
+    return jsonify({'success': True, 'illustration_url': '/static/illustration.jpg', 'prompt': ghibli_prompt})
 
 @app.route('/api/fetch_image_url', methods=['POST'])
 def fetch_image_url_endpoint():
