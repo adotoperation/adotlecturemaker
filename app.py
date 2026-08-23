@@ -274,7 +274,9 @@ Rules:
     elif topic or title:
         # Simple heuristic extraction
         clean_t = re.sub(r'[\d년월고호번\-]+', '', topic or title).strip()
-        if "미술" in clean_t or "art" in clean_t.lower():
+        if "빌딩" in clean_t or "skyscraper" in clean_t.lower() or "와류" in clean_t or "vortex" in clean_t.lower():
+            english_scene = "Modern architectural aerodynamic skyscraper with swirling wind vortex shedding airflows around curved building corners"
+        elif "미술" in clean_t or "art" in clean_t.lower():
             english_scene = "Art collector and gallery curator viewing classical paintings"
         elif "원격" in clean_t or "remote" in clean_t.lower():
             english_scene = "Young professional working on a laptop in a cozy room"
