@@ -98,8 +98,29 @@ def post_process_adverbs(analysis_data):
         
     for s in analysis_data.get('sentences', []):
         tokens = s.get('tokens', [])
+        found_subject = False
+        
         for t in tokens:
             t['top_label'] = ""  # Strictly remove top labels
+            sub_tag = t.get('sub_tag', '')
+            text = t.get('text', '').strip()
+            
+            # Check if this token is the main subject
+            if sub_tag == 'S' or '가주어' in sub_tag:
+                found_subject = True
+            
+            # If token is before the main subject (sentence-initial prepositional phrase / adverbial modifier),
+            # it modifies the whole sentence, so it must NEVER have the arrow (⬑) symbol!
+            if not found_subject:
+                if '⬑' in sub_tag:
+                    t['sub_tag'] = ""
+                elif sub_tag in ['부사구', '전치사구', '부사']:
+                    t['sub_tag'] = ""
+
+            # If token is explicitly marked with comma or sentence-level modifier
+            if text.startswith('(') and (text.endswith('),') or text.endswith(')')):
+                if '⬑' in sub_tag and not found_subject:
+                    t['sub_tag'] = ""
             
         # Sanitize grammar_points (enforce 접속부사 over 삽입어)
         gp = s.get('grammar_points', '')
@@ -141,7 +162,6 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 7. **직접목적어**: `sub_tag: "DO"`, `color: "emerald"`, `underline: false`
 8. **목적격보어**: `sub_tag: "OC"`, `color: "indigo"`, `underline: false`
 
-- 수식어구/전치사구: `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"`, `sub_tag: "⬑ 목적격관계대명사"`
 - 가주어/진주어: `sub_tag: "가주어 (S)"`, `sub_tag: "진주어"` (또는 `"진주어절"`)
 - 가목적어/진목적어: `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
 - **top_label은 일체 사용하지 않으며, 항상 빈 문자열 `""` 로 유지하십시오!**
@@ -155,13 +175,20 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 - 세모 대상 접속사는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
 - 절대 `{"text": "or Colorado", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오!
 
-[★필수 작성 규칙 6: 밑줄(underline: true) 적용 기준 규칙★]
+[★필수 작성 규칙 6: 전치사구 및 수식어구의 화살표(⬑) 적용 기준★]
+- **문장 전체 수식 부사구 (문두 전치사구, 시간/장소 부사구 등)**:
+  - (예: 문두에 위치한 `(For thousands of years)`, `(in the West),`, `(In ancient times),` 등)
+  - 명사를 수식하는 것이 아니라 문장 전체를 수식하는 부사구이므로 **절대로 화살표(`⬑`)를 붙이지 마십시오! sub_tag는 빈 문자열 `""` 로 작성합니다.**
+- **오직 바로 앞의 명사를 직접 뒤에서 수식하는 형용사구/형용사절일 때만**:
+  - `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ 형용사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"` 처럼 화살표(`⬑`)를 붙이십시오!
+
+[★필수 작성 규칙 7: 밑줄(underline: true) 적용 기준 규칙★]
 - **주절의 주어 및 주절의 서술어(동사)인 경우에만** `underline: true`를 설정하여 밑줄을 쳐주십시오!
 
-[★필수 작성 규칙 7: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
+[★필수 작성 규칙 8: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
 - `however`, `therefore`, `furthermore`, `moreover`, `thus` 등은 grammar_points에서 '접속부사'로 표기하십시오.
 
-[★필수 작성 규칙 8: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+[★필수 작성 규칙 9: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
 - `summary_info`의 `illustration_scene_en` 필드에는, 지문의 [주제, 핵심어휘, 3단 정리]의 핵심 상황과 시각적 장면을 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
 
 [★필수 JSON 출력 스키마★]
