@@ -2320,9 +2320,17 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
             // 1. Filter by Scope
             if (currentRepoScope === 'my') {
-                list = list.filter(s => (s.branch || '에이닷 본원') === myBranch || (admin && (s.branch || '에이닷 본원') === myBranch));
+                if (admin) {
+                    list = list.filter(s => (s.branch === '본사제작' || s.branch === myBranch));
+                } else {
+                    list = list.filter(s => s.branch === myBranch);
+                }
             } else if (currentRepoScope === 'others') {
-                list = list.filter(s => (s.branch || '에이닷 본원') !== myBranch);
+                if (admin) {
+                    list = list.filter(s => s.branch !== '본사제작' && s.branch !== myBranch);
+                } else {
+                    list = list.filter(s => s.branch !== myBranch);
+                }
             }
 
             // 2. Filter by Label Type
@@ -2354,18 +2362,23 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             
             let gridHtml = '';
             saves.forEach(s => {
-                const date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
+                let date = '최근 등록';
+                if (s.mtime && s.mtime > 100000) {
+                    date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
                 const isVocab = s.label === '단어테스트';
                 const isExam = s.label === '변형문제';
 
-                const itemBranch = s.branch || '에이닷 본원';
-                const isMyItem = (itemBranch === myBranch);
+                const itemBranch = s.branch || '본사제작';
+                const isMainOffice = (itemBranch === '본사제작' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원');
+                const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
                 const canDelete = (isMyItem || admin);
 
                 let badgeColor = 'bg-emerald-100 text-emerald-800';
@@ -2376,12 +2389,21 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     <span class="text-[10px] font-black tracking-wider ${badgeColor} px-1.5 py-0.5 rounded">${s.label}</span>
                 ` : '';
 
-                // Branch Badge
-                const branchBadge = `
-                    <span class="text-[10px] font-bold ${isMyItem ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                        <i class="fa-solid fa-location-dot text-[9px] ${isMyItem ? 'text-amber-300' : 'text-slate-500'}"></i> ${itemBranch}
-                    </span>
-                `;
+                // Branch Badge: Main Office vs Branch
+                let branchBadge = '';
+                if (isMainOffice) {
+                    branchBadge = `
+                        <span class="text-[10px] font-black bg-indigo-950 text-amber-300 border border-indigo-700 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-building-flag text-[9px]"></i> 본사제작
+                        </span>
+                    `;
+                } else {
+                    branchBadge = `
+                        <span class="text-[10px] font-bold ${isMyItem ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-location-dot text-[9px] ${isMyItem ? 'text-amber-300' : 'text-slate-500'}"></i> ${itemBranch}
+                        </span>
+                    `;
+                }
 
                 let docTypeBadge = `<span class="text-[10px] font-black tracking-wider uppercase bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-800">교안 문서</span>`;
                 let docIcon = 'fa-file-invoice text-indigo-600';

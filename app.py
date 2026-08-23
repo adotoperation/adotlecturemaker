@@ -274,55 +274,42 @@ def safe_korean_filename(name):
     return cleaned.strip()
 
 def get_db_saves():
+    raw_saves = []
     if GAS_URL:
         try:
             res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=15)
-            print("GAS Raw Response:", res.text)
+            print("GAS Raw Response length:", len(res.text))
             if res.status_code == 200:
-                saves = res.json().get("saves", [])
-                for s in saves:
-                    if not s.get('branch'):
-                        s['branch'] = '에이닷 본원'
-                saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
-                return saves
+                raw_saves = res.json().get("saves", [])
             else:
                 print("GAS List failed:", res.text)
-                return []
         except Exception as e:
             print("GAS List error:", e)
-            return []
     elif IS_VERCEL_KV:
         headers = {"Authorization": f"Bearer {KV_TOKEN}"}
         try:
-            # Command: KEYS handout:*
             res = requests.post(KV_URL, headers=headers, json=["KEYS", "handout:*"], timeout=5)
             if res.status_code == 200:
                 keys = res.json().get("result", [])
-                saves = []
                 for k in keys:
-                    # Command: GET key
                     res_val = requests.post(KV_URL, headers=headers, json=["GET", k], timeout=5)
                     if res_val.status_code == 200:
                         raw_data = res_val.json().get("result")
                         if raw_data:
                             try:
                                 data = json.loads(raw_data)
-                                saves.append({
+                                raw_saves.append({
                                     'filename': k.replace("handout:", ""),
                                     'title': data.get('title', k.replace("handout:", "")),
                                     'mtime': data.get('mtime', 0.0),
                                     'label': data.get('label', '모의고사'),
-                                    'branch': data.get('branch', '에이닷 본원')
+                                    'branch': data.get('branch', '본사제작')
                                 })
                             except Exception:
                                 pass
-                saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
-                return saves
         except Exception as e:
             print("Vercel KV KEYS error:", e)
-            return []
     else:
-        saves = []
         for filename in os.listdir(SAVES_DIR):
             if filename.endswith('.json'):
                 path = os.path.join(SAVES_DIR, filename)
@@ -332,20 +319,42 @@ def get_db_saves():
                         saved_data = json.load(f)
                     title = saved_data.get('title', filename[:-5])
                     label = saved_data.get('label', '모의고사')
-                    branch = saved_data.get('branch', '에이닷 본원')
+                    branch = saved_data.get('branch', '본사제작')
                 except Exception:
                     title = filename[:-5]
                     label = '모의고사'
-                    branch = '에이닷 본원'
-                saves.append({
+                    branch = '본사제작'
+                raw_saves.append({
                     'filename': filename,
                     'title': title,
                     'mtime': mtime,
                     'label': label,
                     'branch': branch
                 })
-        saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
-        return saves
+
+    # Sanitize and filter saves
+    clean_saves = []
+    ignored_titles = {'시행연도', '시행월', '제목', 'Title', 'title', '비고', '문장데이터', '분석데이터', '등록일시'}
+    for s in raw_saves:
+        t = (s.get('title') or '').strip()
+        lbl = (s.get('label') or '').strip()
+        
+        # Skip empty titles or sheet header artifacts
+        if not t or t in ignored_titles or lbl in ignored_titles:
+            continue
+        if len(t) < 2 and not t.isalnum():
+            continue
+
+        br = (s.get('branch') or '').strip()
+        if not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin']:
+            s['branch'] = '본사제작'
+        else:
+            s['branch'] = br
+
+        clean_saves.append(s)
+
+    clean_saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
+    return clean_saves
 
 def save_db_handout(title, data, label="모의고사", branch="기타"):
     filename = safe_korean_filename(title)
