@@ -242,6 +242,8 @@ def modify():
         updated_data = modify_analysis_with_prompt(analysis_data, modify_prompt)
         return jsonify(updated_data)
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/generate_illustration', methods=['POST'])
 def generate_illustration_endpoint():
     data = request.json or {}
