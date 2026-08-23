@@ -123,16 +123,22 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 - **소괄호 `(...)`**: 수식어구, 부사구, 부사절, 전치사구, 관계사절, 분사구문, 형용사적/부사적 수식어구
   - 예: `(by Eurofound)`, `(working remotely)`, `(unlike those in older generations)`, `(who were working remotely)`, `(While young people ...)`
 
-[★필수 작성 규칙 4: 문장성분 기호 표기 규칙 (S, Vt, Vi, V, O, C)★]
-- **주어**: `sub_tag: "S"`, `color: "blue"`, 주절인 경우 `underline: true`
-- **타동사(목적어를 취하는 동사)**: `sub_tag: "Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
-- **자동사(목적어가 없는 동사)**: `sub_tag: "Vi"`, `color: "rose"`, 주절인 경우 `underline: true`
-- **be동사/조동사구/일반 동사**: `sub_tag: "V"`, `color: "rose"`, 주절인 경우 `underline: true`
-- **목적어**: `sub_tag: "O"`, `color: "emerald"`, `underline: false`
-- **보어**: `sub_tag: "C"` (또는 `SC`, `OC`), `color: "indigo"`, `underline: false`
-- **수식어구/전치사구**: `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"` 등
-- **가주어/진주어/가목적어/진목적어**: `sub_tag: "가주어"`, `sub_tag: "진주어"`, `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
-- **모든 문장기호는 sub_tag(단어 아래)에만 표기하며, top_label은 사용하지 않고 항상 빈 문자열 `""` 로 작성하십시오!**
+[★필수 작성 규칙 4: 표준 문장성분 8대 기호 체계 엄격 준수 (sub_tag)★]
+문장 성분 기호는 오직 단어 아래(sub_tag)에만 표기하며, 반드시 아래의 **공식 8대 표준 기호**만 정확히 사용하십시오:
+1. **주어**: `sub_tag: "S"`, `color: "blue"`, 주절인 경우 `underline: true`
+2. **자동사**: `sub_tag: "Vi"`, `color: "rose"`, 주절인 경우 `underline: true`
+3. **타동사**: `sub_tag: "Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
+4. **주격보어**: `sub_tag: "SC"`, `color: "indigo"`, `underline: false`
+5. **목적어**: `sub_tag: "O"`, `color: "emerald"`, `underline: false`
+6. **간접목적어**: `sub_tag: "IO"`, `color: "emerald"`, `underline: false`
+7. **직접목적어**: `sub_tag: "DO"`, `color: "emerald"`, `underline: false`
+8. **목적격보어**: `sub_tag: "OC"`, `color: "indigo"`, `underline: false`
+
+- 수식어구/전치사구: `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"`, `sub_tag: "⬑ 목적격관계대명사"`
+- 가주어/진주어: `sub_tag: "가주어 (S)"`, `sub_tag: "진주어"` (또는 `"진주어절"`)
+- 가목적어/진목적어: `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
+- 접속사/접속부사: `sub_tag: "접속사"`, `is_conjunction: true`
+- **top_label은 일체 사용하지 않으며, 항상 빈 문자열 `""` 로 유지하십시오!**
 
 [★필수 작성 규칙 5: 접속사(and, or, but, so 등)는 무조건 1개 단어 단독 토큰으로 분리!★]
 - 접속사(`and`, `or`, `but`, `so`, `yet` 등)나 접속부사(`however`, `therefore` 등)는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
@@ -548,7 +554,7 @@ def rule_tokenize(sentence):
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
             {"text": "it", "top_label": "", "color": "blue", "sub_tag": "가주어 (S)", "underline": True, "is_conjunction": False},
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "may not be", "top_label": "", "color": "rose", "sub_tag": "V", "underline": True, "is_conjunction": False},
+            {"text": "may not be", "top_label": "", "color": "rose", "sub_tag": "Vi", "underline": True, "is_conjunction": False},
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
             {"text": "[that", "top_label": "", "color": "emerald", "sub_tag": "진주어절", "underline": False, "is_conjunction": False},
             {"text": "they", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
@@ -559,16 +565,16 @@ def rule_tokenize(sentence):
             {"text": "(with specific days of the week)", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
             {"text": "[designated for working remotely]", "top_label": "", "color": "slate", "sub_tag": "⬑ 과거분사구", "underline": False, "is_conjunction": False},
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "but instead", "top_label": "", "color": "slate", "sub_tag": "접속사구", "underline": False, "is_conjunction": False},
+            {"text": "but instead", "top_label": "", "color": "slate", "sub_tag": "접속사", "underline": False, "is_conjunction": True},
             {"text": "a fluid option", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
             {"text": "(that", "top_label": "", "color": "blue", "sub_tag": "⬑ 주격관계대명사", "underline": False, "is_conjunction": False},
-            {"text": "allows", "top_label": "", "color": "rose", "sub_tag": "Vt (5형식)", "underline": False, "is_conjunction": False},
+            {"text": "allows", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
             {"text": "them", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
             {"text": "(if possible)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
             {"text": "(depending on the job role),", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
             {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[to choose", "top_label": "", "color": "rose", "sub_tag": "OC (진목적어/to부정사구)", "underline": False, "is_conjunction": False},
+            {"text": "[to choose", "top_label": "", "color": "rose", "sub_tag": "OC", "underline": False, "is_conjunction": False},
             {"text": "their day-to-day work location]]", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False}
         ])
 
