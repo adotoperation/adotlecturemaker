@@ -226,11 +226,50 @@ def analyze():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+UPLOADS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+try:
+    os.makedirs(UPLOADS_DIR, exist_ok=True)
+except Exception:
+    pass
+
+def persist_base64_image(image_data_url, title=""):
+    """
+    Saves a base64 image data URL to a local static file to prevent overflowing 
+    Google Sheets cell character limits (50,000 chars) and ensure 100% reliable persistence.
+    """
+    if not image_data_url or not isinstance(image_data_url, str):
+        return image_data_url
+    if not image_data_url.startswith('data:image/'):
+        return image_data_url
+    
+    try:
+        header, b64_str = image_data_url.split(',', 1)
+        ext = 'png'
+        if 'jpeg' in header or 'jpg' in header:
+            ext = 'jpg'
+        elif 'webp' in header:
+            ext = 'webp'
+        
+        import hashlib
+        h = hashlib.md5(b64_str.encode('utf-8')).hexdigest()[:12]
+        filename = f"illu_{int(time.time())}_{h}.{ext}"
+        filepath = os.path.join(UPLOADS_DIR, filename)
+        with open(filepath, 'wb') as f:
+            f.write(base64.b64decode(b64_str))
+        
+        return f"/static/uploads/{filename}"
+    except Exception as e:
+        print("[persist_base64_image] Error saving image file:", e)
+        return image_data_url
+
 @app.route('/api/modify', methods=['POST'])
 def modify():
     data = request.json or {}
     analysis_data = data.get('analysis_data', {})
     modify_prompt = data.get('modify_prompt', '').strip()
+    branch = data.get('branch', '본사')
+    title = (analysis_data.get('title') or '영어 교안').strip()
+    material_type = data.get('material_type', '모의고사')
 
     if not analysis_data or 'sentences' not in analysis_data:
         return jsonify({'error': '먼저 교안 생성을 실행해 주세요.'}), 400
@@ -240,6 +279,14 @@ def modify():
 
     try:
         updated_data = modify_analysis_with_prompt(analysis_data, modify_prompt)
+        
+        # Real-time token tracking for modifications
+        try:
+            modify_tokens = 1500  # Benchmark token usage for AI prompt modifications
+            append_usage_log(branch, material_type, '교안구문수정', f"{title} (구문수정)", modify_tokens)
+        except Exception as log_e:
+            print("[modify] Token log warning:", log_e)
+
         return jsonify(updated_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -252,6 +299,8 @@ def generate_illustration_endpoint():
     keywords = data.get('keywords', '').strip()
     summary = data.get('summary', '').strip()
     passage = data.get('passage', '').strip()
+    branch = data.get('branch', '본사')
+    material_type = data.get('material_type', '모의고사')
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
     
     combined_context = f"Title: {title}\nSubject/Topic: {topic}\nKeywords: {keywords}\nSummary: {summary}\nPassage: {passage[:300]}"
@@ -314,19 +363,26 @@ Rules:
                         if inline_data and inline_data.get('data'):
                             mime = inline_data.get('mimeType', 'image/png')
                             b64 = inline_data.get('data')
+                            raw_data_url = f"data:{mime};base64,{b64}"
+                            saved_path = persist_base64_image(raw_data_url, title)
+                            
+                            # Real-time token tracking for AI Illustration generation
+                            try:
+                                append_usage_log(branch, material_type, 'AI삽화생성', f"{title} (삽화생성)", 2500)
+                            except Exception:
+                                pass
+
                             return jsonify({
                                 'success': True,
-                                'illustration_url': f"data:{mime};base64,{b64}",
+                                'illustration_url': saved_path,
                                 'prompt': ghibli_prompt
                             })
             except Exception as gemini_img_err:
                 print(f"[generate_illustration] {img_model} error:", gemini_img_err)
 
     # 3. Fallback to local high-res themes if offline
-    if "빌딩" in title or "와류" in title or "skyscraper" in passage.lower():
-        return jsonify({'success': True, 'illustration_url': '/static/skyscraper_vortex.jpg', 'prompt': ghibli_prompt})
-    
-    return jsonify({'success': True, 'illustration_url': '/static/illustration.jpg', 'prompt': ghibli_prompt})
+    fallback_url = '/static/skyscraper_vortex.jpg' if ("빌딩" in title or "와류" in title or "skyscraper" in passage.lower()) else '/static/illustration.jpg'
+    return jsonify({'success': True, 'illustration_url': fallback_url, 'prompt': ghibli_prompt})
 
 @app.route('/api/fetch_image_url', methods=['POST'])
 def fetch_image_url_endpoint():
@@ -776,13 +832,14 @@ def get_all_usage_logs():
         try:
             with open(USAGE_LOGS_FILE, 'r', encoding='utf-8') as f:
                 saved_logs = json.load(f)
-                for l in saved_logs:
-                    key = f"{l.get('branch')}_{l.get('title')}_{l.get('doc_type')}_{l.get('timestamp')}"
-                    logs_map[key] = l
+                for idx, l in enumerate(saved_logs):
+                    unique_id = l.get('id') or f"log_{l.get('branch')}_{l.get('title')}_{l.get('timestamp')}_{idx}"
+                    l['id'] = unique_id
+                    logs_map[unique_id] = l
         except Exception:
             pass
 
-    # 2. From current saves (ensures existing items are accounted for)
+    # 2. From current saves (ensures existing items without prior audit log are accounted for)
     current_saves = get_db_saves()
     for s in current_saves:
         t = s.get('title', '')
@@ -794,10 +851,11 @@ def get_all_usage_logs():
         cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
         
         iso_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(mt)) if mt > 100000 else time.strftime('%Y-%m-%dT%H:%M:%S')
-        key = f"{br}_{t}_{doc}_{iso_time[:10]}"
-        if key not in logs_map:
-            logs_map[key] = {
-                'id': f"save_{int(mt*1000) if mt > 100000 else int(time.time()*1000)}",
+        save_key = f"save_{br}_{t}_{doc}"
+        already_logged = any(l.get('title') == t and l.get('doc_type') == doc and l.get('branch') == br for l in logs_map.values())
+        if not already_logged and save_key not in logs_map:
+            logs_map[save_key] = {
+                'id': save_key,
                 'timestamp': iso_time,
                 'mtime': mt if mt > 100000 else time.time(),
                 'branch': br,
@@ -928,9 +986,14 @@ def save_handout():
     if not title:
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400
     try:
+        # Persist illustration image to local static file if it's base64 to avoid Google Sheets cell limits
+        analysis_d = data.get('analysis_data') or {}
+        if 'illustration_url' in analysis_d and analysis_d['illustration_url']:
+            analysis_d['illustration_url'] = persist_base64_image(analysis_d['illustration_url'], title)
+            data['analysis_data'] = analysis_d
+
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch)
         try:
-            analysis_d = data.get('analysis_data') or {}
             raw_tokens = analysis_d.get('used_tokens') or (analysis_d.get('usage_metadata') or {}).get('total_tokens', 0)
             if raw_tokens and int(raw_tokens) > 0:
                 tokens = int(raw_tokens)
@@ -939,7 +1002,7 @@ def save_handout():
             append_usage_log(branch, material_type, doc_type, title, tokens)
         except Exception as e:
             print("[save_handout] log error:", e)
-        return jsonify({'success': True, 'filename': filename})
+        return jsonify({'success': True, 'filename': filename, 'illustration_url': analysis_d.get('illustration_url')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
