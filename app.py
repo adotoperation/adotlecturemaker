@@ -77,6 +77,7 @@ def generate_exam():
     topic = data.get('topic', '').strip()
     sentence_pairs = data.get('sentence_pairs', [])
     branch = data.get('branch', '기타').strip() or '기타'
+    material_type = data.get('material_type') or data.get('label') or '모의고사'
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
 
     if not title:
@@ -108,13 +109,18 @@ def generate_exam():
             shuffled_order = list(all_keys)
             random.shuffle(shuffled_order)
 
+            doc_type_val = f"변형문제 {idx}차"
             p_load = {
                 "title": t_name,
-                "label": "변형문제",
+                "material_type": material_type,
+                "doc_type": doc_type_val,
+                "label": material_type,
                 "branch": branch,
                 "sentence_pairs": sentence_pairs,
                 "analysis_data": {
                     "title": t_name,
+                    "material_type": material_type,
+                    "doc_type": doc_type_val,
                     "passage": passage,
                     "topic": topic,
                     "branch": branch,
@@ -125,8 +131,8 @@ def generate_exam():
                     "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
                 }
             }
-            f_name = save_db_handout(t_name, p_load, label='변형문제', branch=branch)
-            return {"title": t_name, "filename": f_name, "questions": q_data, "question_order": shuffled_order, "branch": branch}
+            f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch)
+            return {"title": t_name, "filename": f_name, "material_type": material_type, "doc_type": doc_type_val, "questions": q_data, "question_order": shuffled_order, "branch": branch}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             future1 = executor.submit(_gen_exam, 1, title_1)
@@ -269,7 +275,6 @@ IS_VERCEL_KV = bool(KV_URL and KV_TOKEN)
 
 def safe_korean_filename(name):
     import re
-    # Keep Korean, alphanumeric, spaces, hyphens, underscores, dots
     cleaned = re.sub(r'[^\w\s\-\.\uac00-\ud7a3\u1100-\u11ff\u3130-\u318f]', '', name)
     return cleaned.strip()
 
@@ -302,8 +307,10 @@ def get_db_saves():
                                     'filename': k.replace("handout:", ""),
                                     'title': data.get('title', k.replace("handout:", "")),
                                     'mtime': data.get('mtime', 0.0),
-                                    'label': data.get('label', '모의고사'),
-                                    'branch': data.get('branch', '본사제작')
+                                    'material_type': data.get('material_type', data.get('label', '모의고사')),
+                                    'doc_type': data.get('doc_type', '강의용교안'),
+                                    'label': data.get('material_type', data.get('label', '모의고사')),
+                                    'branch': data.get('branch', '본사')
                                 })
                             except Exception:
                                 pass
@@ -318,17 +325,21 @@ def get_db_saves():
                     with open(path, 'r', encoding='utf-8') as f:
                         saved_data = json.load(f)
                     title = saved_data.get('title', filename[:-5])
-                    label = saved_data.get('label', '모의고사')
-                    branch = saved_data.get('branch', '본사제작')
+                    material_type = saved_data.get('material_type', saved_data.get('label', '모의고사'))
+                    doc_type = saved_data.get('doc_type', '강의용교안')
+                    branch = saved_data.get('branch', '본사')
                 except Exception:
                     title = filename[:-5]
-                    label = '모의고사'
-                    branch = '본사제작'
+                    material_type = '모의고사'
+                    doc_type = '강의용교안'
+                    branch = '본사'
                 raw_saves.append({
                     'filename': filename,
                     'title': title,
                     'mtime': mtime,
-                    'label': label,
+                    'material_type': material_type,
+                    'doc_type': doc_type,
+                    'label': material_type,
                     'branch': branch
                 })
 
@@ -337,20 +348,12 @@ def get_db_saves():
     ignored_titles = {'시행연도', '시행월', '제목', 'Title', 'title', '비고', '문장데이터', '분석데이터', '등록일시'}
     for s in raw_saves:
         t = (s.get('title') or '').strip()
-        lbl = (s.get('label') or '').strip()
+        mat_type = (s.get('material_type') or s.get('label') or '모의고사').strip()
+        doc_type = (s.get('doc_type') or '강의용교안').strip()
         br = (s.get('branch') or '').strip()
-        
-        # Detect legacy GAS shifted columns (e.g., label='2026년', title='5월', branch=Passage/Title)
-        if t in ['5월', '3월', '6월', '9월', '11월', '1월', '2월', '4월', '7월', '8월', '10월', '12월'] and ('202' in lbl or '년' in lbl):
-            if len(br) > 3:
-                t = br
-            else:
-                t = f"{lbl} {t} 모의고사"
-            lbl = "모의고사"
-            br = "본사"
 
         # Skip empty titles or sheet header artifacts
-        if not t or t in ignored_titles or lbl in ignored_titles:
+        if not t or t in ignored_titles or mat_type in ignored_titles:
             continue
         if len(t) < 2 and not t.isalnum():
             continue
@@ -361,25 +364,31 @@ def get_db_saves():
             s['branch'] = br
 
         s['title'] = t
-        s['label'] = lbl
+        s['material_type'] = mat_type
+        s['doc_type'] = doc_type
+        s['label'] = mat_type
         clean_saves.append(s)
 
     clean_saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
     return clean_saves
 
-def save_db_handout(title, data, label="모의고사", branch="기타"):
+def save_db_handout(title, data, label="모의고사", material_type="모의고사", doc_type="강의용교안", branch="기타"):
     filename = safe_korean_filename(title)
     if not filename.endswith('.json'):
         filename += '.json'
     
     data['mtime'] = time.time()
-    data['label'] = label
+    data['material_type'] = material_type or label or '모의고사'
+    data['doc_type'] = doc_type or '강의용교안'
+    data['label'] = data['material_type']
     data['branch'] = branch
     
     if GAS_URL:
         payload = {
             "action": "save",
-            "label": label,
+            "material_type": data['material_type'],
+            "doc_type": data['doc_type'],
+            "label": data['material_type'],
             "title": title,
             "branch": branch,
             "sentence_pairs": data.get("sentence_pairs", []),
@@ -398,7 +407,6 @@ def save_db_handout(title, data, label="모의고사", branch="기타"):
         headers = {"Authorization": f"Bearer {KV_TOKEN}"}
         key = f"handout:{filename}"
         payload = json.dumps(data, ensure_ascii=False)
-        # Command: SET key value
         res = requests.post(KV_URL, headers=headers, json=["SET", key, payload], timeout=5)
         if res.status_code != 200:
             raise Exception(f"Vercel KV SET failed: {res.text}")
@@ -411,17 +419,18 @@ def save_db_handout(title, data, label="모의고사", branch="기타"):
 
 from urllib.parse import unquote
 
-def load_db_handout(filename, label="모의고사"):
+def load_db_handout(filename, label="모의고사", material_type=None, doc_type=None):
     filename = unquote(filename)
     title = filename.replace(".json", "").strip()
     safe_fn = safe_korean_filename(title) + '.json'
         
     if GAS_URL:
-        # 1. Try with given label
         payload = {
             "action": "load",
-            "label": label,
-            "title": title
+            "title": title,
+            "material_type": material_type or label or '모의고사',
+            "doc_type": doc_type or '',
+            "label": material_type or label or '모의고사'
         }
         try:
             res = requests.post(GAS_URL, json=payload, timeout=10)
@@ -430,18 +439,18 @@ def load_db_handout(filename, label="모의고사"):
                 if "error" not in res_data:
                     return res_data
             
-            # 2. Fallback: Query list to find matching item regardless of label
+            # Fallback: Query list to find matching item regardless of label
             list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
             if list_res.status_code == 200:
                 all_saves = list_res.json().get("saves", [])
                 for item in all_saves:
                     item_title = item.get("title", "")
                     if item_title == title or item.get("filename") == safe_fn or item_title.replace(" ", "") == title.replace(" ", ""):
-                        real_label = item.get("label", label)
                         fallback_payload = {
                             "action": "load",
-                            "label": real_label,
-                            "title": item_title
+                            "title": item_title,
+                            "material_type": item.get("material_type", item.get("label", "")),
+                            "doc_type": item.get("doc_type", "")
                         }
                         f_res = requests.post(GAS_URL, json=fallback_payload, timeout=10)
                         if f_res.status_code == 200 and "error" not in f_res.json():
@@ -470,15 +479,18 @@ def load_db_handout(filename, label="모의고사"):
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
 
-def delete_db_handout(filename, label="모의고사"):
+def delete_db_handout(filename, label="모의고사", material_type=None, doc_type=None):
     filename = unquote(filename)
     title = filename.replace(".json", "").strip()
     safe_fn = safe_korean_filename(title) + '.json'
+    mat_type = material_type or label or '모의고사'
         
     if GAS_URL:
         payload = {
             "action": "delete",
-            "label": label,
+            "material_type": mat_type,
+            "doc_type": doc_type or '',
+            "label": mat_type,
             "title": title
         }
         try:
@@ -493,8 +505,12 @@ def delete_db_handout(filename, label="모의고사"):
                 for item in all_saves:
                     item_title = item.get("title", "")
                     if item_title == title or item.get("filename") == safe_fn:
-                        real_label = item.get("label", label)
-                        f_del = requests.post(GAS_URL, json={"action": "delete", "label": real_label, "title": item_title}, timeout=10)
+                        f_del = requests.post(GAS_URL, json={
+                            "action": "delete", 
+                            "material_type": item.get("material_type", item.get("label", "")), 
+                            "doc_type": item.get("doc_type", ""),
+                            "title": item_title
+                        }, timeout=10)
                         if f_del.status_code == 200 and f_del.json().get("success"):
                             return True
 
@@ -542,20 +558,30 @@ def get_stats():
             "교과서": 0,
             "모의고사": 0,
             "부교재": 0,
-            "변형문제": 0,
-            "단어테스트": 0,
             "기타": 0
+        }
+        doc_type_counts = {
+            "강의용교안": 0,
+            "단어TEST": 0,
+            "변형문제 1차": 0,
+            "변형문제 2차": 0
         }
         
         branch_counts = {}
         branch_recent = {}
         
         for s in saves:
-            lbl = s.get('label', '기타')
+            lbl = s.get('material_type', s.get('label', '기타'))
             if lbl in label_counts:
                 label_counts[lbl] += 1
             else:
                 label_counts["기타"] += 1
+
+            dt = s.get('doc_type', '강의용교안')
+            if dt in doc_type_counts:
+                doc_type_counts[dt] += 1
+            else:
+                doc_type_counts[dt] = doc_type_counts.get(dt, 0) + 1
                 
             br = s.get('branch', '에이닷 본원').strip() or '에이닷 본원'
             branch_counts[br] = branch_counts.get(br, 0) + 1
@@ -577,6 +603,7 @@ def get_stats():
             "total_count": total_count,
             "total_branches": len(branch_counts),
             "label_counts": label_counts,
+            "doc_type_counts": doc_type_counts,
             "branch_ranking": branch_ranking
         })
     except Exception as e:
@@ -586,30 +613,33 @@ def get_stats():
 def save_handout():
     data = request.json or {}
     title = data.get('title', '').strip()
-    label = data.get('label', '모의고사').strip()
+    material_type = data.get('material_type') or data.get('label') or '모의고사'
+    doc_type = data.get('doc_type') or '강의용교안'
     branch = data.get('branch', '기타').strip() or '기타'
     if not title:
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400
     try:
-        filename = save_db_handout(title, data, label=label, branch=branch)
+        filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch)
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/save/<filename>', methods=['GET'])
 def load_handout(filename):
-    label = request.args.get('label', '모의고사').strip()
+    material_type = request.args.get('material_type') or request.args.get('label') or '모의고사'
+    doc_type = request.args.get('doc_type', '')
     try:
-        saved_data = load_db_handout(filename, label=label)
+        saved_data = load_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type)
         return jsonify(saved_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/save/<filename>', methods=['DELETE'])
 def delete_handout(filename):
-    label = request.args.get('label', '모의고사').strip()
+    material_type = request.args.get('material_type') or request.args.get('label') or '모의고사'
+    doc_type = request.args.get('doc_type', '')
     try:
-        delete_db_handout(filename, label=label)
+        delete_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type)
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
