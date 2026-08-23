@@ -1069,13 +1069,13 @@
                 <!-- 4 Summary KPI Cards (Billing Period Based) -->
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-slate-500">해당 주기 총 제작 자료</div>
-                        <div id="statTotalCount" class="text-2xl font-black text-slate-900">0건</div>
-                        <div class="text-[10px] text-slate-400">전국 누적 제작 건수</div>
+                        <div class="text-[11px] font-bold text-slate-500">해당 주기 총 실행 횟수</div>
+                        <div id="statTotalCount" class="text-2xl font-black text-slate-900">0회</div>
+                        <div class="text-[10px] text-slate-400">전국 생성/수정/출제 총 실행 횟수</div>
                     </div>
                     <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-indigo-600">우리 지점 제작수 / 토큰</div>
-                        <div id="statMyCount" class="text-2xl font-black text-indigo-950">0건</div>
+                        <div class="text-[11px] font-bold text-indigo-600">우리 지점 실행 횟수 / 토큰</div>
+                        <div id="statMyCount" class="text-2xl font-black text-indigo-950">0회</div>
                         <div id="statMyTokensSub" class="text-[10px] text-indigo-600 font-bold">0 토큰 사용</div>
                     </div>
                     <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-1">
@@ -1084,8 +1084,8 @@
                         <div class="text-[10px] text-amber-700 font-medium">1,000 토큰당 약 0.35원 기준</div>
                     </div>
                     <div class="bg-rose-50/70 border border-rose-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-rose-600">변형문제 출제 건수</div>
-                        <div id="statExamCount" class="text-2xl font-black text-rose-950">0건</div>
+                        <div class="text-[11px] font-bold text-rose-600">변형문제 출제 횟수</div>
+                        <div id="statExamCount" class="text-2xl font-black text-rose-950">0회</div>
                         <div class="text-[10px] text-rose-500">9종 변형문제 1·2차 세트</div>
                     </div>
                 </div>
@@ -1123,14 +1123,14 @@
                             <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
                                 <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-receipt text-indigo-600"></i> 
-                                    <span id="logTableTitle">우리 지점 내신자료 제작 내역</span>
+                                    <span id="logTableTitle">우리 지점 AI 실행 및 제작 내역</span>
                                 </h3>
                                 <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">
                                     <i class="fa-solid fa-shield-halved text-[9px]"></i> 삭제 후에도 영구 보존
                                 </span>
                             </div>
                             <p class="text-[11px] text-slate-500 mb-2">
-                                해당 정산 기간 동안 제작된 자료 내역입니다. 자료 저장소에서 삭제하더라도 정산 로그는 보존됩니다.
+                                해당 정산 기간 동안 버튼을 눌러 실행된 AI 생성 및 수정 내역입니다. 자료 저장소에서 문서를 삭제하더라도 정산 로그는 보존됩니다.
                             </p>
                         </div>
                         
@@ -1164,7 +1164,7 @@
                                 </button>
                             </div>
                             <p class="text-[11px] text-slate-500 mb-2">
-                                전국 에이닷 지점별 총 토큰 사용량과 산출된 정산 비용 랭킹입니다.
+                                전국 에이닷 지점별 총 토큰 사용량과 AI 생성 실행 횟수 및 정산 비용 랭킹입니다.
                             </p>
                         </div>
 
@@ -1174,7 +1174,7 @@
                                     <tr>
                                         <th class="py-2.5 px-2 text-center w-10">순위</th>
                                         <th class="py-2.5 px-3">지점명</th>
-                                        <th class="py-2.5 px-2 text-center">건수</th>
+                                        <th class="py-2.5 px-2 text-center">실행 횟수</th>
                                         <th class="py-2.5 px-3 text-right">토큰 사용량</th>
                                         <th class="py-2.5 px-3 text-right">비용</th>
                                         <th class="py-2.5 px-3 text-right">최근 활동</th>
@@ -2825,14 +2825,14 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 const myCost = summary.my_cost_krw || 0;
                 const examCount = summary.exam_count || 0;
 
-                if (statTotalCount) statTotalCount.innerText = `${totalCount}건`;
-                if (statMyCount) statMyCount.innerText = `${myCount}건`;
+                if (statTotalCount) statTotalCount.innerText = `${totalCount}회`;
+                if (statMyCount) statMyCount.innerText = `${myCount}회`;
                 if (statMyTokensSub) statMyTokensSub.innerText = `${myTokens.toLocaleString()} 토큰 사용`;
                 if (statMyCost) statMyCost.innerText = `${myCost.toLocaleString()}원`;
-                if (statExamCount) statExamCount.innerText = `${examCount}건`;
+                if (statExamCount) statExamCount.innerText = `${examCount}회`;
 
                 if (logTableTitle) {
-                    logTableTitle.innerText = `${admin ? '전국 지점' : myBranch} 내신자료 제작 내역 (${(data.my_logs || []).length}건)`;
+                    logTableTitle.innerText = `${admin ? '전국 지점' : myBranch} AI 실행 및 제작 내역 (${(data.my_logs || []).length}회)`;
                 }
 
                 // 3. Render My Branch Audit Logs (Permanent)
@@ -2843,7 +2843,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                             <tr>
                                 <td colspan="5" class="py-8 text-center text-slate-400 text-xs">
                                     <i class="fa-solid fa-folder-open text-base mb-1 block text-slate-300"></i>
-                                    해당 정산 주기에 제작된 내신자료 내역이 없습니다.
+                                    해당 정산 주기에 실행된 AI 제작 및 수정 내역이 없습니다.
                                 </td>
                             </tr>
                         `;
@@ -2866,6 +2866,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                             if (docType.includes('단어')) docBadgeClass = 'bg-violet-50 text-violet-700 border-violet-200';
                             else if (docType.includes('2차')) docBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
                             else if (docType.includes('변형문제')) docBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                            else if (docType.includes('삽화')) docBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                            else if (docType.includes('수정')) docBadgeClass = 'bg-slate-100 text-slate-700 border-slate-300';
 
                             const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
 
@@ -2926,7 +2928,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                                             ${isCurrent ? '<span class="text-[10px] bg-indigo-600 text-white font-black px-1.5 py-0.2 rounded">내 지점</span>' : ''}
                                         </div>
                                     </td>
-                                    <td class="py-2.5 px-2 text-center font-bold text-slate-700">${b.count}건</td>
+                                    <td class="py-2.5 px-2 text-center font-bold text-slate-700">${b.count}회</td>
                                     <td class="py-2.5 px-3 text-right font-mono font-black text-indigo-700">${(b.tokens || 0).toLocaleString()} T</td>
                                     <td class="py-2.5 px-3 text-right font-bold text-amber-900">${(b.cost_krw || 0).toLocaleString()}원</td>
                                     <td class="py-2.5 px-3 text-right text-slate-400 text-[11px]">${lastActiveStr}</td>
@@ -2957,12 +2959,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 const month = data.month || 8;
                 const periodLabel = data.period ? data.period.label : `${year}년 ${month}월 정산 주기`;
 
-                // 1. Ranking Dataset: 순위, 지점, 비용(원), 제작건수, 토큰사용량(T), 최근활동
+                // 1. Ranking Dataset: 순위, 지점, 비용(원), 실행 횟수, 토큰사용량(T), 최근활동
                 const rankingRows = (data.branch_ranking || []).map((b, idx) => ({
                     '순위': `${b.rank || (idx + 1)}위`,
                     '지점': b.branch,
                     '비용(원)': b.cost_krw || 0,
-                    '제작 건수': b.count,
+                    '실행 횟수': `${b.count}회`,
                     '토큰 사용량(T)': b.tokens || 0,
                     '최근 활동': (b.last_active && b.last_active > 100000) 
                         ? new Date(b.last_active * 1000).toLocaleString('ko-KR')
