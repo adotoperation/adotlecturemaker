@@ -662,11 +662,25 @@
                                 </div>
                             </div>
 
-                            <!-- Page 1 Section 1: 50% Page Height Large Illustration Image -->
-                            <div class="mb-3">
-                                <div class="w-full relative overflow-hidden rounded-xl border border-slate-300 shadow-sm">
-                                    <img id="ghibliImg" src="/static/illustration.jpg" alt="Remote Work Struggle Illustration" 
+                            <!-- Page 1 Section 1: 50% Page Height Large Illustration Image with Controls -->
+                            <div class="mb-3 relative group">
+                                <div class="w-full relative overflow-hidden rounded-xl border border-slate-300 shadow-sm bg-slate-100 flex items-center justify-center min-h-[350px]">
+                                    <img id="ghibliImg" src="/static/illustration.jpg" alt="Passage Illustration" 
                                         class="print-ghibli-img w-full h-[370px] sm:h-[400px] object-cover rounded-xl transition duration-300">
+                                    
+                                    <!-- Image Action Floating Overlay (Hidden in print) -->
+                                    <div class="absolute bottom-3 right-3 flex flex-wrap items-center gap-1.5 no-print bg-slate-950/75 backdrop-blur-sm p-1.5 rounded-lg border border-slate-700 opacity-90 group-hover:opacity-100 transition shadow-lg">
+                                        <button id="btnTriggerImageUpload" type="button" class="text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded transition flex items-center gap-1">
+                                            <i class="fa-solid fa-cloud-arrow-up"></i> 사진 변경
+                                        </button>
+                                        <button id="btnGenerateAiIllustration" type="button" class="text-[11px] font-bold bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 rounded transition flex items-center gap-1">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI 삽화 생성
+                                        </button>
+                                        <button id="btnInputImageUrl" type="button" class="text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-600 transition flex items-center gap-1">
+                                            <i class="fa-solid fa-link"></i> URL
+                                        </button>
+                                    </div>
+                                    <input type="file" id="illustrationFileInput" accept="image/*" class="hidden">
                                 </div>
                             </div>
 
@@ -1664,8 +1678,31 @@
             document.title = `${fullHeading}_강의용 교안`;
 
             const sInfo = data.summary_info || {};
-            summarySubject.innerText = sInfo.subject || '원격 근무 젊은 직원의 직장 적응 어려움과 유연한 선택지 제공의 필요성';
-            summaryKeywords.innerText = sInfo.keywords || '① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)';
+            summarySubject.innerText = sInfo.subject || '지문 핵심 주제 및 요지 분석';
+            summaryKeywords.innerText = sInfo.keywords || '① 핵심어1  ② 핵심어2  ③ 핵심어3';
+
+            // Dynamic Illustration Matching
+            const ghibliImg = document.getElementById('ghibliImg');
+            if (ghibliImg) {
+                if (data.illustration_url) {
+                    ghibliImg.src = data.illustration_url;
+                } else if (data.analysis_data && data.analysis_data.illustration_url) {
+                    ghibliImg.src = data.analysis_data.illustration_url;
+                } else {
+                    const passageText = data.passage_raw || (data.sentences || []).map(s => s.original).join(' ');
+                    const isEurofoundSample = passageText.includes('Eurofound') || passageText.includes('workload');
+                    if (isEurofoundSample) {
+                        ghibliImg.src = '/static/illustration.jpg';
+                    } else {
+                        // Dynamically generate Ghibli illustration URL tailored to this specific passage/topic
+                        const topicKw = (sInfo.subject || userTitle || 'high school English reading').replace(/[^\w\s\uac00-\ud7a3]/g, ' ');
+                        const autoUrl = `https://image.pollinations.ai/prompt/Studio%20Ghibli%20style%20watercolor%20illustration%20of%20${encodeURIComponent(topicKw)}%20aesthetic%20anime%20scenery%20warm%20soft%20light%20detailed%20masterpiece?width=1024&height=600&nologo=true`;
+                        ghibliImg.src = autoUrl;
+                        if (!currentAnalysisData) currentAnalysisData = {};
+                        currentAnalysisData.illustration_url = autoUrl;
+                    }
+                }
+            }
 
             summaryPoints.innerHTML = '';
             const summaryList = sInfo.summary || [
@@ -2954,6 +2991,79 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     link.click();
                     document.body.removeChild(link);
                     showToast(`정산 데이터가 CSV 파일로 다운로드되었습니다!`);
+                }
+            });
+        }
+
+        // ================= PAGE 1 ILLUSTRATION IMAGE CONTROLS =================
+        const btnTriggerImageUpload = document.getElementById('btnTriggerImageUpload');
+        const illustrationFileInput = document.getElementById('illustrationFileInput');
+        const btnGenerateAiIllustration = document.getElementById('btnGenerateAiIllustration');
+        const btnInputImageUrl = document.getElementById('btnInputImageUrl');
+
+        if (btnTriggerImageUpload && illustrationFileInput) {
+            btnTriggerImageUpload.addEventListener('click', () => {
+                illustrationFileInput.click();
+            });
+
+            illustrationFileInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    const ghibliImg = document.getElementById('ghibliImg');
+                    if (ghibliImg) ghibliImg.src = dataUrl;
+                    if (!currentAnalysisData) currentAnalysisData = {};
+                    currentAnalysisData.illustration_url = dataUrl;
+                    showToast('사진이 교안 삽화로 성공적으로 변경되었습니다!');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        if (btnGenerateAiIllustration) {
+            btnGenerateAiIllustration.addEventListener('click', async () => {
+                const userTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '지문 삽화';
+                const sInfo = (currentAnalysisData && currentAnalysisData.summary_info) || {};
+                const topic = sInfo.subject || userTitle;
+
+                showLoading("지문 맞춤 AI 삽화 생성 중", "지문의 핵심 주제를 바탕으로 고품질 지브리풍 일러스트를 생성하고 있습니다...");
+                try {
+                    const res = await fetch('/api/generate_illustration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: userTitle, topic: topic })
+                    });
+                    if (!res.ok) throw new Error('삽화 생성 요청 실패');
+                    const resData = await res.json();
+                    
+                    const ghibliImg = document.getElementById('ghibliImg');
+                    if (ghibliImg && resData.illustration_url) {
+                        ghibliImg.src = resData.illustration_url;
+                        if (!currentAnalysisData) currentAnalysisData = {};
+                        currentAnalysisData.illustration_url = resData.illustration_url;
+                    }
+                    hideLoading();
+                    showToast('지문 맞춤 AI 삽화가 성공적으로 적용되었습니다!');
+                } catch (err) {
+                    hideLoading();
+                    showToast(err.message, 'error');
+                }
+            });
+        }
+
+        if (btnInputImageUrl) {
+            btnInputImageUrl.addEventListener('click', () => {
+                const url = prompt('적용하실 이미지 URL 링크를 입력해 주세요:');
+                if (url && url.trim()) {
+                    const cleanUrl = url.trim();
+                    const ghibliImg = document.getElementById('ghibliImg');
+                    if (ghibliImg) ghibliImg.src = cleanUrl;
+                    if (!currentAnalysisData) currentAnalysisData = {};
+                    currentAnalysisData.illustration_url = cleanUrl;
+                    showToast('입력하신 이미지 URL이 교안에 적용되었습니다!');
                 }
             });
         }

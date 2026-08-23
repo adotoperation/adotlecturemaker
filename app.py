@@ -242,26 +242,33 @@ def modify():
         updated_data = modify_analysis_with_prompt(analysis_data, modify_prompt)
         return jsonify(updated_data)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/export-pdf', methods=['POST'])
-def export_pdf():
+@app.route('/api/generate_illustration', methods=['POST'])
+def generate_illustration_endpoint():
     data = request.json or {}
-    if not data or 'sentences' not in data:
-        return jsonify({'error': '유효한 분석 데이터가 없습니다.'}), 400
+    title = data.get('title', '').strip()
+    topic = data.get('topic', '').strip()
+    passage = data.get('passage', '').strip()
+    
+    # Generate clean English prompt for Ghibli/Anime style educational illustration
+    import urllib.parse
+    clean_topic = topic or title or "Educational high school English classroom reading illustration"
+    ghibli_prompt = f"Studio Ghibli style watercolor illustration of {clean_topic}, aesthetic anime scenery, warm soft sunlight, detailed background, masterpiece, 4k"
+    encoded_prompt = urllib.parse.quote(ghibli_prompt)
+    image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=600&nologo=true&seed={int(time.time())}"
+    
+    return jsonify({
+        'success': True,
+        'illustration_url': image_url,
+        'prompt': ghibli_prompt
+    })
 
-    try:
-        pdf_bytes = create_lecture_handout_pdf(data)
-        return Response(
-            pdf_bytes,
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': 'attachment; filename="lecture_handout.pdf"'
-            }
-        )
-    except Exception as e:
-        print("PDF export error:", e)
-        return jsonify({'error': f'PDF 생성 실패: {str(e)}'}), 500
+@app.route('/api/upload_illustration', methods=['POST'])
+def upload_illustration_endpoint():
+    data = request.json or {}
+    image_data = data.get('image_data', '')
+    if not image_data:
+        return jsonify({'error': '이미지 데이터가 필요합니다.'}), 400
+    return jsonify({'success': True, 'illustration_url': image_data})
 
 if os.environ.get('VERCEL') or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK):
     SAVES_DIR = '/tmp/saves'
