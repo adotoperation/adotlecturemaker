@@ -619,11 +619,6 @@
                         <span>변형문제 만들기 & 저장</span>
                     </button>
 
-                    <button id="btnSaveToServer" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
-                        <span>현재 교안 서버에 저장</span>
-                    </button>
-
                     <button id="btnPrint" type="button" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
                         <i class="fa-solid fa-print"></i>
                         <span>A4 인쇄 / PDF 저장</span>
@@ -1644,8 +1639,29 @@
                 }
 
                 renderAnalysisData(currentAnalysisData);
+
+                // Auto-save generated handout directly to server & Google database
+                try {
+                    const savePayload = {
+                        title: title,
+                        material_type: selectedMaterialType,
+                        doc_type: '강의용교안',
+                        label: selectedMaterialType,
+                        branch: getCurrentBranch(),
+                        sentence_pairs: sentence_pairs,
+                        analysis_data: currentAnalysisData
+                    };
+                    await fetch('/api/save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(savePayload)
+                    });
+                } catch (saveErr) {
+                    console.warn("Auto-save warning:", saveErr);
+                }
+
                 hideLoading();
-                showToast('교안이 성공적으로 분석 및 생성되었습니다!');
+                showToast(`'${title}' 교안이 성공적으로 생성 및 [${selectedMaterialType} / 강의용교안]으로 자동 저장되었습니다!`);
 
             } catch (err) {
                 hideLoading();
@@ -3079,61 +3095,6 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
             });
         }
-
-        // ================= SAVE TO SERVER (BUTTON) =================
-        btnSaveToServer.addEventListener('click', async () => {
-            const title = titleInput.value.trim();
-            if (!title) {
-                showToast('지문 제목을 입력해 주세요.', 'error');
-                titleInput.focus();
-                return;
-            }
-            
-            // Gather sentences
-            const pairs = [];
-            const rows = pairContainer.querySelectorAll('.pair-row');
-            rows.forEach(r => {
-                const en = r.querySelector('.pair-en').value.trim();
-                const kr = r.querySelector('.pair-kr').value.trim();
-                const pbInput = r.querySelector('.pair-page-break');
-                const pb = pbInput ? pbInput.checked : false;
-                if (en) {
-                    pairs.push({ english: en, korean: kr, page_break: pb });
-                }
-            });
-            
-            const payload = {
-                title: title,
-                material_type: selectedMaterialType,
-                doc_type: '강의용교안',
-                label: selectedMaterialType,
-                branch: getCurrentBranch(),
-                sentence_pairs: pairs,
-                analysis_data: currentAnalysisData
-            };
-            
-            btnSaveToServer.disabled = true;
-            btnSaveToServer.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
-            showLoading("교안 저장 중", "교안 정보를 서버 데이터베이스에 안전하게 기록하고 있습니다...");
-            
-            try {
-                const response = await fetch('/api/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) throw new Error('서버 저장 실패');
-                hideLoading();
-                showToast(`'${title}' 교안이 구글 서버에 [${selectedMaterialType} / 강의용교안]으로 성공적으로 저장되었습니다!`);
-            } catch (err) {
-                hideLoading();
-                showToast(err.message, 'error');
-            } finally {
-                btnSaveToServer.disabled = false;
-                btnSaveToServer.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 현재 교안 서버에 저장';
-            }
-        });
 
         // Vocab Test Event Listeners
         btnCreateVocabTest.addEventListener('click', async () => {
