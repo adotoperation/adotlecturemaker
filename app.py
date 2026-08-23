@@ -133,7 +133,8 @@ def generate_exam():
             }
             f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch)
             try:
-                append_usage_log(branch, material_type, doc_type_val, t_name, 11000)
+                actual_tokens = q_data.get('_total_tokens', 0) or estimate_tokens_for_item(doc_type_val)
+                append_usage_log(branch, material_type, doc_type_val, t_name, actual_tokens)
             except Exception:
                 pass
             return {"title": t_name, "filename": f_name, "material_type": material_type, "doc_type": doc_type_val, "questions": q_data, "question_order": shuffled_order, "branch": branch}
@@ -790,10 +791,15 @@ def save_handout():
     try:
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch)
         try:
-            tokens = estimate_tokens_for_item(doc_type, data.get('analysis_data'), data.get('sentence_pairs'))
+            analysis_d = data.get('analysis_data') or {}
+            raw_tokens = analysis_d.get('used_tokens') or (analysis_d.get('usage_metadata') or {}).get('total_tokens', 0)
+            if raw_tokens and int(raw_tokens) > 0:
+                tokens = int(raw_tokens)
+            else:
+                tokens = estimate_tokens_for_item(doc_type, analysis_d, data.get('sentence_pairs'))
             append_usage_log(branch, material_type, doc_type, title, tokens)
-        except Exception:
-            pass
+        except Exception as e:
+            print("[save_handout] log error:", e)
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
         return jsonify({'error': str(e)}), 500

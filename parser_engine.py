@@ -773,6 +773,11 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                         "page_break": sentence_pairs[idx].get('page_break', False) if (sentence_pairs and idx < len(sentence_pairs)) else False
                     })
                 
+                usage_meta = data.get('usageMetadata', {})
+                total_tok = usage_meta.get('totalTokenCount', 0)
+                prompt_tok = usage_meta.get('promptTokenCount', 0)
+                cand_tok = usage_meta.get('candidatesTokenCount', 0)
+                
                 return {
                     "title": title.strip(),
                     "summary_info": summary_info,
@@ -781,7 +786,13 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                     "sentence_count": len(results),
                     "sentences": results,
                     "vocabulary": parsed_json.get("vocabulary", extract_vocabulary(passage)),
-                    "used_ai": True
+                    "used_ai": True,
+                    "usage_metadata": {
+                        "prompt_tokens": prompt_tok,
+                        "output_tokens": cand_tok,
+                        "total_tokens": total_tok
+                    },
+                    "used_tokens": total_tok
                 }
         except Exception as e:
             print(f"Gemini API ({model_name}) call warning:", e)
@@ -1124,6 +1135,14 @@ Ensure all content is generated cleanly without trailing comments, raw backticks
                 cleaned = re.sub(r'^```json\s*', '', text_response.strip(), flags=re.MULTILINE)
                 cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE).strip()
                 questions_data = json.loads(cleaned)
+                
+                usage_meta = result.get('usageMetadata', {})
+                questions_data["_usage_metadata"] = {
+                    "prompt_tokens": usage_meta.get('promptTokenCount', 0),
+                    "output_tokens": usage_meta.get('candidatesTokenCount', 0),
+                    "total_tokens": usage_meta.get('totalTokenCount', 0)
+                }
+                questions_data["_total_tokens"] = usage_meta.get('totalTokenCount', 0)
                 return questions_data
             else:
                 last_error = f"HTTP {resp.status_code}: {resp.text}"
