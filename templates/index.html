@@ -1705,17 +1705,16 @@
                 } else if (data.analysis_data && data.analysis_data.illustration_url) {
                     ghibliImg.src = data.analysis_data.illustration_url;
                 } else {
-                    const passageText = data.passage_raw || (data.sentences || []).map(s => s.original).join(' ');
-                    const isEurofoundSample = passageText.includes('Eurofound') || passageText.includes('workload');
+                    const passageText = (data.passage_raw || (data.sentences || []).map(s => s.original).join(' ')).toLowerCase();
+                    const titleStr = (data.title || titleInput.value || '').toLowerCase();
+                    const isEurofoundSample = passageText.includes('eurofound') || passageText.includes('workload');
+                    
                     if (isEurofoundSample) {
                         ghibliImg.src = '/static/illustration.jpg';
+                    } else if (passageText.includes('skyscraper') || passageText.includes('vortex') || titleStr.includes('빌딩') || titleStr.includes('와류')) {
+                        ghibliImg.src = '/static/skyscraper_vortex.jpg';
                     } else {
-                        // Dynamically generate Ghibli illustration URL tailored to this specific passage/topic
-                        const topicKw = (sInfo.subject || userTitle || 'high school English reading').replace(/[^\w\s\uac00-\ud7a3]/g, ' ');
-                        const autoUrl = `https://image.pollinations.ai/prompt/Studio%20Ghibli%20style%20watercolor%20illustration%20of%20${encodeURIComponent(topicKw)}%20aesthetic%20anime%20scenery%20warm%20soft%20light%20detailed%20masterpiece?width=1024&height=600&nologo=true`;
-                        ghibliImg.src = autoUrl;
-                        if (!currentAnalysisData) currentAnalysisData = {};
-                        currentAnalysisData.illustration_url = autoUrl;
+                        ghibliImg.src = '/static/illustration.jpg';
                     }
                 }
             }

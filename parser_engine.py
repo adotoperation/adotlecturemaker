@@ -182,6 +182,7 @@ Return ONLY a valid JSON object matching this exact schema:
     "title_en": "Difficulties Experienced by Remote Young Workers and the Need for Fluid Options",
     "subject": "원격 근무 젊은 직원의 직장 적응 어려움과 유연성",
     "keywords": "① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)",
+    "illustration_scene_en": "Young professional working on a laptop in a cozy room with soft sunlight",
     "summary": [
       "① 원격 근무 젊은 직원은 동료보다 업무 및 관계 형성에 어려움을 겪음.",
       "② 적절한 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.",
@@ -778,6 +779,25 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                 prompt_tok = usage_meta.get('promptTokenCount', 0)
                 cand_tok = usage_meta.get('candidatesTokenCount', 0)
                 
+                illustration_scene_en = summary_info.get("illustration_scene_en", "")
+                if not illustration_scene_en:
+                    clean_t = title.lower() + " " + passage.lower()
+                    if "skyscraper" in clean_t or "vortex" in clean_t or "빌딩" in title or "와류" in title:
+                        illustration_scene_en = "Modern architectural skyscraper with swirling wind vortex airflows around curved corners"
+                    elif "collector" in clean_t or "art" in clean_t or "미술" in title:
+                        illustration_scene_en = "Art collector and gallery curator viewing classical artwork"
+                    else:
+                        illustration_scene_en = "Educational students reading in aesthetic library"
+
+                import urllib.parse
+                clean_enc = urllib.parse.quote(f"Studio Ghibli style watercolor illustration of {illustration_scene_en}, warm sunlight, aesthetic anime background, soft pastel colors, masterpiece, 4k")
+                auto_img_url = f"https://image.pollinations.ai/prompt/{clean_enc}?width=1024&height=600&nologo=true"
+
+                if "Eurofound" in passage or "workload" in passage:
+                    auto_img_url = "/static/illustration.jpg"
+                elif "skyscraper" in passage.lower() or "vortex" in passage.lower() or "빌딩" in title or "와류" in title:
+                    auto_img_url = "/static/skyscraper_vortex.jpg"
+
                 return {
                     "title": title.strip(),
                     "summary_info": summary_info,
@@ -786,6 +806,7 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                     "sentence_count": len(results),
                     "sentences": results,
                     "vocabulary": parsed_json.get("vocabulary", extract_vocabulary(passage)),
+                    "illustration_url": auto_img_url,
                     "used_ai": True,
                     "usage_metadata": {
                         "prompt_tokens": prompt_tok,
