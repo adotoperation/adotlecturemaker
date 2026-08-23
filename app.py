@@ -716,7 +716,10 @@ def get_stats():
         # Branch Aggregations
         branch_stats = {}
         for l in period_logs:
-            br = l.get('branch', '본사')
+            br = (l.get('branch') or '본사').strip()
+            if not br or br.lower() == 'admin' or br in ['본사', '에이닷 본원', '본사제작']:
+                br = '본사'
+            l['branch'] = br
             if br not in branch_stats:
                 branch_stats[br] = {
                     'branch': br,
@@ -731,22 +734,29 @@ def get_stats():
             if l.get('mtime', 0.0) > branch_stats[br]['last_active']:
                 branch_stats[br]['last_active'] = l.get('mtime', 0.0)
 
-        branch_ranking = sorted(branch_stats.values(), key=lambda x: x['tokens'], reverse=True)
+        # Full nationwide ranking with explicit rank numbers
+        full_ranking = sorted(branch_stats.values(), key=lambda x: x['tokens'], reverse=True)
+        for idx, item in enumerate(full_ranking, 1):
+            item['rank'] = idx
 
-        # User's branch specific logs (or all logs for admin)
+        # Access Control: admin sees all branches; individual branch sees ONLY their own branch
         if user_branch and user_branch != 'admin':
-            my_logs = [l for l in period_logs if l.get('branch') == user_branch]
+            effective_branch = '본사' if user_branch.lower() == 'admin' else user_branch
+            my_logs = [l for l in period_logs if l.get('branch') == effective_branch]
             my_count = len(my_logs)
             my_tokens = sum(l.get('tokens', 0) for l in my_logs)
             my_cost_krw = round(my_tokens * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+            visible_ranking = [item for item in full_ranking if item['branch'] == effective_branch]
         else:
             my_logs = period_logs
             my_count = total_count
             my_tokens = total_tokens
             my_cost_krw = total_cost_krw
+            visible_ranking = full_ranking
 
         return jsonify({
             "success": True,
+            "is_admin": (user_branch == 'admin'),
             "year": current_year,
             "month": current_month,
             "period": {
@@ -772,7 +782,7 @@ def get_stats():
                 "my_tokens": my_tokens,
                 "my_cost_krw": my_cost_krw
             },
-            "branch_ranking": branch_ranking,
+            "branch_ranking": visible_ranking,
             "my_logs": my_logs[:100]  # Max 100 recent entries in period
         })
     except Exception as e:

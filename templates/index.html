@@ -2852,7 +2852,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     } else {
                         let rankRows = '';
                         rankings.forEach((b, idx) => {
-                            const rankNum = idx + 1;
+                            const rankNum = b.rank || (idx + 1);
                             let rankBadge = `<span class="font-bold text-slate-500 text-xs">${rankNum}위</span>`;
                             if (rankNum === 1) rankBadge = `<span class="bg-amber-100 text-amber-800 font-black text-xs px-2 py-0.5 rounded-full"><i class="fa-solid fa-crown text-amber-500"></i> 1위</span>`;
                             else if (rankNum === 2) rankBadge = `<span class="bg-slate-200 text-slate-700 font-black text-xs px-2 py-0.5 rounded-full">2위</span>`;
@@ -2908,7 +2908,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 // 1. Ranking Dataset: 순위, 지점, 비용(원), 제작건수, 토큰사용량(T), 최근활동
                 const rankingRows = (data.branch_ranking || []).map((b, idx) => ({
-                    '순위': `${idx + 1}위`,
+                    '순위': `${b.rank || (idx + 1)}위`,
                     '지점': b.branch,
                     '비용(원)': b.cost_krw || 0,
                     '제작 건수': b.count,
