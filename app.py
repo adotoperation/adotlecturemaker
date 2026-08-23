@@ -778,10 +778,16 @@ def append_usage_log(branch, material_type, doc_type, title, tokens=None):
     if tokens is None:
         tokens = estimate_tokens_for_item(doc_type)
     cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
+    
+    import datetime
+    kst_tz = datetime.timezone(datetime.timedelta(hours=9))
+    now_kst = datetime.datetime.now(kst_tz)
+    now_ts = time.time()
+    
     log_entry = {
-        'id': f"log_{int(time.time()*1000)}",
-        'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S'),
-        'mtime': time.time(),
+        'id': f"log_{int(now_ts * 1000)}",
+        'timestamp': now_kst.strftime('%Y-%m-%dT%H:%M:%S'),
+        'mtime': now_ts,
         'branch': branch or '본사',
         'material_type': material_type or '모의고사',
         'doc_type': doc_type or '강의용교안',

@@ -2888,11 +2888,25 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     } else {
                         let logRows = '';
                         logs.forEach((l, idx) => {
-                            let dateStr = l.timestamp || '';
-                            if (dateStr.includes('T')) {
-                                const parts = dateStr.split('T');
-                                const timeParts = parts[1].split(':');
-                                dateStr = `${parts[0].slice(5)} ${timeParts[0]}:${timeParts[1]}`;
+                            let dateStr = '';
+                            if (l.mtime && l.mtime > 100000) {
+                                const d = new Date(l.mtime * 1000);
+                                const month = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                const hours = String(d.getHours()).padStart(2, '0');
+                                const minutes = String(d.getMinutes()).padStart(2, '0');
+                                dateStr = `${month}-${day} ${hours}:${minutes}`;
+                            } else if (l.timestamp) {
+                                const d = new Date(l.timestamp);
+                                if (!isNaN(d.getTime())) {
+                                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const hours = String(d.getHours()).padStart(2, '0');
+                                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                                    dateStr = `${month}-${day} ${hours}:${minutes}`;
+                                } else {
+                                    dateStr = l.timestamp.slice(5, 16).replace('T', ' ');
+                                }
                             }
 
                             const matType = l.material_type || '모의고사';
