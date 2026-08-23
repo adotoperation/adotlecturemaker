@@ -261,6 +261,7 @@
 
     <!-- Top Navbar -->
     <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md no-print sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2">
             <div class="flex items-center space-x-3">
                 <div class="bg-indigo-600 p-2 rounded-lg text-white shadow">
                     <i class="fa-solid fa-graduation-cap text-xl"></i>
@@ -283,13 +284,135 @@
                 </button>
             </div>
 
-            <div class="flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 mt-2 sm:mt-0">
-                <i class="fa-solid fa-building-user text-indigo-400"></i>
-                <span class="text-slate-300">supported by</span>
-                <span class="font-bold text-indigo-300">영업지원팀</span>
+            <!-- Right Controls: Supported by Badge & User Profile Area -->
+            <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                <div class="hidden sm:flex items-center space-x-2 text-xs bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+                    <i class="fa-solid fa-building-user text-indigo-400"></i>
+                    <span class="text-slate-300">supported by</span>
+                    <span class="font-bold text-indigo-300">영업지원팀</span>
+                </div>
+
+                <!-- Logged In User Profile & Logout -->
+                <div id="userBadgeArea" class="hidden flex items-center gap-2">
+                    <span class="text-xs bg-indigo-900/90 text-indigo-200 px-3 py-1.5 rounded-full border border-indigo-700 flex items-center gap-1.5 font-bold shadow-sm">
+                        <i class="fa-solid fa-user-check text-emerald-400"></i>
+                        <span id="loggedInUserName">강남</span>
+                    </span>
+                    <button id="btnLogout" type="button" class="text-xs text-slate-300 hover:text-white bg-slate-800/90 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1">
+                        <i class="fa-solid fa-right-from-bracket"></i> 로그아웃
+                    </button>
+                </div>
             </div>
         </div>
     </header>
+
+    <!-- ==================== LOGIN MODAL OVERLAY ==================== -->
+    <div id="loginModalOverlay" class="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 sm:p-8 relative overflow-hidden">
+            
+            <!-- Decorative Top Gradient Accent -->
+            <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500"></div>
+
+            <!-- Header Section -->
+            <div class="text-center mb-6 pt-2">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl shadow-lg mb-3">
+                    <i class="fa-solid fa-graduation-cap text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900 tracking-tight">
+                    에이닷 내신자료 메이커 <span class="text-indigo-600 font-bold text-base">ver. 1.0</span>
+                </h2>
+                <p class="text-xs text-slate-500 mt-1 font-medium">
+                    에이닷 강사용 내신 자료 & 변형문제 자동 생성 시스템
+                </p>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="space-y-4" onsubmit="return false;">
+                
+                <!-- ID Field -->
+                <div>
+                    <label for="loginIdInput" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                        <i class="fa-solid fa-user text-indigo-600"></i> 아이디
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="loginIdInput" 
+                            placeholder="강남 (O) 강남지점(X)" 
+                            autocomplete="username"
+                            class="w-full text-sm px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition placeholder:text-slate-400 font-medium text-slate-900 shadow-xs"
+                            required
+                        >
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1 pl-1">
+                        <i class="fa-solid fa-circle-info text-indigo-400 mr-0.5"></i> 예시: <b>강남 (O)</b> &nbsp;<span class="text-rose-400">강남지점 (X)</span>
+                    </p>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                    <label for="loginPasswordInput" class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                        <i class="fa-solid fa-lock text-indigo-600"></i> 비밀번호
+                    </label>
+                    <div class="relative">
+                        <input 
+                            type="password" 
+                            id="loginPasswordInput" 
+                            placeholder="원장 CRM 아이디" 
+                            autocomplete="current-password"
+                            class="w-full text-sm px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 outline-none transition placeholder:text-slate-400 font-medium text-slate-900 shadow-xs pr-11"
+                            required
+                        >
+                        <button 
+                            type="button" 
+                            id="btnTogglePassword" 
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 text-sm transition"
+                            title="비밀번호 보기/숨기기"
+                        >
+                            <i class="fa-solid fa-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1 pl-1">
+                        <i class="fa-solid fa-circle-info text-indigo-400 mr-0.5"></i> 예시: <b>원장 CRM 아이디</b>
+                    </p>
+                </div>
+
+                <!-- Remember ID Checkbox -->
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input 
+                            type="checkbox" 
+                            id="cbRememberId" 
+                            class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                        >
+                        <span class="text-xs font-bold text-slate-700">아이디 저장</span>
+                    </label>
+                </div>
+
+                <!-- Error Box -->
+                <div id="loginErrorBox" class="hidden bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl p-3 flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5 text-rose-500"></i>
+                    <span id="loginErrorMessage" class="flex-1 leading-relaxed font-medium"></span>
+                </div>
+
+                <!-- Login Button -->
+                <button 
+                    type="submit" 
+                    id="btnLoginSubmit" 
+                    class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-indigo-500/25 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                >
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span id="btnLoginText">로그인</span>
+                </button>
+            </form>
+
+            <!-- Footer Note -->
+            <div class="mt-6 text-center text-[11px] text-slate-400 border-t border-slate-100 pt-3">
+                <span>supported by <b>영업지원팀</b> • 에이닷 영어학원</span>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Main Content Layout -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
@@ -2455,6 +2578,141 @@
                 }, 400);
             }, 3000);
         }
+
+        // ==================== AUTHENTICATION MANAGEMENT ====================
+        const loginModalOverlay = document.getElementById('loginModalOverlay');
+        const loginForm = document.getElementById('loginForm');
+        const loginIdInput = document.getElementById('loginIdInput');
+        const loginPasswordInput = document.getElementById('loginPasswordInput');
+        const cbRememberId = document.getElementById('cbRememberId');
+        const btnLoginSubmit = document.getElementById('btnLoginSubmit');
+        const btnLoginText = document.getElementById('btnLoginText');
+        const loginErrorBox = document.getElementById('loginErrorBox');
+        const loginErrorMessage = document.getElementById('loginErrorMessage');
+        const btnTogglePassword = document.getElementById('btnTogglePassword');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const userBadgeArea = document.getElementById('userBadgeArea');
+        const loggedInUserName = document.getElementById('loggedInUserName');
+        const btnLogout = document.getElementById('btnLogout');
+
+        // Toggle password visibility
+        if (btnTogglePassword && loginPasswordInput && eyeIcon) {
+            btnTogglePassword.addEventListener('click', () => {
+                const isPass = loginPasswordInput.type === 'password';
+                loginPasswordInput.type = isPass ? 'text' : 'password';
+                eyeIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+            });
+        }
+
+        function showAppForUser(username) {
+            loginModalOverlay.classList.add('hidden');
+            userBadgeArea.classList.remove('hidden');
+            loggedInUserName.innerText = username + ' 지점';
+        }
+
+        function showLoginModal() {
+            loginModalOverlay.classList.remove('hidden');
+            userBadgeArea.classList.add('hidden');
+            loginErrorBox.classList.add('hidden');
+            loginPasswordInput.value = '';
+            
+            const savedId = localStorage.getItem('saved_adot_id');
+            if (savedId) {
+                loginIdInput.value = savedId;
+                cbRememberId.checked = true;
+                setTimeout(() => loginPasswordInput.focus(), 100);
+            } else {
+                loginIdInput.value = '';
+                cbRememberId.checked = false;
+                setTimeout(() => loginIdInput.focus(), 100);
+            }
+        }
+
+        // Check authentication on load
+        function checkAuthState() {
+            const authUser = sessionStorage.getItem('adot_auth_user');
+            if (authUser) {
+                showAppForUser(authUser);
+            } else {
+                showLoginModal();
+            }
+        }
+
+        // Login form submit
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = loginIdInput.value.trim();
+                const password = loginPasswordInput.value.trim();
+
+                if (!username) {
+                    loginErrorMessage.innerText = "아이디(지점명)를 입력해 주세요.";
+                    loginErrorBox.classList.remove('hidden');
+                    loginIdInput.focus();
+                    return;
+                }
+
+                if (!password) {
+                    loginErrorMessage.innerText = "비밀번호(원장 CRM 아이디)를 입력해 주세요.";
+                    loginErrorBox.classList.remove('hidden');
+                    loginPasswordInput.focus();
+                    return;
+                }
+
+                loginErrorBox.classList.add('hidden');
+                btnLoginSubmit.disabled = true;
+                btnLoginText.innerText = "인증 확인 중...";
+
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        const verifiedUser = data.username || username;
+                        sessionStorage.setItem('adot_auth_user', verifiedUser);
+
+                        if (cbRememberId.checked) {
+                            localStorage.setItem('saved_adot_id', verifiedUser);
+                        } else {
+                            localStorage.removeItem('saved_adot_id');
+                        }
+
+                        showAppForUser(verifiedUser);
+                        showToast(`'${verifiedUser}' 지점으로 로그인되었습니다. 환영합니다!`, 'success');
+                    } else {
+                        loginErrorMessage.innerText = data.error || "아이디 또는 비밀번호가 일치하지 않습니다.";
+                        loginErrorBox.classList.remove('hidden');
+                        loginPasswordInput.value = '';
+                        loginPasswordInput.focus();
+                    }
+                } catch (err) {
+                    loginErrorMessage.innerText = "서버와 통신하는 중 오류가 발생했습니다. 다시 시도해 주세요.";
+                    loginErrorBox.classList.remove('hidden');
+                } finally {
+                    btnLoginSubmit.disabled = false;
+                    btnLoginText.innerText = "로그인";
+                }
+            });
+        }
+
+        // Logout
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                if (confirm("로그아웃 하시겠습니까?")) {
+                    sessionStorage.removeItem('adot_auth_user');
+                    showLoginModal();
+                    showToast("로그아웃 되었습니다.", "info");
+                }
+            });
+        }
+
+        // Initial Auth Check
+        checkAuthState();
     </script>
 </body>
 </html>

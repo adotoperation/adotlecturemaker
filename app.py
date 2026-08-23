@@ -34,6 +34,40 @@ def vocab_test():
 def exam_view():
     return render_template('exam_view.html')
 
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json or {}
+    username = str(data.get('username', '')).strip()
+    password = str(data.get('password', '')).strip()
+
+    if not username:
+        return jsonify({'success': False, 'error': '아이디를 입력해 주세요.'}), 400
+    if not password:
+        return jsonify({'success': False, 'error': '비밀번호를 입력해 주세요.'}), 400
+
+    if not GAS_URL:
+        return jsonify({'success': True, 'username': username})
+
+    try:
+        payload = {
+            "action": "login",
+            "username": username,
+            "password": password
+        }
+        res = requests.post(GAS_URL, json=payload, timeout=12)
+        if res.status_code == 200:
+            res_data = res.json()
+            if res_data.get('success'):
+                return jsonify({'success': True, 'username': res_data.get('username', username)})
+            else:
+                error_msg = res_data.get('error', '아이디 또는 비밀번호가 일치하지 않습니다.')
+                return jsonify({'success': False, 'error': error_msg}), 401
+        else:
+            return jsonify({'success': False, 'error': f'구글 시트 인증 오류 (HTTP {res.status_code})'}), 500
+    except Exception as e:
+        print(f"[api_login] Error: {e}")
+        return jsonify({'success': False, 'error': f'로그인 처리 중 오류 발생: {str(e)}'}), 500
+
 @app.route('/api/generate_exam', methods=['POST'])
 @app.route('/api/generate_variation', methods=['POST'])
 def generate_exam():
