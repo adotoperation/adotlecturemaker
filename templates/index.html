@@ -2321,13 +2321,13 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             // 1. Filter by Scope
             if (currentRepoScope === 'my') {
                 if (admin) {
-                    list = list.filter(s => (s.branch === '본사제작' || s.branch === myBranch));
+                    list = list.filter(s => (s.branch === '본사' || s.branch === 'admin' || s.branch === myBranch));
                 } else {
                     list = list.filter(s => s.branch === myBranch);
                 }
             } else if (currentRepoScope === 'others') {
                 if (admin) {
-                    list = list.filter(s => s.branch !== '본사제작' && s.branch !== myBranch);
+                    list = list.filter(s => s.branch !== '본사' && s.branch !== 'admin' && s.branch !== myBranch);
                 } else {
                     list = list.filter(s => s.branch !== myBranch);
                 }
@@ -2376,8 +2376,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 const isVocab = s.label === '단어테스트';
                 const isExam = s.label === '변형문제';
 
-                const itemBranch = s.branch || '본사제작';
-                const isMainOffice = (itemBranch === '본사제작' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원');
+                const itemBranch = s.branch || '본사';
+                const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
                 const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
                 const canDelete = (isMyItem || admin);
 
@@ -2389,12 +2389,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     <span class="text-[10px] font-black tracking-wider ${badgeColor} px-1.5 py-0.5 rounded">${s.label}</span>
                 ` : '';
 
-                // Branch Badge: Main Office vs Branch
+                // Branch Badge: Main Office (본사) vs Branch
                 let branchBadge = '';
                 if (isMainOffice) {
                     branchBadge = `
                         <span class="text-[10px] font-black bg-indigo-950 text-amber-300 border border-indigo-700 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                            <i class="fa-solid fa-building-flag text-[9px]"></i> 본사제작
+                            <i class="fa-solid fa-building-flag text-[9px]"></i> 본사
                         </span>
                     `;
                 } else {

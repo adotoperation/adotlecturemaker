@@ -346,8 +346,8 @@ def get_db_saves():
             continue
 
         br = (s.get('branch') or '').strip()
-        if not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin']:
-            s['branch'] = '본사제작'
+        if not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin', '본사제작']:
+            s['branch'] = '본사'
         else:
             s['branch'] = br
 
