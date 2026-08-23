@@ -262,25 +262,31 @@
     <!-- Top Navbar -->
     <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md no-print sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center space-x-3">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white shadow">
+            <div class="flex items-center space-x-3 cursor-pointer" id="navLogoBtn">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white shadow hover:bg-indigo-500 transition">
                     <i class="fa-solid fa-graduation-cap text-xl"></i>
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight flex items-center">
                         에이닷 내신자료 메이커
-                        <span class="text-[10px] bg-indigo-500 text-white font-normal px-2 py-0.5 rounded-full ml-1.5 align-middle">v1.0</span>
+                        <span class="text-[10px] bg-indigo-500 text-white font-normal px-2 py-0.5 rounded-full ml-1.5 align-middle">ver. 1.0</span>
                     </h1>
                 </div>
             </div>
             
             <!-- Dashboard Tabs -->
-            <div class="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700 mt-2 sm:mt-0 gap-1 no-print">
-                <button id="navTabGenerator" type="button" class="text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition">
-                    <i class="fa-solid fa-pen-ruler mr-1"></i> 내신자료 만들기
+            <div class="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700 mt-2 sm:mt-0 gap-1 no-print overflow-x-auto">
+                <button id="navTabDashboard" type="button" class="text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-house"></i> 대시보드
                 </button>
-                <button id="navTabRepository" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition">
-                    <i class="fa-solid fa-folder-open mr-1"></i> 자료 저장소
+                <button id="navTabGenerator" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-ruler"></i> 내신자료 만들기
+                </button>
+                <button id="navTabRepository" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-folder-open"></i> 자료 저장소
+                </button>
+                <button id="navTabStats" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-pie"></i> 사용량 통계
                 </button>
             </div>
 
@@ -417,8 +423,99 @@
     <!-- Main Content Layout -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
 
+        <!-- ==================== VIEW 0: DASHBOARD HUB ==================== -->
+        <div id="viewDashboard" class="space-y-8 no-print">
+            
+            <!-- Welcome Hero Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+                <div class="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none"></div>
+                <div class="relative z-10 space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs font-bold border border-indigo-500/30">
+                        <i class="fa-solid fa-sparkles text-amber-400"></i> 에이닷 영어 내신 지원 플랫폼
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+                        안녕하세요, <span id="dashBranchName" class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-pink-300 font-black">강남</span> 지점 선생님! 👋
+                    </h2>
+                    <p class="text-sm text-slate-300 max-w-2xl font-normal leading-relaxed">
+                        원하시는 작업을 선택해 주세요. 직독직해 교안 제작부터 타 지점 공유 교안 탐색, 사용량 통계까지 한눈에 확인하실 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3 Main Interactive Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Card 1: 우리지점 내신자료 만들기 -->
+                <div id="cardGoGenerator" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                    <div class="space-y-4">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
+                            <i class="fa-solid fa-pen-ruler"></i>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-indigo-600 mb-1">STEP 1 • CREATE</div>
+                            <h3 class="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition">
+                                우리지점 내신자료 만들기
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                                영어 지문과 한글 해석으로 <b>구문분석 교안, 3초 단어테스트, 9종 변형문제</b>를 자동 생성하고 우리 지점 저장소에 보관합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t border-slate-100 mt-4 flex items-center justify-between text-xs font-bold text-indigo-600 group-hover:text-indigo-700">
+                        <span>교안 제작 시작하기</span>
+                        <i class="fa-solid fa-arrow-right transform group-hover:translate-x-1.5 transition"></i>
+                    </div>
+                </div>
+
+                <!-- Card 2: 다른지점 내신자료 보기 -->
+                <div id="cardGoOtherRepo" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                    <div class="space-y-4">
+                        <div class="w-14 h-14 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
+                            <i class="fa-solid fa-folder-tree"></i>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-600 mb-1">STEP 2 • EXPLORE & PULL</div>
+                            <h3 class="text-lg font-black text-slate-900 group-hover:text-emerald-600 transition">
+                                다른지점 내신자료 보기
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                                전국 에이닷 지점에서 제작하여 공유한 완성 교안을 열람하고, <b>원클릭으로 내 에디터에 '끌고 와서'</b> 바로 활용합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t border-slate-100 mt-4 flex items-center justify-between text-xs font-bold text-emerald-600 group-hover:text-emerald-700">
+                        <span>공유 자료실 둘러보기</span>
+                        <i class="fa-solid fa-arrow-right transform group-hover:translate-x-1.5 transition"></i>
+                    </div>
+                </div>
+
+                <!-- Card 3: 내신자료 사용량 보기 -->
+                <div id="cardGoStats" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-violet-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                    <div class="space-y-4">
+                        <div class="w-14 h-14 rounded-2xl bg-violet-50 group-hover:bg-violet-600 text-violet-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <div>
+                            <div class="text-[11px] font-bold uppercase tracking-wider text-violet-600 mb-1">STEP 3 • STATISTICS</div>
+                            <h3 class="text-lg font-black text-slate-900 group-hover:text-violet-600 transition">
+                                내신자료 사용량 보기
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-2 leading-relaxed">
+                                전국 지점별 누적 제작 건수 랭킹, 자료 유형별(교과서/모의고사/부교재/변형문제) 생성 분포를 실시간 통계로 확인합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="pt-6 border-t border-slate-100 mt-4 flex items-center justify-between text-xs font-bold text-violet-600 group-hover:text-violet-700">
+                        <span>사용량 통계 확인</span>
+                        <i class="fa-solid fa-arrow-right transform group-hover:translate-x-1.5 transition"></i>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- View A: Generator -->
-        <div id="viewGenerator" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div id="viewGenerator" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
 
             <!-- Left Input Panel -->
             <section class="lg:col-span-5 flex flex-col space-y-4 no-print">
@@ -814,20 +911,51 @@
             </div>
         </div> <!-- End View A: Generator -->
 
-        <!-- View B: Repository (Hidden by default) -->
+        <!-- View B: Repository -->
         <div id="viewRepository" class="hidden space-y-4 no-print">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                
+                <!-- Repository Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <h2 id="repoViewTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
                             <i class="fa-solid fa-folder-open text-indigo-600"></i>
-                            구글 시트 저장소 목록
+                            <span id="repoTitleText">우리 지점 자료 저장소</span>
                         </h2>
-                        <p class="text-xs text-slate-500">구글 스프레드시트에 저장된 교안들을 검색하고 불러올 수 있습니다.</p>
+                        <p id="repoSubtitleText" class="text-xs text-slate-500">우리 지점에서 직접 제작하여 보관 중인 교안 목록입니다.</p>
                     </div>
-                    <div class="relative w-full sm:w-80">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                        <input type="text" id="repoSearchInput" placeholder="교안 제목 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                    
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Search Box -->
+                        <div class="relative w-full sm:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="repoSearchInput" placeholder="교안 제목 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scope Filter Tabs (우리 지점 / 다른 지점 / 전체) -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-1.5" id="repoScopeFilterGroup">
+                        <button type="button" id="btnScopeMy" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-house-user"></i> 우리 지점 자료
+                        </button>
+                        <button type="button" id="btnScopeOthers" class="text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 bg-white border border-slate-200 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-globe"></i> 다른 지점 공유 자료
+                        </button>
+                        <button type="button" id="btnScopeAll" class="hidden text-xs font-bold px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-crown text-amber-500"></i> 전체 자료 (관리자)
+                        </button>
+                    </div>
+
+                    <!-- Label Type Filter Group -->
+                    <div class="flex items-center gap-1 overflow-x-auto" id="repoTypeFilterGroup">
+                        <button type="button" data-label="all" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded bg-slate-800 text-white transition">전체</button>
+                        <button type="button" data-label="교과서" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">교과서</button>
+                        <button type="button" data-label="모의고사" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">모의고사</button>
+                        <button type="button" data-label="부교재" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">부교재</button>
+                        <button type="button" data-label="변형문제" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">변형문제</button>
+                        <button type="button" data-label="단어테스트" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">단어테스트</button>
                     </div>
                 </div>
                 
@@ -844,6 +972,87 @@
                 <div id="repoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Cards will be populated dynamically -->
                 </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW C: USAGE STATISTICS ==================== -->
+        <div id="viewStats" class="hidden space-y-6 no-print">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-6">
+                
+                <!-- Stats Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-violet-600"></i>
+                            전국 에이닷 내신자료 제작 현황 & 사용량 통계
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">전국 지점별 교안 생성 건수 및 자료 유형별 누적 현황을 실시간으로 집계합니다.</p>
+                    </div>
+                    <button id="btnRefreshStats" type="button" class="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg transition flex items-center gap-1.5 self-start sm:self-auto shadow-xs">
+                        <i class="fa-solid fa-rotate text-slate-500"></i> 새로고침
+                    </button>
+                </div>
+
+                <!-- 4 Summary KPI Cards -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-indigo-600">총 제작 자료수</div>
+                        <div id="statTotalCount" class="text-2xl font-black text-indigo-950">0건</div>
+                    </div>
+                    <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-emerald-600">우리 지점 제작수</div>
+                        <div id="statMyCount" class="text-2xl font-black text-emerald-950">0건</div>
+                    </div>
+                    <div class="bg-violet-50/70 border border-violet-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-violet-600">참여 지점 수</div>
+                        <div id="statTotalBranches" class="text-2xl font-black text-violet-950">0곳</div>
+                    </div>
+                    <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-1">
+                        <div class="text-[11px] font-bold text-amber-600">변형문제 생성수</div>
+                        <div id="statExamCount" class="text-2xl font-black text-amber-950">0건</div>
+                    </div>
+                </div>
+
+                <!-- 2-Column: Material Type Distribution & Branch Ranking Leaderboard -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    <!-- Left: Material Type Breakdown -->
+                    <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                        <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-tags text-indigo-600"></i> 자료 유형별 제작 분포
+                        </h3>
+                        <div id="statTypeBreakdown" class="space-y-2.5 pt-1">
+                            <!-- Type progress bars injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Branch Ranking Leaderboard Table -->
+                    <div class="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-3">
+                        <h3 class="text-xs font-bold text-slate-800 flex items-center justify-between">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-trophy text-amber-500"></i> 전국 지점별 제작 랭킹
+                            </span>
+                            <span class="text-[11px] font-normal text-slate-500">실시간 누적 기준</span>
+                        </h3>
+                        <div class="overflow-x-auto max-h-80 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                            <table class="w-full text-xs text-left">
+                                <thead class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 sticky top-0">
+                                    <tr>
+                                        <th class="py-2.5 px-3 text-center w-12">순위</th>
+                                        <th class="py-2.5 px-4">지점명</th>
+                                        <th class="py-2.5 px-3 text-center w-24">제작 건수</th>
+                                        <th class="py-2.5 px-4 text-right">최근 활동</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statRankingTableBody" class="divide-y divide-slate-100">
+                                    <!-- Populated dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
         </div>
 
@@ -898,19 +1107,6 @@
         let currentAnalysisData = null;
         const titleInput = document.getElementById('titleInput');
         const btnSaveToServer = document.getElementById('btnSaveToServer');
-
-        // Navigation & Views
-        const navTabGenerator = document.getElementById('navTabGenerator');
-        const navTabRepository = document.getElementById('navTabRepository');
-        const viewGenerator = document.getElementById('viewGenerator');
-        const viewRepository = document.getElementById('viewRepository');
-        
-        // Repository Panel Elements
-        const repoSearchInput = document.getElementById('repoSearchInput');
-        const repoLoadingState = document.getElementById('repoLoadingState');
-        const repoEmptyState = document.getElementById('repoEmptyState');
-        const repoGrid = document.getElementById('repoGrid');
-
         let savedHandoutsList = [];
 
         const modifyPromptInput = document.getElementById('modifyPromptInput');
@@ -1816,7 +2012,7 @@
                     </div>
                     <div class="flex items-center gap-1.5">
                         <button type="button" class="btn-mark-correct px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
-                            isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-500 hover:border-emerald-500'
+isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slate-300 text-slate-500 hover:border-emerald-500'
                         }" data-idx="${idx}">
                             <i class="fa-solid fa-circle-check"></i> <span>맞음</span>
                         </button>
@@ -1910,7 +2106,168 @@
             });
         }
 
-        // ================= SERVER SAVE & LOAD LOGIC =================
+        // ================= CURRENT AUTH & BRANCH STATE =================
+        function getCurrentBranch() {
+            return (sessionStorage.getItem('adot_auth_user') || '강남').trim();
+        }
+
+        function isUserAdmin() {
+            return getCurrentBranch().toLowerCase() === 'admin';
+        }
+
+        // View Elements
+        const viewDashboard = document.getElementById('viewDashboard');
+        const viewGenerator = document.getElementById('viewGenerator');
+        const viewRepository = document.getElementById('viewRepository');
+        const viewStats = document.getElementById('viewStats');
+
+        const navLogoBtn = document.getElementById('navLogoBtn');
+        const navTabDashboard = document.getElementById('navTabDashboard');
+        const navTabGenerator = document.getElementById('navTabGenerator');
+        const navTabRepository = document.getElementById('navTabRepository');
+        const navTabStats = document.getElementById('navTabStats');
+
+        const dashBranchName = document.getElementById('dashBranchName');
+        const cardGoGenerator = document.getElementById('cardGoGenerator');
+        const cardGoOtherRepo = document.getElementById('cardGoOtherRepo');
+        const cardGoStats = document.getElementById('cardGoStats');
+
+        const repoTitleText = document.getElementById('repoTitleText');
+        const repoSubtitleText = document.getElementById('repoSubtitleText');
+        const btnScopeMy = document.getElementById('btnScopeMy');
+        const btnScopeOthers = document.getElementById('btnScopeOthers');
+        const btnScopeAll = document.getElementById('btnScopeAll');
+        const repoSearchInput = document.getElementById('repoSearchInput');
+
+        let currentRepoScope = 'my'; // 'my' | 'others' | 'all'
+        let currentRepoLabel = 'all';
+
+        // Switch Main View (dashboard | generator | repository | stats)
+        async function switchMainView(viewName) {
+            // Reset Tab Styles
+            const inactiveClass = "text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5";
+            const activeClass = "text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition flex items-center gap-1.5 shadow-sm";
+
+            navTabDashboard.className = inactiveClass;
+            navTabGenerator.className = inactiveClass;
+            navTabRepository.className = inactiveClass;
+            navTabStats.className = inactiveClass;
+
+            viewDashboard.classList.add('hidden');
+            viewGenerator.classList.add('hidden');
+            viewRepository.classList.add('hidden');
+            viewStats.classList.add('hidden');
+
+            const branch = getCurrentBranch();
+            if (dashBranchName) dashBranchName.innerText = branch;
+
+            if (viewName === 'dashboard') {
+                navTabDashboard.className = activeClass;
+                viewDashboard.classList.remove('hidden');
+            } else if (viewName === 'generator') {
+                navTabGenerator.className = activeClass;
+                viewGenerator.classList.remove('hidden');
+            } else if (viewName === 'repository') {
+                navTabRepository.className = activeClass;
+                viewRepository.classList.remove('hidden');
+                updateRepoScopeUI();
+                await refreshRepositoryView();
+            } else if (viewName === 'stats') {
+                navTabStats.className = activeClass;
+                viewStats.classList.remove('hidden');
+                await refreshStatsView();
+            }
+        }
+
+        function updateRepoScopeUI() {
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
+
+            if (admin) {
+                btnScopeAll.classList.remove('hidden');
+            } else {
+                btnScopeAll.classList.add('hidden');
+                if (currentRepoScope === 'all') currentRepoScope = 'my';
+            }
+
+            const activeBtn = "text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition flex items-center gap-1.5";
+            const inactiveBtn = "text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 bg-white border border-slate-200 transition flex items-center gap-1.5";
+            const activeAdminBtn = "text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-600 text-white shadow-sm transition flex items-center gap-1.5";
+            const inactiveAdminBtn = "text-xs font-bold px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition flex items-center gap-1.5";
+
+            btnScopeMy.className = (currentRepoScope === 'my') ? activeBtn : inactiveBtn;
+            btnScopeOthers.className = (currentRepoScope === 'others') ? activeBtn : inactiveBtn;
+            btnScopeAll.className = (currentRepoScope === 'all') ? activeAdminBtn : inactiveAdminBtn;
+
+            if (currentRepoScope === 'my') {
+                repoTitleText.innerText = `우리 지점 자료 저장소 (${myBranch}지점)`;
+                repoSubtitleText.innerText = `우리 지점에서 직접 제작하여 보관 중인 교안 목록입니다.`;
+            } else if (currentRepoScope === 'others') {
+                repoTitleText.innerText = `타 지점 공유 자료실`;
+                repoSubtitleText.innerText = `전국 타 지점에서 제작한 내신 교안입니다. 클릭하여 내 교안으로 끌고 올 수 있습니다.`;
+            } else {
+                repoTitleText.innerText = `전체 지점 통합 자료실 (관리자 모드)`;
+                repoSubtitleText.innerText = `전국 모든 지점의 자료를 조회 및 관리할 수 있습니다.`;
+            }
+        }
+
+        // Scope Button Listeners
+        btnScopeMy.addEventListener('click', () => {
+            currentRepoScope = 'my';
+            updateRepoScopeUI();
+            filterAndRenderRepoGrid();
+        });
+
+        btnScopeOthers.addEventListener('click', () => {
+            currentRepoScope = 'others';
+            updateRepoScopeUI();
+            filterAndRenderRepoGrid();
+        });
+
+        btnScopeAll.addEventListener('click', () => {
+            currentRepoScope = 'all';
+            updateRepoScopeUI();
+            filterAndRenderRepoGrid();
+        });
+
+        // Label Filter Buttons in Repo
+        const repoTypeFilterBtns = document.querySelectorAll('.repo-filter-btn');
+        repoTypeFilterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                repoTypeFilterBtns.forEach(b => {
+                    b.className = 'repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition';
+                });
+                btn.className = 'repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded bg-slate-800 text-white transition';
+                currentRepoLabel = btn.getAttribute('data-label') || 'all';
+                filterAndRenderRepoGrid();
+            });
+        });
+
+        // Top Navbar Navigation Listeners
+        if (navLogoBtn) navLogoBtn.addEventListener('click', () => switchMainView('dashboard'));
+        navTabDashboard.addEventListener('click', () => switchMainView('dashboard'));
+        navTabGenerator.addEventListener('click', () => switchMainView('generator'));
+        navTabRepository.addEventListener('click', () => {
+            currentRepoScope = 'my';
+            switchMainView('repository');
+        });
+        navTabStats.addEventListener('click', () => switchMainView('stats'));
+
+        // Dashboard Hero Cards Listeners
+        if (cardGoGenerator) {
+            cardGoGenerator.addEventListener('click', () => switchMainView('generator'));
+        }
+        if (cardGoOtherRepo) {
+            cardGoOtherRepo.addEventListener('click', () => {
+                currentRepoScope = 'others';
+                switchMainView('repository');
+            });
+        }
+        if (cardGoStats) {
+            cardGoStats.addEventListener('click', () => switchMainView('stats'));
+        }
+
+        // ================= SERVER REPOSITORY & STATS LOGIC =================
         async function refreshRepositoryView() {
             repoLoadingState.classList.remove('hidden');
             repoGrid.classList.add('hidden');
@@ -1918,17 +2275,44 @@
             
             try {
                 const response = await fetch('/api/saves');
-                if (!response.ok) throw new Error('불러오기 실패');
+                if (!response.ok) throw new Error('저장소 목록 불러오기 실패');
                 const data = await response.json();
                 
                 savedHandoutsList = data.saves || [];
-                renderRepositoryGrid(savedHandoutsList);
+                filterAndRenderRepoGrid();
             } catch (err) {
                 repoGrid.innerHTML = `<div class="text-rose-500 py-4 col-span-full text-center">오류: ${err.message}</div>`;
                 repoGrid.classList.remove('hidden');
             } finally {
                 repoLoadingState.classList.add('hidden');
             }
+        }
+
+        function filterAndRenderRepoGrid() {
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
+            const query = (repoSearchInput.value || '').trim().toLowerCase();
+
+            let list = [...savedHandoutsList];
+
+            // 1. Filter by Scope
+            if (currentRepoScope === 'my') {
+                list = list.filter(s => (s.branch || '에이닷 본원') === myBranch || (admin && (s.branch || '에이닷 본원') === myBranch));
+            } else if (currentRepoScope === 'others') {
+                list = list.filter(s => (s.branch || '에이닷 본원') !== myBranch);
+            }
+
+            // 2. Filter by Label Type
+            if (currentRepoLabel !== 'all') {
+                list = list.filter(s => s.label === currentRepoLabel);
+            }
+
+            // 3. Filter by Search Query
+            if (query) {
+                list = list.filter(s => (s.title || '').toLowerCase().includes(query) || (s.branch || '').toLowerCase().includes(query));
+            }
+
+            renderRepositoryGrid(list);
         }
 
         function renderRepositoryGrid(saves) {
@@ -1941,6 +2325,9 @@
             
             repoEmptyState.classList.add('hidden');
             repoGrid.classList.remove('hidden');
+
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
             
             let gridHtml = '';
             saves.forEach(s => {
@@ -1954,6 +2341,10 @@
                 const isVocab = s.label === '단어테스트';
                 const isExam = s.label === '변형문제';
 
+                const itemBranch = s.branch || '에이닷 본원';
+                const isMyItem = (itemBranch === myBranch);
+                const canDelete = (isMyItem || admin);
+
                 let badgeColor = 'bg-emerald-100 text-emerald-800';
                 if (isVocab) badgeColor = 'bg-violet-100 text-violet-800';
                 if (isExam) badgeColor = 'bg-amber-100 text-amber-800';
@@ -1961,6 +2352,13 @@
                 const materialTypeBadge = s.label ? `
                     <span class="text-[10px] font-black tracking-wider ${badgeColor} px-1.5 py-0.5 rounded">${s.label}</span>
                 ` : '';
+
+                // Branch Badge
+                const branchBadge = `
+                    <span class="text-[10px] font-bold ${isMyItem ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                        <i class="fa-solid fa-location-dot text-[9px] ${isMyItem ? 'text-amber-300' : 'text-slate-500'}"></i> ${itemBranch}
+                    </span>
+                `;
 
                 let docTypeBadge = `<span class="text-[10px] font-black tracking-wider uppercase bg-indigo-100 px-1.5 py-0.5 rounded text-indigo-800">교안 문서</span>`;
                 let docIcon = 'fa-file-invoice text-indigo-600';
@@ -1987,20 +2385,31 @@
                         </button>
                     `;
                 } else {
+                    const loadBtnText = isMyItem ? '교안 열기' : '내 교안으로 끌고 오기';
+                    const loadBtnIcon = isMyItem ? 'fa-file-import' : 'fa-cloud-arrow-down';
                     actionButtonsHtml = `
-                        <button type="button" class="btn-repo-load flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-label="${s.label || '모의고사'}">
-                            <i class="fa-solid fa-file-import"></i> <span>교안 열기</span>
+                        <button type="button" class="btn-repo-load flex-1 ${isMyItem ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-label="${s.label || '모의고사'}" data-ismy="${isMyItem}">
+                            <i class="fa-solid ${loadBtnIcon}"></i> <span>${loadBtnText}</span>
                         </button>
                     `;
                 }
 
+                const deleteBtnHtml = canDelete ? `
+                    <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-3 rounded-lg border border-rose-200 transition shrink-0" data-filename="${s.filename}" data-title="${s.title}" data-label="${s.label || '모의고사'}" title="삭제">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                ` : '';
+
                 gridHtml += `
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition duration-200 space-y-3">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-1.5">
-                                <i class="fa-solid ${docIcon} text-sm"></i>
-                                ${docTypeBadge}
-                                ${materialTypeBadge}
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between gap-1.5">
+                                <div class="flex items-center gap-1.5">
+                                    <i class="fa-solid ${docIcon} text-sm"></i>
+                                    ${docTypeBadge}
+                                    ${materialTypeBadge}
+                                </div>
+                                ${branchBadge}
                             </div>
                             <h3 class="text-xs font-bold text-slate-800 truncate" title="${s.title}">${s.title}</h3>
                             <p class="text-[10px] text-slate-400 flex items-center gap-1">
@@ -2010,9 +2419,7 @@
                         
                         <div class="flex gap-2 pt-2 border-t border-slate-100">
                             ${actionButtonsHtml}
-                            <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-3 rounded-lg border border-rose-200 transition shrink-0" data-filename="${s.filename}" data-title="${s.title}" data-label="${s.label || '모의고사'}" title="삭제">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
+                            ${deleteBtnHtml}
                         </div>
                     </div>
                 `;
@@ -2042,10 +2449,12 @@
                 btn.addEventListener('click', async () => {
                     const filename = btn.getAttribute('data-filename');
                     const label = btn.getAttribute('data-label');
-                    console.log("불러오기 버튼 클릭됨:", filename, label);
+                    const isMy = btn.getAttribute('data-ismy') === 'true';
                     await loadHandoutFromServer(filename, label);
-                    // Switch back to generator
-                    navTabGenerator.click();
+                    switchMainView('generator');
+                    if (!isMy) {
+                        showToast(`타 지점의 교안을 내 작업 공간으로 성공적으로 끌고 왔습니다! 수정 후 저장하실 수 있습니다.`, 'success');
+                    }
                 });
             });
             
@@ -2062,8 +2471,12 @@
             });
         }
 
+        // Live Search Filter
+        repoSearchInput.addEventListener('input', () => {
+            filterAndRenderRepoGrid();
+        });
+
         async function loadHandoutFromServer(filename, label = '모의고사') {
-            console.log("loadHandoutFromServer 진입:", filename, label);
             showLoading("교안 불러오는 중", "구글 서버에서 분석 데이터를 안전하게 내려받고 있습니다...");
             try {
                 const response = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`);
@@ -2115,47 +2528,105 @@
             }
         }
 
-        async function deleteHandoutFromServer(filename, label = '모의고사') {
-            showLoading("교안 삭제 중", "구글 서버에서 해당 문서를 영구히 파기하고 있습니다...");
+        // ================= USAGE STATS VIEW LOGIC =================
+        const btnRefreshStats = document.getElementById('btnRefreshStats');
+        if (btnRefreshStats) {
+            btnRefreshStats.addEventListener('click', () => refreshStatsView());
+        }
+
+        async function refreshStatsView() {
+            const statTotalCount = document.getElementById('statTotalCount');
+            const statMyCount = document.getElementById('statMyCount');
+            const statTotalBranches = document.getElementById('statTotalBranches');
+            const statExamCount = document.getElementById('statExamCount');
+            const statTypeBreakdown = document.getElementById('statTypeBreakdown');
+            const statRankingTableBody = document.getElementById('statRankingTableBody');
+
             try {
-                const response = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error('교안 삭제에 실패했습니다.');
-                hideLoading();
-                showToast('교안이 서버에서 삭제되었습니다.');
+                const res = await fetch('/api/stats');
+                if (!res.ok) throw new Error('통계 데이터 로드 실패');
+                const data = await res.json();
+
+                const myBranch = getCurrentBranch();
+                const total = data.total_count || 0;
+                
+                // Find my branch count
+                let myCount = 0;
+                if (data.branch_ranking) {
+                    const found = data.branch_ranking.find(b => b.branch === myBranch);
+                    if (found) myCount = found.count;
+                }
+
+                statTotalCount.innerText = `${total}건`;
+                statMyCount.innerText = `${myCount}건`;
+                statTotalBranches.innerText = `${data.total_branches || 0}곳`;
+                statExamCount.innerText = `${(data.label_counts && data.label_counts['변형문제']) || 0}건`;
+
+                // Render Type Breakdown Bars
+                if (statTypeBreakdown && data.label_counts) {
+                    const types = [
+                        { label: '모의고사', color: 'bg-indigo-600' },
+                        { label: '교과서', color: 'bg-emerald-600' },
+                        { label: '부교재', color: 'bg-amber-600' },
+                        { label: '변형문제', color: 'bg-orange-600' },
+                        { label: '단어테스트', color: 'bg-violet-600' }
+                    ];
+
+                    let barHtml = '';
+                    types.forEach(t => {
+                        const cnt = data.label_counts[t.label] || 0;
+                        const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+                        barHtml += `
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-xs font-bold text-slate-700">
+                                    <span>${t.label}</span>
+                                    <span class="text-slate-500">${cnt}건 (${pct}%)</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                    <div class="${t.color} h-2 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    statTypeBreakdown.innerHTML = barHtml;
+                }
+
+                // Render Ranking Table
+                if (statRankingTableBody && data.branch_ranking) {
+                    let tableHtml = '';
+                    data.branch_ranking.forEach((r, idx) => {
+                        const rankNum = idx + 1;
+                        let medal = `${rankNum}`;
+                        if (rankNum === 1) medal = '🥇 1위';
+                        else if (rankNum === 2) medal = '🥈 2위';
+                        else if (rankNum === 3) medal = '🥉 3위';
+
+                        const isMy = (r.branch === myBranch);
+                        const rowBg = isMy ? 'bg-indigo-50/80 font-bold' : '';
+                        const dateStr = r.last_active ? new Date(r.last_active * 1000).toLocaleDateString('ko-KR') : '-';
+
+                        tableHtml += `
+                            <tr class="${rowBg} hover:bg-slate-50 transition">
+                                <td class="py-2.5 px-3 text-center font-black ${rankNum <= 3 ? 'text-amber-600' : 'text-slate-500'}">${medal}</td>
+                                <td class="py-2.5 px-4 flex items-center gap-1.5 text-slate-900">
+                                    <i class="fa-solid fa-location-dot ${isMy ? 'text-indigo-600' : 'text-slate-400'} text-xs"></i>
+                                    <span>${r.branch}</span>
+                                    ${isMy ? '<span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.2 rounded ml-1">우리</span>' : ''}
+                                </td>
+                                <td class="py-2.5 px-3 text-center font-black text-indigo-700">${r.count}건</td>
+                                <td class="py-2.5 px-4 text-right text-slate-400">${dateStr}</td>
+                            </tr>
+                        `;
+                    });
+                    statRankingTableBody.innerHTML = tableHtml || '<tr><td colspan="4" class="py-4 text-center text-slate-400">데이터가 없습니다.</td></tr>';
+                }
+
             } catch (err) {
-                hideLoading();
-                showToast(err.message, 'error');
+                console.error("Stats refresh error:", err);
             }
         }
 
-        // Live Search Filter
-        repoSearchInput.addEventListener('input', () => {
-            const query = repoSearchInput.value.trim().toLowerCase();
-            if (!query) {
-                renderRepositoryGrid(savedHandoutsList);
-                return;
-            }
-            
-            const filtered = savedHandoutsList.filter(s => s.title.toLowerCase().includes(query));
-            renderRepositoryGrid(filtered);
-        });
-
-        // Tab Switchers
-        navTabGenerator.addEventListener('click', () => {
-            navTabGenerator.className = "text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition";
-            navTabRepository.className = "text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition";
-            viewGenerator.classList.remove('hidden');
-            viewRepository.classList.add('hidden');
-        });
-
-        navTabRepository.addEventListener('click', async () => {
-            navTabRepository.className = "text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition";
-            navTabGenerator.className = "text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition";
-            viewRepository.classList.remove('hidden');
-            viewGenerator.classList.add('hidden');
-            await refreshRepositoryView();
-        });
-
+        // Save Handout To Server
         btnSaveToServer.addEventListener('click', async () => {
             const title = titleInput.value.trim();
             if (!title) {
@@ -2180,6 +2651,7 @@
             const payload = {
                 title: title,
                 label: selectedMaterialType,
+                branch: getCurrentBranch(),
                 sentence_pairs: pairs,
                 analysis_data: currentAnalysisData
             };
@@ -2246,10 +2718,12 @@
                 const payload = {
                     title: title,
                     label: '단어테스트',
+                    branch: getCurrentBranch(),
                     sentence_pairs: pairs,
                     analysis_data: {
                         ...(currentAnalysisData || {}),
                         title: title,
+                        branch: getCurrentBranch(),
                         vocabulary: vocabList,
                         is_vocab_test: true,
                         test_created_at: new Date().toISOString()
@@ -2313,6 +2787,7 @@
                         title: title,
                         passage: fullPassage,
                         topic: title,
+                        branch: getCurrentBranch(),
                         sentence_pairs: pairs,
                         api_key: apiKey
                     };
@@ -2396,75 +2871,51 @@
 
         // Teacher Score View Actions
         btnRestartSpeedTest.addEventListener('click', () => {
-            if (currentAnalysisData && currentAnalysisData.vocabulary) {
-                currentVocabList = [...currentAnalysisData.vocabulary.slice(0, 16)];
-            }
-            userScores = currentVocabList.map(() => true);
-            startSpeedTest(currentVocabList);
+            startSpeedTest();
         });
 
         btnRetestIncorrect.addEventListener('click', () => {
-            const incorrectList = currentVocabList.filter((v, idx) => userScores[idx] === false);
+            const incorrectList = currentVocabList.filter((_, idx) => userScores[idx] === false);
             if (incorrectList.length === 0) {
-                showToast('🎉 틀린 단어가 없습니다! 모든 단어가 정답 처리되었습니다.');
+                showToast('틀린 단어가 없습니다! 완벽합니다. 🎉');
                 return;
             }
-            currentVocabList = [...incorrectList];
-            userScores = currentVocabList.map(() => true);
-            startSpeedTest(currentVocabList);
-            showToast(`⚠️ 틀린 단어 ${incorrectList.length}개로 3초 재시험을 시작합니다!`);
+            currentVocabList = incorrectList;
+            renderTeacherScoringDashboard();
+            switchVocabSubView('speed');
+            startSpeedTest();
         });
 
         btnSaveScoreToServer.addEventListener('click', async () => {
-            const title = (titleInput.value.trim() || '영어 지문').replace(/\s*강의용\s*교안\s*$/, '').trim();
+            const title = vocabTestTitle.innerText || '영어 단어 테스트';
             const correctCount = userScores.filter(s => s === true).length;
-            const totalCount = currentVocabList.length;
-            const percent = Math.round((correctCount / totalCount) * 100);
-
-            // Gather sentence pairs
-            const pairs = [];
-            const rows = pairContainer.querySelectorAll('.pair-row');
-            rows.forEach(r => {
-                const en = r.querySelector('.pair-en').value.trim();
-                const kr = r.querySelector('.pair-kr').value.trim();
-                const pbInput = r.querySelector('.pair-page-break');
-                const pb = pbInput ? pbInput.checked : false;
-                if (en) {
-                    pairs.push({ english: en, korean: kr, page_break: pb });
-                }
-            });
-
-            showLoading("채점 결과 저장 중", "구글 서버에 채점 성적과 단어 테스트 기록을 안전하게 저장하고 있습니다...");
-
+            const totalCount = currentVocabList.length || 16;
+            
+            showLoading("채점 결과 저장 중", "구글 서버에 채점 성적표를 안전하게 기록하고 있습니다...");
             try {
                 const payload = {
-                    title: title,
+                    title: `${title} - 단어시험 채점결과 (${correctCount}/${totalCount})`,
                     label: '단어테스트',
-                    sentence_pairs: pairs,
+                    branch: getCurrentBranch(),
+                    sentence_pairs: [],
                     analysis_data: {
-                        ...(currentAnalysisData || {}),
-                        title: title,
-                        vocabulary: currentVocabList,
-                        is_vocab_test: true,
-                        score: {
-                            correct: correctCount,
-                            total: totalCount,
-                            percentage: percent,
-                            scores: userScores
-                        },
-                        tested_at: new Date().toISOString()
+                        is_vocab_score: true,
+                        score: correctCount,
+                        total: totalCount,
+                        branch: getCurrentBranch(),
+                        saved_at: new Date().toISOString()
                     }
                 };
 
-                const response = await fetch('/api/save', {
+                const res = await fetch('/api/save', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error('채점 결과 저장 실패');
+                if (!res.ok) throw new Error('채점 결과 저장 실패');
                 hideLoading();
-                showToast(`'${title}' 단어 테스트 결과(${correctCount}/${totalCount}점)가 구글 서버에 저장되었습니다!`);
+                showToast(`단어 채점 결과 (${correctCount}/${totalCount}점)가 성공적으로 저장되었습니다!`);
             } catch (err) {
                 hideLoading();
                 showToast(err.message, 'error');
@@ -2607,7 +3058,12 @@
         function showAppForUser(username) {
             loginModalOverlay.classList.add('hidden');
             userBadgeArea.classList.remove('hidden');
-            loggedInUserName.innerText = username + ' 지점';
+            const admin = (username.toLowerCase() === 'admin');
+            loggedInUserName.innerText = admin ? '👑 관리자 (admin)' : `${username} 지점`;
+            if (dashBranchName) dashBranchName.innerText = username;
+            
+            // Switch to Dashboard View on initial login
+            switchMainView('dashboard');
         }
 
         function showLoginModal() {

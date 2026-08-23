@@ -76,6 +76,7 @@ def generate_exam():
     passage = data.get('passage', '').strip()
     topic = data.get('topic', '').strip()
     sentence_pairs = data.get('sentence_pairs', [])
+    branch = data.get('branch', '기타').strip() or '기타'
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
 
     if not title:
@@ -110,11 +111,13 @@ def generate_exam():
             p_load = {
                 "title": t_name,
                 "label": "변형문제",
+                "branch": branch,
                 "sentence_pairs": sentence_pairs,
                 "analysis_data": {
                     "title": t_name,
                     "passage": passage,
                     "topic": topic,
+                    "branch": branch,
                     "questions": q_data,
                     "question_order": shuffled_order,
                     "is_variation_exam": True,
@@ -122,8 +125,8 @@ def generate_exam():
                     "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
                 }
             }
-            f_name = save_db_handout(t_name, p_load, label='변형문제')
-            return {"title": t_name, "filename": f_name, "questions": q_data, "question_order": shuffled_order}
+            f_name = save_db_handout(t_name, p_load, label='변형문제', branch=branch)
+            return {"title": t_name, "filename": f_name, "questions": q_data, "question_order": shuffled_order, "branch": branch}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             future1 = executor.submit(_gen_exam, 1, title_1)
@@ -137,6 +140,7 @@ def generate_exam():
             'filename': res1['filename'],
             'questions': res1['questions'],
             'question_order': res1['question_order'],
+            'branch': branch,
             'label': '변형문제'
         })
     except Exception as e:
@@ -148,6 +152,7 @@ def save_exam_layout():
     data = request.json or {}
     filename = data.get('filename', '').strip()
     label = data.get('label', '변형문제').strip()
+    branch = data.get('branch', '기타').strip() or '기타'
     page_breaks = data.get('page_breaks', [])
     question_order = data.get('question_order')
     
@@ -161,7 +166,10 @@ def save_exam_layout():
         doc['analysis_data']['page_breaks'] = page_breaks
         if question_order and isinstance(question_order, list):
             doc['analysis_data']['question_order'] = question_order
-        saved_fn = save_db_handout(doc.get('title', filename.replace('.json', '')), doc, label=label)
+        if branch:
+            doc['branch'] = branch
+            doc['analysis_data']['branch'] = branch
+        saved_fn = save_db_handout(doc.get('title', filename.replace('.json', '')), doc, label=label, branch=branch)
         return jsonify({'success': True, 'filename': saved_fn})
     except Exception as e:
         print(f"[save_exam_layout] Error: {e}")
@@ -272,6 +280,9 @@ def get_db_saves():
             print("GAS Raw Response:", res.text)
             if res.status_code == 200:
                 saves = res.json().get("saves", [])
+                for s in saves:
+                    if not s.get('branch'):
+                        s['branch'] = '에이닷 본원'
                 saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
                 return saves
             else:
@@ -300,7 +311,8 @@ def get_db_saves():
                                     'filename': k.replace("handout:", ""),
                                     'title': data.get('title', k.replace("handout:", "")),
                                     'mtime': data.get('mtime', 0.0),
-                                    'label': data.get('label', '모의고사')
+                                    'label': data.get('label', '모의고사'),
+                                    'branch': data.get('branch', '에이닷 본원')
                                 })
                             except Exception:
                                 pass
@@ -320,31 +332,36 @@ def get_db_saves():
                         saved_data = json.load(f)
                     title = saved_data.get('title', filename[:-5])
                     label = saved_data.get('label', '모의고사')
+                    branch = saved_data.get('branch', '에이닷 본원')
                 except Exception:
                     title = filename[:-5]
                     label = '모의고사'
+                    branch = '에이닷 본원'
                 saves.append({
                     'filename': filename,
                     'title': title,
                     'mtime': mtime,
-                    'label': label
+                    'label': label,
+                    'branch': branch
                 })
         saves.sort(key=lambda x: x.get('mtime', 0.0) or 0.0, reverse=True)
         return saves
 
-def save_db_handout(title, data, label="모의고사"):
+def save_db_handout(title, data, label="모의고사", branch="기타"):
     filename = safe_korean_filename(title)
     if not filename.endswith('.json'):
         filename += '.json'
     
     data['mtime'] = time.time()
     data['label'] = label
+    data['branch'] = branch
     
     if GAS_URL:
         payload = {
             "action": "save",
             "label": label,
             "title": title,
+            "branch": branch,
             "sentence_pairs": data.get("sentence_pairs", []),
             "analysis_data": data.get("analysis_data", {})
         }
@@ -482,21 +499,79 @@ def delete_db_handout(filename, label="모의고사"):
 
 @app.route('/api/saves', methods=['GET'])
 def get_saves():
+    branch = request.args.get('branch', '').strip()
+    mode = request.args.get('mode', 'all').strip()
     try:
         saves = get_db_saves()
+        if branch and branch != 'admin':
+            if mode == 'my':
+                saves = [s for s in saves if s.get('branch') == branch]
+            elif mode == 'others':
+                saves = [s for s in saves if s.get('branch') != branch]
         return jsonify({'saves': saves})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    try:
+        saves = get_db_saves()
+        total_count = len(saves)
+        
+        label_counts = {
+            "교과서": 0,
+            "모의고사": 0,
+            "부교재": 0,
+            "변형문제": 0,
+            "단어테스트": 0,
+            "기타": 0
+        }
+        
+        branch_counts = {}
+        branch_recent = {}
+        
+        for s in saves:
+            lbl = s.get('label', '기타')
+            if lbl in label_counts:
+                label_counts[lbl] += 1
+            else:
+                label_counts["기타"] += 1
+                
+            br = s.get('branch', '에이닷 본원').strip() or '에이닷 본원'
+            branch_counts[br] = branch_counts.get(br, 0) + 1
+            
+            mtime = s.get('mtime', 0)
+            if br not in branch_recent or mtime > branch_recent[br]:
+                branch_recent[br] = mtime
+                
+        branch_ranking = []
+        for br, cnt in sorted(branch_counts.items(), key=lambda x: x[1], reverse=True):
+            branch_ranking.append({
+                "branch": br,
+                "count": cnt,
+                "last_active": branch_recent.get(br, 0)
+            })
+            
+        return jsonify({
+            "success": True,
+            "total_count": total_count,
+            "total_branches": len(branch_counts),
+            "label_counts": label_counts,
+            "branch_ranking": branch_ranking
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/save', methods=['POST'])
 def save_handout():
     data = request.json or {}
     title = data.get('title', '').strip()
     label = data.get('label', '모의고사').strip()
+    branch = data.get('branch', '기타').strip() or '기타'
     if not title:
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400
     try:
-        filename = save_db_handout(title, data, label=label)
+        filename = save_db_handout(title, data, label=label, branch=branch)
         return jsonify({'success': True, 'filename': filename})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
