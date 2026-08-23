@@ -16,16 +16,20 @@ load_env()
 DEFAULT_GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 CONJUNCTIONS_LIST = [
-    'and', 'or', 'but', 'so', 'yet', 'for', 'nor',
+    # 등위접속사 (Coordinating Conjunctions)
+    'and', 'but', 'or', 'so', 'yet', 'nor',
+    # 상관접속사 (Correlative Conjunctions)
+    'both', 'either', 'neither',
+    # 접속부사 (Conjunctive Adverbs)
     'however', 'therefore', 'furthermore', 'moreover', 'thus', 'consequently',
-    'nonetheless', 'nevertheless', 'while', 'although', 'though', 'because', 'since',
-    'if', 'unless', 'as', 'whereas'
+    'nonetheless', 'nevertheless', 'instead', 'otherwise', 'meanwhile', 'besides', 'likewise', 'similarly'
 ]
 
 def sanitize_conjunction_tokens(analysis_data):
     """
-    Ensures conjunctions (and, or, but, so, etc.) are strictly isolated into single-word tokens.
-    Prevents trailing words (e.g. 'or Colorado', 'and work') from having triangles applied over them.
+    Ensures ONLY coordinating conjunctions, correlative conjunctions, and conjunctive adverbs
+    have is_conjunction: True and triangle mark.
+    Prepositions and subordinating conjunctions (as, for, because, since, if, while, etc.) MUST NOT have triangles.
     """
     if not analysis_data or 'sentences' not in analysis_data:
         return analysis_data
@@ -74,8 +78,11 @@ def sanitize_conjunction_tokens(analysis_data):
                 t['is_conjunction'] = True
                 if not t.get('sub_tag'):
                     t['sub_tag'] = '접속사'
-            elif t.get('is_conjunction') and clean_word not in CONJUNCTIONS_LIST and len(words) == 1:
+            else:
+                # Strictly remove triangle from as, for, since, because, etc.
                 t['is_conjunction'] = False
+                if t.get('sub_tag') in ['접속사', '접속부사'] and clean_word not in CONJUNCTIONS_LIST:
+                    t['sub_tag'] = ''
 
             new_tokens.append(t)
 
@@ -137,11 +144,15 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 - 수식어구/전치사구: `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"`, `sub_tag: "⬑ 목적격관계대명사"`
 - 가주어/진주어: `sub_tag: "가주어 (S)"`, `sub_tag: "진주어"` (또는 `"진주어절"`)
 - 가목적어/진목적어: `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
-- 접속사/접속부사: `sub_tag: "접속사"`, `is_conjunction: true`
 - **top_label은 일체 사용하지 않으며, 항상 빈 문자열 `""` 로 유지하십시오!**
 
-[★필수 작성 규칙 5: 접속사(and, or, but, so 등)는 무조건 1개 단어 단독 토큰으로 분리!★]
-- 접속사(`and`, `or`, `but`, `so`, `yet` 등)나 접속부사(`however`, `therefore` 등)는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
+[★필수 작성 규칙 5: 세모(△) 기호 적용 대상 규정 (접속부사, 등위접속사, 상관접속사만 허용!)★]
+- **세모(△, is_conjunction: true)가 적용되는 단어는 오직 아래 3가지 범주뿐입니다**:
+  1. **등위접속사**: and, but, or, so, yet, nor
+  2. **상관접속사**: both, either, neither 등
+  3. **접속부사**: however, therefore, furthermore, moreover, thus, consequently, nonetheless, nevertheless, instead, meanwhile 등
+- **[주의! 절대 세모 금지]**: 전치사 및 종속접속사(`as`, `for`, `because`, `since`, `while`, `although`, `if`, `that`, `when` 등)에는 절대로 `is_conjunction: true`를 주지 마십시오! (is_conjunction: false 유지)
+- 세모 대상 접속사는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
 - 절대 `{"text": "or Colorado", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오!
 
 [★필수 작성 규칙 6: 밑줄(underline: true) 적용 기준 규칙★]

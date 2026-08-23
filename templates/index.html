@@ -1820,7 +1820,15 @@
                     `;
 
                     if (s.tokens && s.tokens.length > 0) {
-                        const pureConjunctions = ['and', 'or', 'but', 'so', 'yet', 'for', 'nor', 'however', 'therefore', 'furthermore', 'moreover', 'thus', 'consequently', 'nonetheless', 'nevertheless', 'while', 'although', 'though', 'because', 'since', 'if', 'unless', 'as', 'whereas'];
+                        const pureConjunctions = [
+                            // 등위접속사
+                            'and', 'but', 'or', 'so', 'yet', 'nor',
+                            // 상관접속사
+                            'both', 'either', 'neither',
+                            // 접속부사
+                            'however', 'therefore', 'furthermore', 'moreover', 'thus', 'consequently',
+                            'nonetheless', 'nevertheless', 'instead', 'otherwise', 'meanwhile', 'besides', 'likewise', 'similarly'
+                        ];
                         
                         // Pre-sanitize tokens: split multi-word conjunction tokens (e.g. "or Colorado" -> "or" + "Colorado")
                         const sanitizedTokens = [];
@@ -1834,7 +1842,7 @@
                             const words = textTrim.split(/\s+/);
                             if (words.length > 1) {
                                 const firstClean = words[0].replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
-                                const isConj = t.is_conjunction || pureConjunctions.includes(firstClean) || (t.sub_tag && t.sub_tag.includes('접속'));
+                                const isConj = t.is_conjunction || (t.sub_tag && t.sub_tag.includes('접속'));
                                 if (isConj && pureConjunctions.includes(firstClean)) {
                                     sanitizedTokens.push({
                                         text: words[0],
@@ -1872,8 +1880,8 @@
                                 const textClean = t.text.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 let isConjunctionOrAdverb = false;
                                 
-                                // Triangle SVG applies ONLY if the single word itself is a conjunction!
-                                if (pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && t.sub_tag.includes('접속')) || ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus'].includes(textClean))) {
+                                // Triangle SVG applies ONLY if the single word is strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
+                                if (pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && (t.sub_tag.includes('접속사') || t.sub_tag.includes('접속부사'))))) {
                                     isConjunctionOrAdverb = true;
                                 }
 
