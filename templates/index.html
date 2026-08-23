@@ -1084,9 +1084,9 @@
                         <div class="text-[10px] text-amber-700 font-medium">1,000 토큰당 약 0.35원 기준</div>
                     </div>
                     <div class="bg-rose-50/70 border border-rose-200 rounded-xl p-4 space-y-1">
-                        <div class="text-[11px] font-bold text-rose-600">변형문제 출제 횟수</div>
-                        <div id="statExamCount" class="text-2xl font-black text-rose-950">0회</div>
-                        <div class="text-[10px] text-rose-500">9종 변형문제 1·2차 세트</div>
+                        <div class="text-[11px] font-bold text-rose-700">전 지점 정산 비용</div>
+                        <div id="statTotalCost" class="text-2xl font-black text-rose-950">0원</div>
+                        <div class="text-[10px] text-rose-600 font-medium">선택 정산 주기 전국 합산</div>
                     </div>
                 </div>
 
@@ -2823,13 +2823,15 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 const myCount = summary.my_count || 0;
                 const myTokens = summary.my_tokens || 0;
                 const myCost = summary.my_cost_krw || 0;
-                const examCount = summary.exam_count || 0;
+                const totalCost = summary.total_cost_krw || 0;
 
                 if (statTotalCount) statTotalCount.innerText = `${totalCount}회`;
                 if (statMyCount) statMyCount.innerText = `${myCount}회`;
                 if (statMyTokensSub) statMyTokensSub.innerText = `${myTokens.toLocaleString()} 토큰 사용`;
                 if (statMyCost) statMyCost.innerText = `${myCost.toLocaleString()}원`;
-                if (statExamCount) statExamCount.innerText = `${examCount}회`;
+                
+                const statTotalCost = document.getElementById('statTotalCost');
+                if (statTotalCost) statTotalCost.innerText = `${totalCost.toLocaleString()}원`;
 
                 if (logTableTitle) {
                     logTableTitle.innerText = `${admin ? '전국 지점' : myBranch} AI 실행 및 제작 내역 (${(data.my_logs || []).length}회)`;
