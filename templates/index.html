@@ -1896,20 +1896,13 @@
                                     wordDisplayHtml = `<span class="text-[11pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${t.text.replace(/ /g, '&nbsp;')}</span>`;
                                 }
 
-                                const topLabel = t.top_label || '';
-                                const cleanTop = topLabel.replace('⬑', '').trim();
-                                const isVerbalTop = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTop);
-                                const topTagSizeClass = isVerbalTop ? 'text-[8.5px] font-extrabold scale-90 origin-bottom opacity-80' : 'text-[10px] font-black';
-                                const topLabelHtml = topLabel ? `<span class="absolute bottom-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap ${topTagSizeClass} ${colorClass.split(' ')[0]}">${topLabel}</span>` : '';
-
                                 const cleanTag = subTag.replace('⬑', '').trim();
-                                const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag);
-                                const tagSizeClass = isVerbal ? 'text-[8.5px] font-extrabold scale-90 origin-top opacity-80' : 'text-[10px] font-black';
+                                const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
+                                const tagSizeClass = isVerbal ? 'text-[9px] font-black' : 'text-[10px] font-black';
                                 const subTagHtml = subTag ? `<span class="absolute top-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${colorClass.split(' ')[0]}">${subTag}</span>` : '';
 
                                 pageHtml += `
                                     <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
-                                        ${topLabelHtml}
                                         ${wordDisplayHtml}
                                         ${subTagHtml}
                                     </div>

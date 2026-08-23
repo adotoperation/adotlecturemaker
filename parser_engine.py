@@ -91,70 +91,9 @@ def post_process_adverbs(analysis_data):
         
     for s in analysis_data.get('sentences', []):
         tokens = s.get('tokens', [])
-        
-        # 1. First Pass: Detect and modify explicitly tagged adverbs, adverb phrases, and adverbial clauses
-        stack = []
         for t in tokens:
-            orig_sub_tag = t.get('sub_tag', '')
-            text = t.get('text', '')
+            t['top_label'] = ""  # Strictly remove top labels
             
-            # Scan original characters left-to-right to build the balance stack
-            for char in text:
-                if char == '[':
-                    if orig_sub_tag in ["부사절", "부사구", "부사"]:
-                        stack.append('adverbial')
-                    else:
-                        stack.append('nominal')
-                elif char == '(':
-                    stack.append('parenthesis')
-                elif char == ']':
-                    if stack:
-                        top = stack.pop()
-                        if top == 'adverbial':
-                            text = text.replace(']', ')')
-                    else:
-                        text = text.replace(']', ')')
-                elif char == ')':
-                    if stack:
-                        stack.pop()
-            
-            # If this is an adverb/phrase/clause, remove the sub_tag label and enforce parentheses
-            if orig_sub_tag in ["부사", "부사구", "부사절"]:
-                t['sub_tag'] = ""
-                # Replace opening bracket [ with (
-                if text.startswith('['):
-                    text = '(' + text[1:]
-                elif not text.startswith('(') and text.strip() and text.strip() != "/":
-                    text = '(' + text + ')'
-                
-                # Replace ending brackets
-                if text.endswith(']]'):
-                    text = text[:-2] + '))'
-                elif text.endswith(']'):
-                    text = text[:-1] + ')'
-            
-            t['text'] = text
-            
-        # 2. Second Pass: Enforce right-to-left clean up for any leftovers
-        stack = []
-        for t in tokens:
-            text = t.get('text', '')
-            new_chars = list(text)
-            for idx, char in enumerate(new_chars):
-                if char == '[':
-                    stack.append('nominal')
-                elif char == '(':
-                    stack.append('parenthesis')
-                elif char == ']':
-                    if stack:
-                        top = stack.pop()
-                    else:
-                        new_chars[idx] = ')'
-                elif char == ')':
-                    if stack:
-                        stack.pop()
-            t['text'] = "".join(new_chars)
-
         # Sanitize grammar_points (enforce 접속부사 over 삽입어)
         gp = s.get('grammar_points', '')
         if gp:
@@ -176,75 +115,37 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 - `chunk_korean` 한글 직독직해 해석 텍스트에는 소괄호 `()`나 대괄호 `[]`를 절대로 넣지 마십시오! 순수한 한글 문장 텍스트와 슬래시(/) 구획만 사용하십시오!
 
 [★필수 작성 규칙 2: 모든 절(명사절, 형용사절, 부사절) 내부 정밀 끊어읽기(/) 필수!★]
-- 관계부사절(where, when) 내부에서도 주어, 동사, 전치사구, 접속사(and/but) 사이에는 슬래시 토큰 `{"text": " / ", "color": "purple"}`을 빠짐없이 넣으십시오!
-- 예시: `perhaps more of a hybrid model / (where they / can work / (from home) (part of the time) / and △ work / onsite (other times)), / would work (well) (for them)`
+- 절 내부에서도 주어, 동사, 전치사구, 접속사(and/but) 사이에는 슬래시 토큰 `{"text": " / ", "color": "purple"}`을 빠짐없이 넣으십시오!
 
-[★필수 작성 규칙 3: to부정사구 괄호 표기 규칙★]
-- **명사적 용법** (진주어/진목적어/목적어): 대괄호 `[to ...]` 사용!
-- **형용사적 용법** (명사 수식): 화살표 소괄호 `(to ...)` 사용 및 sub_tag `⬑ to부정사구` 표기!
-- **부사적 용법** (목적/원인 등): 소괄호 `(to ...)` 사용 및 sub_tag `to부정사구` 표기!
+[★필수 작성 규칙 3: 표준 괄호 체계 [] 및 () 엄격 적용★]
+- **대괄호 `[...]`**: 명사절, 목적어절, 주어절, 보어절, 명사구 (진주어, 진목적어, 명사적 용법의 to부정사/동명사구)
+  - 예: `[that young people reported ...]`, `[to work from home]`, `[committing himself to a painting]`
+- **소괄호 `(...)`**: 수식어구, 부사구, 부사절, 전치사구, 관계사절, 분사구문, 형용사적/부사적 수식어구
+  - 예: `(by Eurofound)`, `(working remotely)`, `(unlike those in older generations)`, `(who were working remotely)`, `(While young people ...)`
 
-[★필수 작성 규칙 4: 전치사구 괄호 및 화살표(⬑) 규칙★]
-- **부사구 역할의 전치사구**: sub_tag에 ⬑를 붙이지 않고 빈 문자열 "" 로 표기하십시오! (예: `(unlike those)` -> `""`)
-- **형용사구 역할** (앞의 명사를 후치수식): sub_tag에 반드시 ⬑를 붙여 '⬑ 전치사구'로 표기하십시오! (예: `(in older generations)` -> `⬑ 전치사구`)
+[★필수 작성 규칙 4: 문장성분 기호 표기 규칙 (S, Vt, Vi, V, O, C)★]
+- **주어**: `sub_tag: "S"`, `color: "blue"`, 주절인 경우 `underline: true`
+- **타동사(목적어를 취하는 동사)**: `sub_tag: "Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
+- **자동사(목적어가 없는 동사)**: `sub_tag: "Vi"`, `color: "rose"`, 주절인 경우 `underline: true`
+- **be동사/조동사구/일반 동사**: `sub_tag: "V"`, `color: "rose"`, 주절인 경우 `underline: true`
+- **목적어**: `sub_tag: "O"`, `color: "emerald"`, `underline: false`
+- **보어**: `sub_tag: "C"` (또는 `SC`, `OC`), `color: "indigo"`, `underline: false`
+- **수식어구/전치사구**: `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"` 등
+- **가주어/진주어/가목적어/진목적어**: `sub_tag: "가주어"`, `sub_tag: "진주어"`, `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
+- **모든 문장기호는 sub_tag(단어 아래)에만 표기하며, top_label은 사용하지 않고 항상 빈 문자열 `""` 로 작성하십시오!**
 
-[★필수 작성 규칙 5: 부사, 부사구, 부사절 및 모든 종속절 내부 문장기호(S, V, O, C) 필수 표기 규칙★]
-- 부사(한 단어), 부사구(두 단어 이상), 부사절(절 형태)은 소괄호 `()`를 사용하십시오!
-- 종속절 내부의 주어, 동사, 목적어, 보어에는 빠짐없이 문장성분 기호(S, Vi, Vt, O, C, SC 등)를 sub_tag에 반드시 표기해야 합니다!
+[★필수 작성 규칙 5: 접속사(and, or, but, so 등)는 무조건 1개 단어 단독 토큰으로 분리!★]
+- 접속사(`and`, `or`, `but`, `so`, `yet` 등)나 접속부사(`however`, `therefore` 등)는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
+- 절대 `{"text": "or Colorado", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오!
 
-[★필수 작성 규칙 6: 상관접속사 설명 규정 (교과외 용어 금지)★]
-- 'not only A but (also) B' 등 대조/병렬 구조를 설명할 때 '상관접속사' 또는 '상관접속사 병렬구조' 표준 용어를 사용하십시오.
-
-[★필수 작성 규칙 7: 준동사(동명사, 분사, to부정사) 내부 구조분석 및 상하단 기호 분리 표기★]
-- 준동사구 전체의 시작 단어 `sub_tag`에는 구 전체의 역할(S, O, C 등 대문자)을 표기하고, 내부 단어들의 준동사 서술어/목적어 역할은 `top_label`에 소문자 `vt`, `vi`, `v`, `o`, `c` 등으로 표기하십시오.
-
-[★필수 작성 규칙 8: 밑줄(underline: true) 적용 기준 규칙★]
+[★필수 작성 규칙 6: 밑줄(underline: true) 적용 기준 규칙★]
 - **주절의 주어 및 주절의 서술어(동사)인 경우에만** `underline: true`를 설정하여 밑줄을 쳐주십시오!
 
-[★필수 작성 규칙 9: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
+[★필수 작성 규칙 7: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
 - `however`, `therefore`, `furthermore`, `moreover`, `thus` 등은 grammar_points에서 '접속부사'로 표기하십시오.
 
-[★필수 작성 규칙 10: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
-- `summary_info`의 `illustration_scene_en` 필드에는 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
-
-[★필수 작성 규칙 11: 접속사(and, or, but, so 등)는 무조건 1개 단어 단독 토큰으로 분리!★]
-- 접속사(`and`, `or`, `but`, `so`, `yet` 등)나 접속부사(`however`, `therefore` 등)는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
-- 절대 `{"text": "or Colorado", ...}` 나 `{"text": "and work", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오! (묶을 경우 세모 기호가 다음 단어까지 침범하게 됩니다!) `vi`, `v`, `o`, `c` 등으로 적어 영단어 위에 배치되도록 하십시오!
-- 준동사구 내의 단어 사이에는 끊어읽기 슬래시 토큰 `{"text": " / ", "color": "purple"}`을 명확히 삽입하십시오!
-  - 예: 주어로 쓰인 동명사구 `[committing himself (to a painting)]` 파싱 구조:
-    * `[committing` ➔ `sub_tag`: "S" (주어구의 시작이므로 아래쪽에 S 표시), `top_label`: "vt" (준동사 서술어이므로 위에 소문자 vt 표시), `color`: "rose"
-    * ` / ` ➔ 슬래시 끊어읽기 토큰
-    * `himself]` ➔ `sub_tag`: "", `top_label`: "o" (준동사 목적어이므로 위에 소문자 o 표시), `color`: "emerald"
-    * `(to a painting)` ➔ `sub_tag`: "⬑ 전치사구", `top_label`: "", `color`: "slate"
-
-[★필수 작성 규칙 8: 밑줄(underline: true) 적용 기준 규칙★]
-- **주절의 주어 및 주절의 서술어(동사)인 경우에만** `underline: true`를 설정하여 밑줄을 쳐주십시오!
-- **주어구나 서술어구(동사구)가 준동사구 등을 포함하여 여러 단어로 이루어진 경우**, 그 주어구/동사구 전체를 구성하는 **모든 실질 단어 토큰들에 `underline: true`를 지정**하여 구 전체에 끊김 없이 밑줄이 쳐지도록 하십시오! (단, 전치사구 등 수식어구는 제외)
-- **종속절(명사절, 관계대명사절, 부사절 등)이나 준동사구 내부에 포함된 주어(S) 및 서술어(동사)**는 `underline: false`로 설정하여 밑줄이 없도록 하십시오!
-- 만약 등위접속사(and, or, but 등)에 의해 연결되어 **주절의 주어와 동사가 2개 이상 병렬로 존재하는 경우**, 이 주절의 모든 주어들과 동사들(구 전체)에 `underline: true`를 부여하여 밑줄이 쳐지도록 하십시오!
-
-[★필수 작성 규칙 9: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
-- `however`, `therefore`, `furthermore`, `moreover`, `thus`, `in addition` 등이 문장 중간(콤마 사이)에 위치하거나 문두에 올 때, `grammar_points` 설명에서 절대로 '삽입어', '삽입어구', '삽입절'이라는 용어를 쓰지 마십시오!
-- 반드시 **'접속부사 however'**, **'접속부사 therefore'** 와 같이 **'접속부사'**라는 정확한 표준 문법 명칭으로 표기하여 설명하십시오. (예: "1. 접속부사 however: 문장 중간에 삽입되어 앞 내용과의 역접 관계를 보여줍니다.")
-- **종속절(명사절, 관계대명사절, 부사절 등)이나 준동사구 내부에 포함된 주어(S) 및 서술어(동사)**는 `underline: false`로 설정하여 밑줄이 없도록 하십시오!
-- 만약 등위접속사(and, or, but 등)에 의해 연결되어 **주절의 주어와 동사가 2개 이상 병렬로 존재하는 경우**, 이 주절의 모든 주어들과 동사들(구 전체)에 `underline: true`를 부여하여 밑줄이 쳐지도록 하십시오!
-  - 예시 1: `A study (by Eurofound) found [that young people reported ...]`
-    * `A study` ➔ 주절의 주어이므로 `underline: true`, `sub_tag: "S"`
-    * `found` ➔ 주절의 동사이므로 `underline: true`, `sub_tag: "Vt"`
-    * `young people` ➔ 종속절(that절) 내부 주어이므로 `underline: false`, `sub_tag: "S"`
-    * `reported` ➔ 종속절(that절) 내부 동사이므로 `underline: false`, `sub_tag: "Vt"`
-  - 예시 2: `[Acquiring a work] is art history, or it is nothing` (등위접속사 or로 연결된 주절 2개)
-    * `[Acquiring` ➔ 첫 번째 주절 주어구의 일부이므로 `underline: true`, `sub_tag: "S"`
-    * `a work]` ➔ 첫 번째 주절 주어구의 일부이므로 `underline: true`, `sub_tag: ""`
-    * `is` ➔ 첫 번째 주절의 동사이므로 `underline: true`, `sub_tag: "Vi"`
-    * `it` ➔ 두 번째 주절의 주어이므로 `underline: true`, `sub_tag: "S"`
-    * `is` ➔ 두 번째 주절의 동사이므로 `underline: true`, `sub_tag: "Vi"`
-
-[★필수 작성 규칙 10: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+[★필수 작성 규칙 8: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
 - `summary_info`의 `illustration_scene_en` 필드에는, 지문의 [주제, 핵심어휘, 3단 정리]의 핵심 상황과 시각적 장면을 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
-  - 예 (빌딩 와류 지문): "A towering modern architectural skyscraper with aerodynamic curved edges surrounded by swirling wind vortex airflows under clear sky"
-  - 예 (미술 수집가 지문): "An art collector thoughtfully evaluating classical masterpiece paintings in a warm art gallery"
-  - 예 (원격 근무 지문): "Young professionals working on laptops in a cozy home office with warm sunlight"
 
 [★필수 JSON 출력 스키마★]
 Return ONLY a valid JSON object matching this exact schema:
