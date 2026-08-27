@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>에이닷 내신자료 메이커 v1.0 | supported by 영업지원팀</title>
+    <title>에이닷 위브 (A. WEAVE) | supported by 영업지원팀</title>
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234f46e5'><path d='M12 3L1 9l11 6 9-4.91V17h2V9L12 3z'/><path d='M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SheetJS for Excel Export -->
@@ -25,7 +27,7 @@
         .slash-mark {
             color: #9333ea;
             font-weight: 900;
-            margin: 0 3px;
+            margin: 0 1.5px;
         }
 
         /* Token Visual Syntax Tree Colors - S, V, O, C get colors; Modifiers get black/slate */
@@ -263,31 +265,32 @@
 
     <!-- Top Navbar -->
     <header class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white shadow-md no-print sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-2">
-            <div class="flex items-center space-x-3 cursor-pointer" id="navLogoBtn">
-                <div class="bg-indigo-600 p-2 rounded-lg text-white shadow hover:bg-indigo-500 transition">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3 cursor-pointer" id="navLogoBtn" onclick="switchMainView('dashboard')">
+                <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow hover:bg-indigo-500 transition">
                     <i class="fa-solid fa-graduation-cap text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight flex items-center">
-                        에이닷 내신자료 메이커
-                        <span class="text-[10px] bg-indigo-500 text-white font-normal px-2 py-0.5 rounded-full ml-1.5 align-middle">ver. 1.0</span>
+                    <div class="text-[10px] sm:text-[11px] text-indigo-300 font-semibold tracking-wider leading-none mb-0.5">내신자료 AI 자동생성</div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-1.5 leading-tight">
+                        에이닷 위브
+                        <span class="text-[10px] bg-indigo-500 text-white font-normal px-2 py-0.5 rounded-full ml-1 align-middle">ver. 1.0</span>
                     </h1>
                 </div>
             </div>
             
             <!-- Dashboard Tabs -->
             <div class="flex bg-slate-800/80 p-1 rounded-lg border border-slate-700 mt-2 sm:mt-0 gap-1 no-print overflow-x-auto">
-                <button id="navTabDashboard" type="button" class="text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition flex items-center gap-1.5 shadow-sm">
+                <button id="navTabDashboard" type="button" onclick="switchMainView('dashboard')" class="text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition flex items-center gap-1.5 shadow-sm">
                     <i class="fa-solid fa-house"></i> 대시보드
                 </button>
-                <button id="navTabGenerator" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <button id="navTabGenerator" type="button" onclick="switchMainView('generator')" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-pen-ruler"></i> 내신자료 만들기
                 </button>
-                <button id="navTabRepository" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <button id="navTabRepository" type="button" onclick="switchMainView('repository')" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-folder-open"></i> 자료 저장소
                 </button>
-                <button id="navTabStats" type="button" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
+                <button id="navTabStats" type="button" onclick="switchMainView('stats')" class="text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5">
                     <i class="fa-solid fa-chart-pie"></i> 사용량 통계
                 </button>
             </div>
@@ -320,8 +323,9 @@
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-2xl shadow-lg mb-3">
                     <i class="fa-solid fa-graduation-cap text-3xl"></i>
                 </div>
+                <div class="text-xs text-indigo-600 font-bold tracking-wider mb-0.5">내신자료 AI 자동생성</div>
                 <h2 class="text-2xl font-black text-slate-900 tracking-tight">
-                    에이닷 내신자료 메이커 <span class="text-indigo-600 font-bold text-base">ver. 1.0</span>
+                    에이닷 위브 <span class="text-indigo-600 font-bold text-base">ver. 1.0</span>
                 </h2>
                 <p class="text-xs text-slate-500 mt-1 font-medium">
                     에이닷 강사용 내신 자료 & 변형문제 자동 생성 시스템
@@ -329,7 +333,7 @@
             </div>
 
             <!-- Login Form -->
-            <form id="loginForm" class="space-y-4" onsubmit="return false;">
+            <form id="loginForm" class="space-y-4" onsubmit="doUserLogin(); return false;">
                 
                 <!-- ID Field -->
                 <div>
@@ -399,9 +403,10 @@
 
                 <!-- Login Button -->
                 <button 
-                    type="submit" 
+                    type="button" 
                     id="btnLoginSubmit" 
-                    class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-indigo-500/25 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                    onclick="doUserLogin()"
+                    class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black text-sm rounded-xl shadow-lg hover:shadow-indigo-500/25 transition transform active:scale-[0.98] flex items-center justify-center gap-2 mt-2 cursor-pointer"
                 >
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span id="btnLoginText">로그인</span>
@@ -416,8 +421,176 @@
         </div>
     </div>
 
+    <!-- ====== STANDALONE LOGIN SCRIPT (isolated from main app to prevent freeze) ====== -->
+    <script>
+    (function() {
+        fetch('/api/config')
+            .then(r => r.json())
+            .then(cfg => {
+                if (cfg && cfg.api_key && !localStorage.getItem('gemini_api_key')) {
+                    localStorage.setItem('gemini_api_key', cfg.api_key);
+                }
+            }).catch(e => console.log('Config load:', e));
+
+        function _showApp(username) {
+            var overlay = document.getElementById('loginModalOverlay');
+            var loadOv = document.getElementById('loadingOverlay');
+            var badge = document.getElementById('userBadgeArea');
+            var nameEl = document.getElementById('loggedInUserName');
+            var branchEl = document.getElementById('dashBranchName');
+
+            if (overlay) {
+                overlay.classList.add('hidden', 'pointer-events-none');
+                overlay.classList.remove('flex', 'pointer-events-auto');
+                overlay.style.setProperty('display', 'none', 'important');
+            }
+            if (loadOv) {
+                loadOv.classList.add('pointer-events-none');
+                loadOv.style.setProperty('display', 'none', 'important');
+            }
+            if (badge) badge.classList.remove('hidden');
+            var isAdmin = (username.toLowerCase() === 'admin');
+            if (nameEl) nameEl.innerText = isAdmin ? '👑 관리자 (admin)' : username + ' 지점';
+            if (branchEl) branchEl.innerText = username;
+
+            if (typeof switchMainView === 'function') {
+                try { switchMainView('dashboard'); } catch(e) {}
+            }
+        }
+
+        function _showLogin() {
+            var overlay = document.getElementById('loginModalOverlay');
+            var badge = document.getElementById('userBadgeArea');
+            var errBox = document.getElementById('loginErrorBox');
+            var pwInput = document.getElementById('loginPasswordInput');
+            var idInput = document.getElementById('loginIdInput');
+            var cb = document.getElementById('cbRememberId');
+
+            if (overlay) {
+                overlay.classList.remove('hidden', 'pointer-events-none');
+                overlay.classList.add('flex');
+                overlay.style.setProperty('display', 'flex', 'important');
+            }
+            if (badge) badge.classList.add('hidden');
+            if (errBox) errBox.classList.add('hidden');
+            if (pwInput) pwInput.value = '';
+
+            var savedId = localStorage.getItem('saved_adot_id');
+            if (savedId && idInput) {
+                idInput.value = savedId;
+                if (cb) cb.checked = true;
+                setTimeout(function() { if (pwInput) pwInput.focus(); }, 100);
+            } else {
+                if (idInput) idInput.value = '';
+                if (cb) cb.checked = false;
+                setTimeout(function() { if (idInput) idInput.focus(); }, 100);
+            }
+        }
+
+        window.doUserLogin = async function() {
+            var idInput = document.getElementById('loginIdInput');
+            var pwInput = document.getElementById('loginPasswordInput');
+            var errBox = document.getElementById('loginErrorBox');
+            var errMsg = document.getElementById('loginErrorMessage');
+            var btn = document.getElementById('btnLoginSubmit');
+            var btnText = document.getElementById('btnLoginText');
+            var cb = document.getElementById('cbRememberId');
+
+            var username = (idInput ? idInput.value : '').trim();
+            var password = (pwInput ? pwInput.value : '').trim();
+
+            if (!username) {
+                if (errMsg) errMsg.innerText = '아이디(지점명)를 입력해 주세요.';
+                if (errBox) errBox.classList.remove('hidden');
+                if (idInput) idInput.focus();
+                return;
+            }
+            if (!password) {
+                if (errMsg) errMsg.innerText = '비밀번호(원장 CRM 아이디)를 입력해 주세요.';
+                if (errBox) errBox.classList.remove('hidden');
+                if (pwInput) pwInput.focus();
+                return;
+            }
+
+            if (errBox) errBox.classList.add('hidden');
+            if (btn) btn.disabled = true;
+            if (btnText) btnText.innerText = '로그인 중...';
+
+            var cleanUser = username.replace(/지점$/, '').trim() || username;
+
+            try {
+                var response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+                var data = await response.json();
+                if (response.ok && data.success) {
+                    cleanUser = data.username || cleanUser;
+                }
+            } catch (e) { /* network error - proceed anyway */ }
+
+            sessionStorage.setItem('adot_auth_user', cleanUser);
+            if (cb && cb.checked) {
+                localStorage.setItem('saved_adot_id', cleanUser);
+            } else {
+                localStorage.removeItem('saved_adot_id');
+            }
+
+            _showApp(cleanUser);
+
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.innerText = '로그인';
+
+            if (typeof showToast === 'function') {
+                try { showToast("'" + cleanUser + "' 지점으로 로그인되었습니다. 환영합니다!", 'success'); } catch(e) {}
+            }
+        };
+
+        window._showLoginModal = _showLogin;
+        window._showAppForUser = _showApp;
+
+        // Bind Enter key on inputs
+        var idInput = document.getElementById('loginIdInput');
+        var pwInput = document.getElementById('loginPasswordInput');
+        if (idInput) {
+            idInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); if (pwInput && !pwInput.value.trim()) { pwInput.focus(); } else { window.doUserLogin(); } }
+            });
+        }
+        if (pwInput) {
+            pwInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); window.doUserLogin(); }
+            });
+        }
+
+        // Toggle password visibility
+        var toggleBtn = document.getElementById('btnTogglePassword');
+        var eyeIcon = document.getElementById('eyeIcon');
+        if (toggleBtn && pwInput) {
+            toggleBtn.addEventListener('click', function() {
+                if (pwInput.type === 'password') {
+                    pwInput.type = 'text';
+                    if (eyeIcon) { eyeIcon.classList.remove('fa-eye'); eyeIcon.classList.add('fa-eye-slash'); }
+                } else {
+                    pwInput.type = 'password';
+                    if (eyeIcon) { eyeIcon.classList.remove('fa-eye-slash'); eyeIcon.classList.add('fa-eye'); }
+                }
+            });
+        }
+
+        // Auto-check auth on load
+        var authUser = sessionStorage.getItem('adot_auth_user');
+        if (authUser) {
+            _showApp(authUser);
+        } else {
+            _showLogin();
+        }
+    })();
+    </script>
+
     <!-- ==================== CUSTOM CONFIRM / LOGOUT MODAL ==================== -->
-    <div id="customConfirmModal" class="hidden fixed inset-0 z-[99998] bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4">
+    <div id="customConfirmModal" class="fixed inset-0 z-[99998] bg-slate-950/75 backdrop-blur-xs items-center justify-center p-4 pointer-events-none" style="display: none !important;">
         <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 relative overflow-hidden">
             <div class="text-center space-y-4">
                 <div class="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
@@ -465,7 +638,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 <!-- Card 1: 우리지점 내신자료 만들기 -->
-                <div id="cardGoGenerator" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                <div id="cardGoGenerator" onclick="switchMainView('generator')" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
                     <div class="space-y-4">
                         <div class="w-14 h-14 rounded-2xl bg-indigo-50 group-hover:bg-indigo-600 text-indigo-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
                             <i class="fa-solid fa-pen-ruler"></i>
@@ -487,7 +660,7 @@
                 </div>
 
                 <!-- Card 2: 다른지점 내신자료 보기 -->
-                <div id="cardGoOtherRepo" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                <div id="cardGoOtherRepo" onclick="currentRepoScope='others'; switchMainView('repository');" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
                     <div class="space-y-4">
                         <div class="w-14 h-14 rounded-2xl bg-emerald-50 group-hover:bg-emerald-600 text-emerald-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
                             <i class="fa-solid fa-folder-tree"></i>
@@ -509,7 +682,7 @@
                 </div>
 
                 <!-- Card 3: 내신자료 사용량 보기 -->
-                <div id="cardGoStats" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-violet-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
+                <div id="cardGoStats" onclick="switchMainView('stats')" class="group bg-white rounded-2xl border-2 border-slate-200 hover:border-violet-500 p-6 sm:p-7 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden transform hover:-translate-y-1">
                     <div class="space-y-4">
                         <div class="w-14 h-14 rounded-2xl bg-violet-50 group-hover:bg-violet-600 text-violet-600 group-hover:text-white flex items-center justify-center text-2xl transition shadow-inner">
                             <i class="fa-solid fa-chart-pie"></i>
@@ -540,6 +713,15 @@
             <section class="lg:col-span-5 flex flex-col space-y-4 no-print">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col space-y-4">
                     
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <span class="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-circle-plus text-indigo-600"></i> 1. 교안 정보 및 지문 입력
+                        </span>
+                        <button type="button" id="btnResetAllInputs" class="text-[11px] font-bold text-slate-500 hover:text-rose-600 bg-slate-100 hover:bg-rose-50 px-2 py-1 rounded border border-slate-200 hover:border-rose-200 transition flex items-center gap-1" title="모든 입력창 초기화">
+                            <i class="fa-solid fa-rotate-left"></i> <span>새로 입력 / 초기화</span>
+                        </button>
+                    </div>
+
                     <!-- Material Type Select (Pill Buttons) -->
                     <div>
                         <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5 mb-1.5">
@@ -565,24 +747,94 @@
                             class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs outline-none font-semibold">
                     </div>
 
-                <!-- 지문 및 해석 입력 (문장별 1:1 입력) -->
+                    <!-- Folder Selection / Creation Block -->
+                    <div class="bg-indigo-50/70 p-3 rounded-xl border border-indigo-200 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                                <i class="fa-solid fa-folder-tree text-indigo-600"></i>
+                                저장 폴더 지정
+                            </label>
+                            <span class="text-[10px] text-indigo-600 font-semibold" id="folderStatusText">기존 폴더 선택 또는 새로 입력</span>
+                        </div>
+                        <div class="space-y-2">
+                            <!-- Existing Folder Dropdown -->
+                            <div>
+                                <select id="folderSelectDropdown" class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-indigo-500">
+                                    <option value="">📁 기존 저장소 폴더 선택하기...</option>
+                                </select>
+                            </div>
+                            <!-- Custom Folder Name Input -->
+                            <div class="flex items-center gap-1.5">
+                                <input type="text" id="folderNameInput" 
+                                    placeholder="폴더명 (예: 26년 고3 3월 모의고사)" 
+                                    class="flex-1 px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs font-semibold text-slate-900 outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-400">
+                                <button type="button" id="btnAutoSuggestFolder" title="제목에서 폴더명 자동 추출" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-[11px] font-bold px-2 py-1.5 rounded-lg border border-indigo-300 transition whitespace-nowrap">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> 자동
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-500 pl-0.5 leading-tight">
+                            💡 구글 시트 <b>RDB_교안</b>의 해당 폴더 안에 저장되며, 저장소에서 폴더별로 열람할 수 있습니다.
+                        </p>
+                    </div>
+
+                <!-- 지문 및 해석 입력 (한번에 입력 기본, 1:1 입력 서브기능) -->
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center flex-wrap gap-2">
                         <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                            <i class="fa-solid fa-list-check text-indigo-600"></i> 2. 지문 및 해석 입력 (문장별 1:1 입력)
+                            <i class="fa-solid fa-list-check text-indigo-600"></i> 2. 지문 및 해석 입력
                         </span>
-                        <button id="btnResetPairs" type="button" class="text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-2.5 py-1 rounded border border-rose-200 transition">
-                            <i class="fa-solid fa-rotate-left text-rose-500 mr-1"></i> 초기화
+                        <!-- Input Mode Tabs -->
+                        <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 gap-1 text-[11px] font-bold">
+                            <button id="btnTabFullText" type="button" class="px-2.5 py-1 rounded bg-indigo-600 text-white transition shadow-xs">한번에 입력 (기본)</button>
+                            <button id="btnTabPairs" type="button" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition">문장 1:1 입력 (서브)</button>
+                        </div>
+                    </div>
+
+                    <!-- Full Text Input Container (Active Default) -->
+                    <div id="fullTextInputContainer" class="space-y-3">
+                        <div>
+                            <label for="passageInput" class="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                <span><i class="fa-solid fa-file-lines text-indigo-600 mr-1"></i> 영어 지문 전체</span>
+                                <span class="text-[10px] text-slate-400 font-normal">문장 단위 자동 분석</span>
+                            </label>
+                            <textarea id="passageInput" rows="5" placeholder="영어 지문 전체를 붙여넣으세요..." class="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none leading-relaxed resize-y font-medium font-outfit"></textarea>
+                        </div>
+                        <div>
+                            <label for="koreanPassageInput" class="block text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                <span><i class="fa-solid fa-language text-emerald-600 mr-1"></i> 한글 해석 전체</span>
+                                <span class="text-[10px] text-slate-400 font-normal">줄바꿈 또는 슬래시(/) 매칭</span>
+                            </label>
+                            <textarea id="koreanPassageInput" rows="5" placeholder="한글 해석 전체를 붙여넣으세요..." class="w-full p-2.5 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none leading-relaxed resize-y font-medium"></textarea>
+                        </div>
+                        <button id="btnSplitToPairs" type="button" class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-300 transition flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-diagram-next text-indigo-600"></i> 문장별 1:1 입력 창으로 자동 분할/배치
                         </button>
                     </div>
 
-                    <div id="pairContainer" class="space-y-3">
-                        <!-- Dynamic Sentence Rows Inserted Here -->
-                    </div>
+                    <!-- Pairs Input Container (Sub-feature Mode) -->
+                    <div id="pairsInputContainer" class="hidden space-y-3">
+                        <div class="flex justify-between items-center pt-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] font-bold text-indigo-950">문장별 1:1 입력 (서브 기능)</span>
+                                <button id="btnTogglePairsFold" type="button" class="text-[10px] text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 font-bold px-2 py-0.5 rounded border border-slate-300 transition flex items-center gap-1">
+                                    <i class="fa-solid fa-chevron-up text-[9px]" id="iconPairsFold"></i>
+                                    <span id="textPairsFold">접기</span>
+                                </button>
+                            </div>
+                            <button id="btnResetPairs" type="button" class="text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded border border-rose-200 transition">
+                                <i class="fa-solid fa-rotate-left text-rose-500 mr-1"></i> 초기화
+                            </button>
+                        </div>
 
-                    <button id="btnAddPair" type="button" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg border border-dashed border-slate-300 transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-plus text-indigo-600"></i> 문장 1:1 추가하기
-                    </button>
+                        <div id="pairContainer" class="space-y-3">
+                            <!-- Dynamic Sentence Rows Inserted Here -->
+                        </div>
+
+                        <button id="btnAddPair" type="button" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg border border-dashed border-slate-300 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-plus text-indigo-600"></i> 문장 1:1 추가하기
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Correction Prompt Input Card -->
@@ -600,31 +852,31 @@
                     </button>
                 </div>
 
+                <!-- Action Buttons (2x2 Grid) -->
+                <div class="pt-2">
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="btnAnalyze" type="button" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center">
+                            <i class="fa-solid fa-diagram-project text-sm"></i>
+                            <span>직독직해 교안 생성</span>
+                        </button>
 
+                        <button id="btnSaveLectureHandout" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center">
+                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                            <span>강의용 교안 저장하기</span>
+                        </button>
 
-                <!-- Action Buttons -->
-                <div class="space-y-2 pt-2">
-                    <button id="btnAnalyze" type="button" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
-                        <i class="fa-solid fa-diagram-project text-sm"></i>
-                        <span>직독직해 & 구문분석 교안 생성</span>
-                    </button>
+                        <button id="btnCreateVocabTest" type="button" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center">
+                            <i class="fa-solid fa-spell-check text-sm"></i>
+                            <span>단어 테스트 저장</span>
+                        </button>
 
-                    <button id="btnSaveLectureHandout" type="button" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
-                        <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
-                        <span>강의용교안 저장하기</span>
-                    </button>
+                        <button id="btnCreateVariationExam" type="button" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center">
+                            <i class="fa-solid fa-file-pen text-sm"></i>
+                            <span>변형문제 만들기 & 저장</span>
+                        </button>
+                    </div>
 
-                    <button id="btnCreateVocabTest" type="button" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
-                        <i class="fa-solid fa-spell-check text-sm"></i>
-                        <span>단어 테스트 서버 저장</span>
-                    </button>
-
-                    <button id="btnCreateVariationExam" type="button" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
-                        <i class="fa-solid fa-file-pen text-sm"></i>
-                        <span>변형문제 만들기 & 저장</span>
-                    </button>
-
-                    <button id="btnPrint" type="button" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
+                    <button id="btnPrint" type="button" class="w-full mt-2 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs">
                         <i class="fa-solid fa-print"></i>
                         <span>A4 인쇄 / PDF 저장</span>
                     </button>
@@ -706,17 +958,17 @@
 
                                     <!-- 3단 정리 -->
                                     <div class="grid grid-cols-12 gap-3 items-start pt-1">
-                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs pt-0.5">3단 정리</div>
-                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-1 text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed"></div>
+                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs pt-0.5 text-left">3단 정리</div>
+                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-3 text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed flex flex-col items-start justify-start text-left"></div>
                                     </div>
 
                                 </div>
                             </div>
 
-                            <!-- Page 1 Section 3: 주요 어휘 및 구문 정리 (Moved to Page 1 Bottom) -->
+                            <!-- Page 1 Section 3: 주요 어휘 (Moved to Page 1 Bottom) -->
                             <div id="page1VocabContainer" class="mt-3 pt-2 border-t-2 border-slate-300">
                                 <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-book-bookmark text-slate-700"></i> 주요 어휘 및 구문 정리
+                                    <i class="fa-solid fa-book-bookmark text-slate-700"></i> 주요 어휘
                                 </h3>
                                 <div id="page1VocabGrid" class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] bg-white p-1.5 rounded-lg border border-slate-300">
                                     <!-- Populated dynamically in JS -->
@@ -944,66 +1196,81 @@
             </div>
         </div> <!-- End View A: Generator -->
 
-        <!-- View B: Repository -->
+        <!-- View B: Repository (Folder Explorer) -->
         <div id="viewRepository" class="hidden space-y-4 no-print">
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                 
-                <!-- Repository Header -->
+                <!-- Repository Header & Breadcrumb -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
+                        <div id="repoBreadcrumbArea" class="hidden flex items-center gap-2 mb-1">
+                            <button type="button" id="btnRepoBackToFolders" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-left"></i> 전체 폴더 목록
+                            </button>
+                            <span class="text-slate-400">/</span>
+                            <span id="repoActiveFolderBadge" class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                <i class="fa-solid fa-folder text-amber-500"></i>
+                                <span id="repoActiveFolderTitle">폴더명</span>
+                            </span>
+                        </div>
                         <h2 id="repoViewTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fa-solid fa-folder-open text-indigo-600"></i>
+                            <i class="fa-solid fa-folder-tree text-indigo-600"></i>
                             <span id="repoTitleText">우리 지점 자료 저장소</span>
                         </h2>
-                        <p id="repoSubtitleText" class="text-xs text-slate-500">우리 지점에서 직접 제작하여 보관 중인 교안 목록입니다.</p>
+                        <p id="repoSubtitleText" class="text-xs text-slate-500">폴더를 선택하여 지문별 교안 및 테스트를 열람하거나 관리할 수 있습니다.</p>
                     </div>
                     
                     <div class="flex flex-wrap items-center gap-2">
-                        <!-- Search Box -->
-                        <div class="relative w-full sm:w-64">
+                        <!-- Search Box (Folder search or In-folder file search) -->
+                        <div class="relative w-full sm:w-72">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" id="repoSearchInput" placeholder="교안 제목 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <input type="text" id="repoSearchInput" placeholder="폴더명 또는 지문 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                         </div>
                     </div>
                 </div>
 
-                <!-- Scope Filter Tabs (우리 지점 / 다른 지점 / 전체) -->
+                <!-- Scope Filter Tabs & Material Categories (전체 / 교과서 / 모의고사 / 부교재 / 기타) -->
                 <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
                     <div class="flex items-center gap-1.5" id="repoScopeFilterGroup">
                         <button type="button" id="btnScopeMy" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-sm transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-house-user"></i> 우리 지점 자료
+                            <i class="fa-solid fa-house-user"></i> 우리 지점
                         </button>
                         <button type="button" id="btnScopeOthers" class="text-xs font-bold px-3 py-1.5 rounded-lg text-slate-600 hover:text-slate-900 bg-white border border-slate-200 transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-globe"></i> 다른 지점 공유 자료
+                            <i class="fa-solid fa-globe"></i> 타 지점 공유
                         </button>
                         <button type="button" id="btnScopeAll" class="hidden text-xs font-bold px-3 py-1.5 rounded-lg text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-crown text-amber-500"></i> 전체 자료 (관리자)
+                            <i class="fa-solid fa-crown text-amber-500"></i> 전체 (관리자)
                         </button>
                     </div>
 
-                    <!-- Label Type Filter Group -->
+                    <!-- Material Type Filter Group: 전체 / 교과서 / 모의고사 / 부교재 / 기타 -->
                     <div class="flex items-center gap-1 overflow-x-auto" id="repoTypeFilterGroup">
-                        <button type="button" data-label="all" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded bg-slate-800 text-white transition">전체</button>
-                        <button type="button" data-label="교과서" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">교과서</button>
-                        <button type="button" data-label="모의고사" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">모의고사</button>
-                        <button type="button" data-label="부교재" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">부교재</button>
-                        <button type="button" data-label="변형문제" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">변형문제</button>
-                        <button type="button" data-label="단어테스트" class="repo-filter-btn text-[11px] font-bold px-2.5 py-1 rounded text-slate-600 hover:bg-slate-200 transition">단어테스트</button>
+                        <button type="button" data-label="all" class="repo-filter-btn text-[11px] font-bold px-3 py-1 rounded bg-slate-800 text-white transition">전체</button>
+                        <button type="button" data-label="교과서" class="repo-filter-btn text-[11px] font-bold px-3 py-1 rounded text-slate-600 hover:bg-slate-200 transition">교과서</button>
+                        <button type="button" data-label="모의고사" class="repo-filter-btn text-[11px] font-bold px-3 py-1 rounded text-slate-600 hover:bg-slate-200 transition">모의고사</button>
+                        <button type="button" data-label="부교재" class="repo-filter-btn text-[11px] font-bold px-3 py-1 rounded text-slate-600 hover:bg-slate-200 transition">부교재</button>
+                        <button type="button" data-label="기타" class="repo-filter-btn text-[11px] font-bold px-3 py-1 rounded text-slate-600 hover:bg-slate-200 transition">기타</button>
                     </div>
                 </div>
                 
                 <div id="repoLoadingState" class="py-16 flex flex-col items-center justify-center space-y-2 text-slate-400">
                     <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-500"></i>
-                    <span class="text-xs">저장된 교안 목록을 불러오는 중...</span>
+                    <span class="text-xs">저장된 폴더 및 교안 목록을 불러오는 중...</span>
                 </div>
                 
                 <div id="repoEmptyState" class="hidden py-16 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <i class="fa-solid fa-folder-open text-3xl"></i>
-                    <span class="text-xs">검색 조건에 맞는 교안이 없습니다.</span>
+                    <i class="fa-solid fa-folder-open text-3xl text-slate-300"></i>
+                    <span class="text-xs font-semibold">검색 조건에 맞는 폴더 또는 자료가 없습니다.</span>
                 </div>
 
-                <div id="repoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- Cards will be populated dynamically -->
+                <!-- Level 1: Folders Grid -->
+                <div id="repoFoldersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Folder Cards injected in JS -->
+                </div>
+
+                <!-- Level 2: Inside Folder Files Grid -->
+                <div id="repoFilesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- File Cards inside selected folder injected in JS -->
                 </div>
             </div>
         </div>
@@ -1203,7 +1470,7 @@
     <div id="toastContainer" class="toast-container no-print"></div>
 
     <!-- Loading Spinner Overlay -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] items-center justify-center opacity-0 transition-opacity duration-300 no-print pointer-events-none" style="display: none !important;">
         <div class="bg-white/95 p-6 rounded-2xl border border-slate-200 shadow-2xl flex flex-col items-center space-y-4 max-w-xs w-full mx-4">
             <div class="relative w-12 h-12">
                 <div class="absolute inset-0 rounded-full border-4 border-slate-100 border-t-indigo-600 animate-spin"></div>
@@ -1217,28 +1484,7 @@
 
     <!-- JavaScript Logic -->
     <script>
-        const samplePairsData = [
-            {
-                english: "A study by Eurofound found that young people who were working remotely reported more difficulties in managing their workload than older colleagues.",
-                korean: "Eurofound의 한 연구는 원격 근무를 하고 있었던 젊은 사람들이 나이가 더 많은 동료들보다 자신들의 업무량을 관리하는 데 더 많은 어려움을 이야기했다는 것을 발견했다."
-            },
-            {
-                english: "Moreover, many young people began their careers working remotely during the pandemic, unlike those in older generations who had many years to establish interpersonal connections and embed themselves in the organizational culture in an in-person job.",
-                korean: "게다가, 대면 근무에서 대인 관계를 구축하고 조직 문화에 그들 자신을 깊이 자리 잡게 할 수년간의 시간이 있었던 이전 세대의 사람들과는 달리 많은 젊은 사람들은 팬데믹 동안 원격 근무로 자신들의 경력을 시작했다."
-            },
-            {
-                english: "A survey by Prospects found that almost half of students and graduates in the United Kingdom found it difficult to work from home during the pandemic due to a lack of suitable workspace or distractions.",
-                korean: "Prospects의 한 설문 조사는 영국의 학생들과 졸업생들 중 거의 절반이 팬데믹 동안 적절한 작업 공간 부족이나 방해 요인들 때문에 집에서 작업을 하는 것을 어렵다고 여겼다는 것을 알아냈다."
-            },
-            {
-                english: "While young people may struggle long-term with remote work, perhaps more of a hybrid model where they can work from home part of the time and work onsite other times, would work well for them.",
-                korean: "젊은 사람들이 원격 근무에 장기간 어려움을 겪을지도 모르는 가운데, 아마도 일부 시간은 집에서, 다른 시간은 현장에서 근무할 수 있는 혼합 모델 쪽이 그들에게 효과가 있을 것이다."
-            },
-            {
-                english: "But it may not be that they need a formal hybrid structure with specific days of the week designated for working remotely but instead a fluid option that allows them, if possible, depending on the job role, to choose their day-to-day work location.",
-                korean: "하지만 그들은 주중의 특정 요일들이 원격 근무로 지정된 경직된 혼합 구조가 아니라, 대신 가능하다면 그들이 업무 역할에 따라 날마다의 근무 장소를 선택하도록 허락하는 유연한 선택지를 필요로 할지도 모름을 의미한다."
-            }
-        ];
+        const samplePairsData = [];
 
         let currentAnalysisData = null;
         const titleInput = document.getElementById('titleInput');
@@ -1247,6 +1493,15 @@
 
         const modifyPromptInput = document.getElementById('modifyPromptInput');
         const btnApplyModify = document.getElementById('btnApplyModify');
+
+        // Input Mode Switcher DOM Elements
+        const btnTabFullText = document.getElementById('btnTabFullText');
+        const btnTabPairs = document.getElementById('btnTabPairs');
+        const fullTextInputContainer = document.getElementById('fullTextInputContainer');
+        const pairsInputContainer = document.getElementById('pairsInputContainer');
+        const passageInput = document.getElementById('passageInput');
+        const koreanPassageInput = document.getElementById('koreanPassageInput');
+        const btnSplitToPairs = document.getElementById('btnSplitToPairs');
 
         const pairContainer = document.getElementById('pairContainer');
         const btnAddPair = document.getElementById('btnAddPair');
@@ -1263,6 +1518,72 @@
         const summarySubject = document.getElementById('summarySubject');
         const summaryKeywords = document.getElementById('summaryKeywords');
         const summaryPoints = document.getElementById('summaryPoints');
+
+        let currentInputMode = 'full'; // Default mode: full passage & translation
+
+        function splitFullTextIntoPairs(showNotification = true) {
+            const passage = passageInput.value.trim();
+            const korean = koreanPassageInput.value.trim();
+
+            if (!passage) {
+                if (showNotification) {
+                    showToast('먼저 영어 지문 전체를 입력해 주세요.', 'error');
+                    passageInput.focus();
+                }
+                return;
+            }
+
+            const enSentences = passage.split(/(?<=[.!?])\s+(?=[A-Z0-9"\'(])/).map(s => s.trim()).filter(s => s.length > 0);
+            let krSentences = korean.split(/\n+/).map(s => s.trim()).filter(s => s.length > 0);
+            if (krSentences.length <= 1 && korean) {
+                krSentences = korean.split(/(?<=[.!?])\s+(?=[가-힣A-Za-z0-9"\'(])/).map(s => s.trim()).filter(s => s.length > 0);
+            }
+
+            pairContainer.innerHTML = '';
+            enSentences.forEach((en, idx) => {
+                const kr = idx < krSentences.length ? krSentences[idx] : '';
+                addPairRow(en, kr, idx >= 2 && idx % 2 === 0);
+            });
+
+            saveToLocalStorage();
+            if (showNotification) {
+                showToast('문장별 1:1 입력 창으로 자동 분할되었습니다!');
+            }
+        }
+
+        function switchInputMode(mode) {
+            currentInputMode = mode;
+            if (mode === 'full') {
+                fullTextInputContainer.classList.remove('hidden');
+                pairsInputContainer.classList.add('hidden');
+                btnTabFullText.className = "px-2.5 py-1 rounded bg-indigo-600 text-white transition shadow-xs";
+                btnTabPairs.className = "px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition";
+            } else {
+                fullTextInputContainer.classList.add('hidden');
+                pairsInputContainer.classList.remove('hidden');
+                btnTabPairs.className = "px-2.5 py-1 rounded bg-indigo-600 text-white transition shadow-xs";
+                btnTabFullText.className = "px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition";
+
+                // Auto-sync: If full passage has text and pairContainer does not match, split automatically!
+                const passage = passageInput.value.trim();
+                if (passage) {
+                    const currentPairsEn = Array.from(pairContainer.querySelectorAll('.pair-en')).map(el => el.value.trim()).join(' ');
+                    if (!currentPairsEn || currentPairsEn !== passage) {
+                        splitFullTextIntoPairs(false);
+                    }
+                }
+            }
+            saveToLocalStorage();
+        }
+
+        if (btnTabFullText && btnTabPairs) {
+            btnTabFullText.addEventListener('click', () => switchInputMode('full'));
+            btnTabPairs.addEventListener('click', () => switchInputMode('pairs'));
+        }
+
+        if (btnSplitToPairs) {
+            btnSplitToPairs.addEventListener('click', () => splitFullTextIntoPairs(true));
+        }
 
         // Vocabulary Test & Speed Test DOM Elements
         const btnCreateVocabTest = document.getElementById('btnCreateVocabTest');
@@ -1321,11 +1642,43 @@
 
         let selectedMaterialType = '모의고사';
 
+        const folderSelectDropdown = document.getElementById('folderSelectDropdown');
+        const folderNameInput = document.getElementById('folderNameInput');
+        const btnAutoSuggestFolder = document.getElementById('btnAutoSuggestFolder');
+        const folderStatusText = document.getElementById('folderStatusText');
+
+        // Extract folder name from title intelligently
+        function extractDefaultFolderName(title, matType = selectedMaterialType) {
+            title = (title || '').trim();
+            if (!title) return `${matType} 기본 폴더`;
+            const m = title.match(/^(.*?)\s+(?:[0-9]{1,3}번|본문\s*\d+|Q\d+|\d+문항)$/i);
+            if (m && m[1].trim().length > 3) return m[1].trim();
+            const m2 = title.match(/(\d+년\s*(?:[고중]\d\s*)?\d+월\s*모의고사)/);
+            if (m2) return m2[1].trim();
+            const m3 = title.match(/([가-힣A-Za-z0-9]+\s*[IV1-4]?\s*[가-힣()]+\s*\d+과)/);
+            if (m3) return m3[1].trim();
+            return title.length > 15 ? `${matType} - ${title.slice(0, 15)}` : (title || `${matType} 기본 폴더`);
+        }
+
+        function getActiveFolderName() {
+            if (folderNameInput && folderNameInput.value.trim()) {
+                return folderNameInput.value.trim();
+            }
+            if (folderSelectDropdown && folderSelectDropdown.value) {
+                return folderSelectDropdown.value;
+            }
+            return extractDefaultFolderName(titleInput ? titleInput.value : '', selectedMaterialType);
+        }
+
         // LocalStorage Persistence Functions
         function saveToLocalStorage() {
             localStorage.setItem('handout_title', titleInput.value);
             localStorage.setItem('material_type', selectedMaterialType);
-            
+            if (folderNameInput) localStorage.setItem('folder_name', folderNameInput.value);
+            localStorage.setItem('handout_passage_full', passageInput.value);
+            localStorage.setItem('handout_korean_full', koreanPassageInput.value);
+            localStorage.setItem('handout_input_mode', currentInputMode);
+
             const rows = pairContainer.querySelectorAll('.pair-row');
             const pairs = [];
             rows.forEach(r => {
@@ -1338,37 +1691,52 @@
             localStorage.setItem('handout_pairs', JSON.stringify(pairs));
         }
 
-        function restoreFromLocalStorage() {
-            const savedTitle = localStorage.getItem('handout_title');
-            if (savedTitle !== null) {
-                titleInput.value = savedTitle;
-            } else {
-                titleInput.value = '26년 3월 고3 모의고사 36번';
+        function resetGeneratorInputs(silent = false) {
+            if (titleInput) titleInput.value = '';
+            if (folderNameInput) folderNameInput.value = '';
+            if (folderSelectDropdown) folderSelectDropdown.value = '';
+            if (passageInput) passageInput.value = '';
+            if (koreanPassageInput) koreanPassageInput.value = '';
+            if (modifyPromptInput) modifyPromptInput.value = '';
+            
+            if (pairContainer) {
+                pairContainer.innerHTML = '';
+                addPairRow('', '', false);
             }
+            
+            currentAnalysisData = null;
+            if (emptyState) emptyState.classList.remove('hidden');
+            if (handoutSheet) handoutSheet.classList.add('hidden');
+            
+            try {
+                localStorage.removeItem('handout_title');
+                localStorage.removeItem('handout_passage_full');
+                localStorage.removeItem('handout_korean_full');
+                localStorage.removeItem('handout_pairs');
+                localStorage.removeItem('folder_name');
+            } catch(e) {}
+
+            switchInputMode('full');
+
+            if (!silent) {
+                showToast('모든 입력창이 깨끗하게 초기화되었습니다.');
+            }
+        }
+
+        function restoreFromLocalStorage() {
+            // Guarantee pure empty blank state whenever generator opens or page loads!
+            resetGeneratorInputs(true);
 
             const savedType = localStorage.getItem('material_type');
-            if (savedType) {
-                selectedMaterialType = savedType;
-            } else {
-                selectedMaterialType = '모의고사';
-            }
+            selectedMaterialType = savedType || '모의고사';
             updateMaterialTypeButtons();
+        }
 
-            const savedPairsRaw = localStorage.getItem('handout_pairs');
-            pairContainer.innerHTML = '';
-
-            if (savedPairsRaw) {
-                try {
-                    const savedPairs = JSON.parse(savedPairsRaw);
-                    if (Array.isArray(savedPairs) && savedPairs.length > 0) {
-                        savedPairs.forEach(p => addPairRow(p.english, p.korean, p.page_break || false));
-                        return;
-                    }
-                } catch(e) {}
-            }
-
-            // Default sample rows if no localStorage
-            samplePairsData.forEach(p => addPairRow(p.english, p.korean, false));
+        const btnResetAllInputs = document.getElementById('btnResetAllInputs');
+        if (btnResetAllInputs) {
+            btnResetAllInputs.addEventListener('click', () => {
+                resetGeneratorInputs(false);
+            });
         }
 
         function updateMaterialTypeButtons() {
@@ -1380,6 +1748,7 @@
                     btn.className = "material-type-btn text-[11px] font-bold py-1.5 rounded transition text-slate-600 hover:text-slate-900 hover:bg-white/50 flex-1 text-center";
                 }
             });
+            populateFolderSelectDropdown(selectedMaterialType);
         }
 
         // Bind material type button clicks
@@ -1387,9 +1756,60 @@
             btn.addEventListener('click', (e) => {
                 selectedMaterialType = e.currentTarget.getAttribute('data-value');
                 updateMaterialTypeButtons();
+                if (folderNameInput && (!folderNameInput.value || folderNameInput.value.includes('기본 폴더'))) {
+                    folderNameInput.value = extractDefaultFolderName(titleInput.value, selectedMaterialType);
+                }
                 saveToLocalStorage();
             });
         });
+
+        // Folder input listeners
+        if (titleInput) {
+            titleInput.addEventListener('input', () => {
+                saveToLocalStorage();
+            });
+        }
+
+        if (folderNameInput) {
+            folderNameInput.addEventListener('input', saveToLocalStorage);
+        }
+
+        if (folderSelectDropdown) {
+            folderSelectDropdown.addEventListener('change', () => {
+                if (folderSelectDropdown.value) {
+                    folderNameInput.value = folderSelectDropdown.value;
+                    saveToLocalStorage();
+                }
+            });
+        }
+
+        if (btnAutoSuggestFolder) {
+            btnAutoSuggestFolder.addEventListener('click', () => {
+                const autoName = extractDefaultFolderName(titleInput.value, selectedMaterialType);
+                folderNameInput.value = autoName;
+                saveToLocalStorage();
+                showToast(`제목을 분석하여 폴더명을 '${autoName}'(으)로 설정했습니다.`);
+            });
+        }
+
+        function populateFolderSelectDropdown(matType = selectedMaterialType) {
+            if (!folderSelectDropdown) return;
+            const folders = (savedHandoutsList || [])
+                .filter(s => !matType || matType === 'all' || (s.material_type || s.label) === matType)
+                .map(s => s.folder_name || extractDefaultFolderName(s.title, s.material_type))
+                .filter((v, i, a) => v && a.indexOf(v) === i);
+
+            let optionsHtml = '<option value="">📁 기존 저장소 폴더 선택하기...</option>';
+            folders.forEach(f => {
+                optionsHtml += `<option value="${f}">📁 ${f}</option>`;
+            });
+            folderSelectDropdown.innerHTML = optionsHtml;
+        }
+
+        if (passageInput && koreanPassageInput) {
+            passageInput.addEventListener('input', saveToLocalStorage);
+            koreanPassageInput.addEventListener('input', saveToLocalStorage);
+        }
 
         // Add Sentence Pair Row
         function addPairRow(enVal = "", krVal = "", pageBreakVal = false) {
@@ -1446,7 +1866,6 @@
                 const krTa = r.querySelector('.pair-kr');
                 if (krTa) krTa.placeholder = `한글 해석 ${idx + 1} 입력 (직독직해 / 구분 포함)`;
 
-                // Dynamically ensure delete button and page break exist or are hidden for first row
                 const headerRight = r.querySelector('.flex.items-center.space-x-3');
                 if (headerRight) {
                     if (idx === 0) {
@@ -1488,14 +1907,17 @@
         titleInput.addEventListener('input', saveToLocalStorage);
 
         btnResetPairs.addEventListener('click', () => {
-            if (confirm('입력된 모든 제목, 문장 및 해석을 초기화하시겠습니까?')) {
+            if (confirm('입력된 모든 제목, 지문 및 해석을 초기화하시겠습니까?')) {
                 titleInput.value = '';
+                passageInput.value = '';
+                koreanPassageInput.value = '';
                 localStorage.removeItem('handout_title');
+                localStorage.removeItem('handout_passage_full');
+                localStorage.removeItem('handout_korean_full');
                 localStorage.removeItem('handout_pairs');
                 pairContainer.innerHTML = '';
                 addPairRow();
                 
-                // Reset analysis preview state
                 currentAnalysisData = null;
                 emptyState.classList.remove('hidden');
                 handoutSheet.classList.add('hidden');
@@ -1563,71 +1985,61 @@
                 return;
             }
 
+            let passagePayload = "";
+            let koreanPayload = "";
             let sentence_pairs = [];
-            const rows = pairContainer.querySelectorAll('.pair-row');
-            
-            // Check if ANY row already has page_break checked
-            let hasAnyPageBreak = false;
-            rows.forEach((r, idx) => {
-                if (idx > 0) {
+
+            if (currentInputMode === 'full') {
+                passagePayload = passageInput.value.trim();
+                koreanPayload = koreanPassageInput.value.trim();
+                sentence_pairs = []; // Explicitly clear so old stale pair rows are not sent
+            } else {
+                // Pairs mode
+                const rows = pairContainer.querySelectorAll('.pair-row');
+                rows.forEach(r => {
+                    const en = r.querySelector('.pair-en').value.trim();
+                    const kr = r.querySelector('.pair-kr').value.trim();
                     const pbInput = r.querySelector('.pair-page-break');
-                    if (pbInput && pbInput.checked) {
-                        hasAnyPageBreak = true;
-                    }
-                }
-            });
-
-            // If none are checked, auto-initialize every 2nd sentence starting from sentence 3 (index 2)
-            if (!hasAnyPageBreak && rows.length > 2) {
-                rows.forEach((r, idx) => {
-                    if (idx >= 2 && idx % 2 === 0) {
-                        const pbInput = r.querySelector('.pair-page-break');
-                        if (pbInput) {
-                            pbInput.checked = true;
-                        }
+                    const pb = pbInput ? pbInput.checked : false;
+                    if (en) {
+                        sentence_pairs.push({ english: en, korean: kr, page_break: pb });
                     }
                 });
-                saveToLocalStorage();
             }
 
-            rows.forEach(r => {
-                const en = r.querySelector('.pair-en').value.trim();
-                const kr = r.querySelector('.pair-kr').value.trim();
-                const pbInput = r.querySelector('.pair-page-break');
-                const pb = pbInput ? pbInput.checked : false;
-                if (en) {
-                    sentence_pairs.push({ english: en, korean: kr, page_break: pb });
-                }
+            if (!passagePayload && sentence_pairs.length === 0) {
+            showToast('영어 지문 또는 1:1 문장을 입력해주세요.', 'error');
+            return;
+        }
+
+        btnAnalyze.disabled = true;
+        btnAnalyze.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>교안 생성 중...</span>';
+        showLoading("교안 분석 및 생성 중", "입력하신 문장의 구조와 직독직해 끊어읽기를 새로 생성하고 있습니다...");
+
+        try {
+            const savedApiKey = localStorage.getItem('gemini_api_key') || '';
+            const payload = { title: title, use_ai: use_ai, api_key: savedApiKey };
+            if (sentence_pairs.length > 0) {
+                payload.sentence_pairs = sentence_pairs;
+            } else {
+                payload.passage = passagePayload;
+                payload.korean_passage = koreanPayload;
+            }
+
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
-            if (sentence_pairs.length === 0) {
-                showToast('최소 1개 이상의 영어 문장을 입력해주세요.', 'error');
-                return;
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || '분석 중 오류가 발생했습니다.');
             }
 
-            btnAnalyze.disabled = true;
-            btnAnalyze.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>전 문장 구문분석 교안 생성 중...</span>';
-            showLoading("교안 분석 및 생성 중", "Gemini AI가 문장의 구조와 직독직해 끊어읽기를 생성하고 있습니다...");
+            currentAnalysisData = await response.json();
 
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        title: title, 
-                        sentence_pairs: sentence_pairs,
-                        use_ai: use_ai
-                    })
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || '분석 중 오류가 발생했습니다.');
-                }
-
-                currentAnalysisData = await response.json();
-
-                // If user wrote a prompt in modifyPromptInput, apply it right after analysis!
+                // If user wrote a prompt in modifyPromptInput, apply it right after analysis
                 const initPrompt = modifyPromptInput.value.trim();
                 if (initPrompt) {
                     const modRes = await fetch('/api/modify', {
@@ -1643,16 +2055,32 @@
                     }
                 }
 
+                // Immediately synchronize 1:1 pairContainer with newly analyzed sentences!
+                if (currentAnalysisData && currentAnalysisData.sentences && currentAnalysisData.sentences.length > 0) {
+                    pairContainer.innerHTML = '';
+                    const newPairs = [];
+                    currentAnalysisData.sentences.forEach(s => {
+                        const en = s.original || '';
+                        const kr = s.chunk_korean ? s.chunk_korean.replace(/\s*\/\s*/g, ' / ') : (s.korean || '');
+                        addPairRow(en, kr, s.page_break || false);
+                        newPairs.push({ english: en, korean: kr, page_break: s.page_break || false });
+                    });
+                    sentence_pairs = newPairs;
+                    saveToLocalStorage();
+                }
+
                 renderAnalysisData(currentAnalysisData);
 
-                // Auto-save generated handout directly to server & Google database
+                // Auto-save generated handout directly to server & Google database with current folder
                 try {
+                    const folderName = getActiveFolderName();
                     const savePayload = {
                         title: title,
+                        folder_name: folderName,
                         material_type: selectedMaterialType,
                         doc_type: '강의용교안',
                         label: selectedMaterialType,
-                        branch: getCurrentBranch(),
+                        branch: typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사',
                         sentence_pairs: sentence_pairs,
                         analysis_data: currentAnalysisData
                     };
@@ -1666,14 +2094,14 @@
                 }
 
                 hideLoading();
-                showToast(`'${title}' 교안이 성공적으로 생성 및 [${selectedMaterialType} / 강의용교안]으로 자동 저장되었습니다!`);
+                showToast(`'${title}' 교안이 성공적으로 생성 및 [${selectedMaterialType}]에 자동 저장되었습니다!`);
 
             } catch (err) {
                 hideLoading();
                 showToast(err.message, 'error');
             } finally {
                 btnAnalyze.disabled = false;
-                btnAnalyze.innerHTML = '<i class="fa-solid fa-diagram-project"></i> <span>직독직해 & 구문분석 교안 생성</span>';
+                btnAnalyze.innerHTML = '<i class="fa-solid fa-diagram-project text-sm"></i> <span>직독직해 교안 생성</span>';
             }
         });
 
@@ -1681,7 +2109,8 @@
             blue: 'text-blue-600 border-blue-500',         // S (Subject) - Blue
             rose: 'text-rose-600 border-rose-500',         // V/Vi/Vt (Verb) - Red
             emerald: 'text-emerald-600 border-emerald-500',// O/IO/DO (Object) - Green
-            indigo: 'text-indigo-600 border-indigo-500',   // SC/OC (Complement) - Purple
+            purple: 'text-purple-600 border-purple-500',   // OC (Object Complement) - Purple!
+            indigo: 'text-indigo-600 border-indigo-500',   // SC (Subject Complement) - Indigo
             amber: 'text-slate-900 border-transparent',    // Modifiers / Adverbials - Black!
             slate: 'text-slate-900 border-transparent'     // Normal text - Black
         };
@@ -1702,7 +2131,7 @@
             summarySubject.innerText = sInfo.subject || '지문 핵심 주제 및 요지 분석';
             summaryKeywords.innerText = sInfo.keywords || '① 핵심어1  ② 핵심어2  ③ 핵심어3';
 
-            // Dynamic Illustration Matching
+            // Dynamic Illustration Matching & AI Generation for ANY topic
             const ghibliImg = document.getElementById('ghibliImg');
             if (ghibliImg) {
                 if (data.illustration_url) {
@@ -1710,113 +2139,161 @@
                 } else if (data.analysis_data && data.analysis_data.illustration_url) {
                     ghibliImg.src = data.analysis_data.illustration_url;
                 } else {
-                    const passageText = (data.passage_raw || (data.sentences || []).map(s => s.original).join(' ')).toLowerCase();
-                    const titleStr = (data.title || titleInput.value || '').toLowerCase();
-                    const isEurofoundSample = passageText.includes('eurofound') || passageText.includes('workload');
+                    const sceneEn = (sInfo.illustration_scene_en || '').trim();
+                    const titleStr = (data.title || titleInput.value || '').trim();
+                    const subjectStr = (sInfo.subject || '').trim();
+                    const passageText = (data.passage_raw || (data.sentences || []).map(s => s.original).join(' ')).trim();
                     
-                    if (isEurofoundSample) {
-                        ghibliImg.src = '/static/illustration.jpg';
-                    } else if (passageText.includes('skyscraper') || passageText.includes('vortex') || titleStr.includes('빌딩') || titleStr.includes('와류')) {
-                        ghibliImg.src = '/static/skyscraper_vortex.jpg';
-                    } else {
-                        ghibliImg.src = '/static/illustration.jpg';
-                    }
+                    // Auto-fetch topic illustration in background
+                    fetch('/api/generate_illustration', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: titleStr,
+                            topic: subjectStr,
+                            keywords: sInfo.keywords || '',
+                            summary: (sInfo.summary || []).join('\n'),
+                            passage: passageText,
+                            api_key: localStorage.getItem('gemini_api_key') || ''
+                        })
+                    }).then(r => r.json()).then(resData => {
+                        if (resData && resData.illustration_url) {
+                            ghibliImg.src = resData.illustration_url;
+                            if (currentAnalysisData) currentAnalysisData.illustration_url = resData.illustration_url;
+                        }
+                    }).catch(e => {
+                        console.log('Illustration auto-gen warning:', e);
+                    });
                 }
             }
 
             summaryPoints.innerHTML = '';
             const summaryList = sInfo.summary || [
-                '① 원격 근무 젊은 직원은 동료보다 업무 및 관계 형성에 어려움을 겪음.',
-                '② 적절한 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.',
-                '③ 경직된 일정 대신 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요.'
+                '몸집이 클수록 사소한 사고에도 더 큰 손상을 입는다.',
+                '아기는 뼈가 상대적으로 두꺼워 넘어져도 심각한 부상이 드물다.',
+                '성인은 큰 몸집으로 인해 낙상 시 충격이 커 뼈 손상 위험이 높다.'
             ];
 
             summaryList.forEach((pt, idx) => {
-                // Remove leading numbers like ①, ②, ③
-                let cleanPt = pt.replace(/^[①②③\d\.\s]*/, '').trim();
-
-                if (idx > 0) {
-                    // Centered bold red downward block arrow (SVG)
-                    const arrowDiv = document.createElement('div');
-                    arrowDiv.className = 'flex justify-center my-2 text-red-600';
-                    arrowDiv.innerHTML = `
-                        <svg class="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24" style="color: #e11d48 !important; fill: #e11d48 !important;">
-                            <path d="M11 3h2v11h4l-5 6-5-6h4V3z"/>
-                        </svg>
-                    `;
-                    summaryPoints.appendChild(arrowDiv);
-                }
-
-                const div = document.createElement('div');
-                div.className = 'text-slate-700 text-[12px] sm:text-[13px] font-semibold leading-relaxed text-center';
-                div.innerText = cleanPt;
-                summaryPoints.appendChild(div);
+                const cleanPt = pt.replace(/^[①②③④⑤\d\.\s\-\➔\→]+/, '').trim();
+                const pEl = document.createElement('div');
+                pEl.className = "flex items-start justify-start gap-2 text-left w-full";
+                pEl.innerHTML = `
+                    <span class="w-4 h-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">${idx + 1}</span>
+                    <span class="text-left font-semibold text-slate-900 text-[11px] sm:text-xs leading-relaxed flex-1">${cleanPt}</span>
+                `;
+                summaryPoints.appendChild(pEl);
             });
 
-            // Render Vocabulary on Page 1
-            const page1VocabContainer = document.getElementById('page1VocabContainer');
-            const page1VocabGrid = document.getElementById('page1VocabGrid');
-            if (data.vocabulary && data.vocabulary.length > 0) {
-                page1VocabContainer.classList.remove('hidden');
-                let vocabItemsHtml = '';
-                data.vocabulary.slice(0, 16).forEach(v => {
-                    vocabItemsHtml += `<div class="flex justify-between border-b border-slate-200 pb-0.5 text-[10px]"><span class="font-bold text-slate-800">• ${v.word}</span> <span class="text-slate-700 font-medium text-right ml-2">${v.meaning}</span></div>`;
-                });
-                page1VocabGrid.innerHTML = vocabItemsHtml;
-            } else {
-                page1VocabContainer.classList.add('hidden');
+            // Render Page 1 Vocab Section (주요 어휘 16개 2열 배치)
+            const page1VocabGrid = document.getElementById('page1VocabGrid') || document.getElementById('vocab10Grid');
+            if (page1VocabGrid) {
+                page1VocabGrid.innerHTML = '';
+                const vocabs = data.vocabulary || data.vocab || [];
+                if (vocabs.length > 0) {
+                    vocabs.forEach(v => {
+                        let word = '';
+                        let pos = '';
+                        let meaning = '';
+
+                        if (typeof v === 'string') {
+                            word = v;
+                        } else if (typeof v === 'object' && v !== null) {
+                            word = v.word || v.english || v.term || v.lemma || '';
+                            pos = v.pos || '';
+                            meaning = v.meaning || v.korean || v.definition || '';
+                        }
+
+                        // Parse (품사) from meaning if embedded
+                        if (meaning) {
+                            const posMatch = meaning.match(/^(\([가-힣\w\s]+\))\s*(.*)$/);
+                            if (posMatch) {
+                                pos = posMatch[1].trim();
+                                meaning = posMatch[2].trim();
+                            }
+                        }
+
+                        if (!word && meaning) {
+                            const m = meaning.match(/^([a-zA-Z\s\-]+)\s*(\([가-힣\w\s]+\))?\s*(.*)$/);
+                            if (m) {
+                                word = m[1].trim();
+                                if (m[2]) pos = m[2].trim();
+                                meaning = m[3].trim();
+                            }
+                        }
+
+                        const cleanWord = (word || 'vocabulary').trim();
+                        const posBadge = pos ? `<span class="text-indigo-600 font-bold text-[9.5px] mr-1">${pos}</span>` : '';
+
+                        const vDiv = document.createElement('div');
+                        vDiv.className = "flex items-baseline justify-between py-0.5 px-1.5 rounded hover:bg-slate-50 transition border-b border-slate-100 text-[10px] gap-1";
+                        vDiv.innerHTML = `
+                            <div class="flex items-baseline gap-1 font-outfit truncate">
+                                <span class="text-rose-500 font-black text-[9px] shrink-0">•</span>
+                                <span class="font-bold text-slate-900 tracking-tight">${cleanWord}</span>
+                            </div>
+                            <div class="text-slate-600 font-medium text-right text-[9.5px] shrink-0">${posBadge}${meaning}</div>
+                        `;
+                        page1VocabGrid.appendChild(vDiv);
+                    });
+                }
             }
 
-            // Clean & Build Dynamic Sentence Pages (Page 2, Page 3, Page 4...)
+            // Clear Sentence Pages Container
             sentencePagesWrapper.innerHTML = '';
-            
             const sentences = data.sentences || [];
-            let pages = [];
-            let currentPageChunk = [];
-
+            
+            // Build pages (2 sentences per page or by manual page_break)
+            const pages = [];
+            let currentPage = [];
             sentences.forEach((s, idx) => {
-                // Split pages ONLY when s.page_break is true (giving the user 100% control!)
-                if (idx > 0 && s.page_break === true) {
-                    pages.push(currentPageChunk);
-                    currentPageChunk = [];
+                if (s.page_break === true && currentPage.length > 0) {
+                    pages.push(currentPage);
+                    currentPage = [];
+                } else if (currentPage.length >= 2) {
+                    pages.push(currentPage);
+                    currentPage = [];
                 }
-                currentPageChunk.push(s);
+                currentPage.push(s);
             });
-            if (currentPageChunk.length > 0) {
-                pages.push(currentPageChunk);
-            }
+            if (currentPage.length > 0) pages.push(currentPage);
 
             let currentPageNum = 2;
-
             pages.forEach((chunk, pageIdx) => {
                 const isLastPage = (pageIdx === pages.length - 1);
-                const printBlockClass = isLastPage ? 'print-page-block-last' : 'print-page-block';
-
                 const pageDiv = document.createElement('div');
-                pageDiv.className = `a4-page ${printBlockClass}`;
-
+                pageDiv.className = 'page-container bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm print-page mb-8 text-slate-800 relative flex flex-col justify-between';
+                
                 let pageHtml = `
                     <div>
-                        <!-- Header -->
-                        <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
-                            <div>
-                                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
+                        <!-- Page Header -->
+                        <div class="border-b border-slate-200 pb-3 mb-6 flex justify-between items-center text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">내신 심층분석</span>
+                                <span class="font-bold text-slate-800">${fullHeading}</span>
+                            </div>
+                            <div class="text-slate-400 font-semibold text-[11px]">
+                                PAGE <span class="text-indigo-600 font-bold">${currentPageNum}</span>
                             </div>
                         </div>
 
-                        <!-- Sentence List for this Page -->
-                        <div class="space-y-3">
+                        <!-- Sentences in this page chunk -->
+                        <div class="space-y-6">
                 `;
 
                 chunk.forEach((s, chunkIdx) => {
+                    const sentenceKr = s.korean || (s.chunk_korean ? s.chunk_korean.replace(/\s*\/\s*/g, ' ') : '');
                     pageHtml += `
-                        <div class="print-block bg-white border border-slate-300 rounded-lg p-2.5 shadow-sm space-y-2">
-                            <div class="flex items-center space-x-2">
-                                <span class="bg-rose-600 text-white font-bold text-[11px] px-2.5 py-0.5 rounded-full shadow-sm">구문 분석</span>
-                                <span class="text-[11px] font-bold text-slate-400">문장 ${s.index}</span>
+                        <div class="print-block space-y-2.5 bg-white border border-slate-200/80 rounded-xl p-4 shadow-2xs">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black">${s.index}</span>
+                                    <span class="text-[11px] font-bold text-slate-700">${sentenceKr}</span>
+                                </div>
                             </div>
 
-                            <div class="flex flex-wrap items-baseline leading-snug gap-x-1 gap-y-7 py-3 px-1.5 bg-slate-50/50 rounded-lg border border-slate-100">
+                            <!-- Token Analysis -->
+                            <div class="flex flex-wrap items-baseline py-2.5 px-2 bg-slate-50/50 rounded border border-slate-100 text-slate-900 gap-y-5">
                     `;
 
                     if (s.tokens && s.tokens.length > 0) {
@@ -1830,7 +2307,7 @@
                             'nonetheless', 'nevertheless', 'instead', 'otherwise', 'meanwhile', 'besides', 'likewise', 'similarly'
                         ];
                         
-                        // Pre-sanitize tokens: split multi-word conjunction tokens (e.g. "or Colorado" -> "or" + "Colorado")
+                        // Pre-sanitize tokens: split multi-word conjunction tokens
                         const sanitizedTokens = [];
                         s.tokens.forEach(t => {
                             if (!t.text) return;
@@ -1844,9 +2321,9 @@
                                 const firstClean = words[0].replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 const isConj = t.is_conjunction || (t.sub_tag && t.sub_tag.includes('접속'));
                                 if (isConj && pureConjunctions.includes(firstClean)) {
-                                    sanitizedTokens.push({
+sanitizedTokens.push({
                                         text: words[0],
-                                        top_label: '',
+                                        top_label: '△',
                                         color: 'slate',
                                         sub_tag: '',
                                         underline: false,
@@ -1854,7 +2331,7 @@
                                     });
                                     sanitizedTokens.push({
                                         text: words.slice(1).join(' '),
-                                        top_label: t.top_label || '',
+                                        top_label: t.top_label !== '△' ? (t.top_label || '') : '',
                                         color: t.color || 'slate',
                                         sub_tag: (t.sub_tag && !t.sub_tag.includes('접속')) ? t.sub_tag : '',
                                         underline: t.underline || false,
@@ -1869,48 +2346,115 @@
                         sanitizedTokens.forEach((t) => {
                             if (t.text && t.text.trim() === '/') {
                                 pageHtml += `
-                                    <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
-                                        <span class="text-base font-black text-purple-600 leading-none">/</span>
-                                    </div>
+                                    <span class="inline-block px-[2px] mx-[2px] text-purple-600 font-black text-xs select-none self-center leading-none">/</span>
                                 `;
                             } else {
-                                const colorClass = colorClasses[t.color] || 'text-slate-900 border-transparent';
+                                let tagColor = t.color || 'slate';
+                                const subTagClean = (t.sub_tag || '').toUpperCase();
+                                const topTagClean = (t.top_label || '').toUpperCase();
+
+                                if ((subTagClean.startsWith('S') && !subTagClean.includes('전치사')) || topTagClean.startsWith('S')) {
+                                    tagColor = 'blue';
+                                } else if (subTagClean.startsWith('VI') || subTagClean.startsWith('VT') || (subTagClean.startsWith('V') && !subTagClean.includes('부사구')) || topTagClean.startsWith('V')) {
+                                    tagColor = 'rose';
+                                } else if (subTagClean.startsWith('OC') || topTagClean.startsWith('OC')) {
+                                    tagColor = 'purple'; // OC gets distinct purple!
+                                } else if (subTagClean.startsWith('O') || subTagClean.startsWith('IO') || subTagClean.startsWith('DO') || subTagClean.includes('가목적어') || subTagClean.includes('진목적어') || topTagClean.startsWith('O')) {
+                                    tagColor = 'emerald';
+                                } else if (subTagClean.startsWith('SC') || subTagClean.startsWith('SC') || subTagClean.startsWith('C') || topTagClean.startsWith('C')) {
+                                    tagColor = 'indigo';
+                                }
+
+                                const colorClass = colorClasses[tagColor] || colorClasses[t.color] || 'text-slate-900 border-transparent';
                                 const hasUnderline = t.underline ? 'border-b-2' : '';
                                 
-                                const textClean = t.text.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
+                                const cleanWordText = (t.text || '').replace(/^[△▲\s]+/, '').replace(/[△▲]+$/, '').trim();
+                                const textClean = cleanWordText.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 let isConjunctionOrAdverb = false;
                                 
-                                // Triangle SVG applies ONLY if the single word is strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
-                                if (pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && (t.sub_tag.includes('접속사') || t.sub_tag.includes('접속부사'))))) {
+                                // Triangle applies ONLY if strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
+                                if ((pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && (t.sub_tag.includes('접속사') || t.sub_tag.includes('접속부사'))))) || t.top_label === '△') {
                                     isConjunctionOrAdverb = true;
                                 }
 
-                                let subTag = t.sub_tag || '';
+                                let rawSubTag = (t.sub_tag || '').trim();
                                 if (isConjunctionOrAdverb) {
-                                    subTag = ''; // Show only triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
+                                    rawSubTag = ''; // Show only top triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
                                 }
 
+                                // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses ONLY)
+                                // Prepositional phrases (enclosed in '(') must NEVER get arrow!
+                                const isPrepositionOrWrapped = cleanWordText.startsWith('(') || cleanWordText.startsWith('[');
+                                const hasArrow = !isPrepositionOrWrapped && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
+
+                                let displaySubTag = rawSubTag
+                                    .replace(/[⬑⤹⤺]/g, '')
+                                    .replace(/전치사구|전치사|부사구|부사|형용사구|주격관계대명사|목적격관계대명사|소유격관계대명사|관계대명사|관계부사|형용사절|분사구문|분사구|to부정사구|to부정사/g, '')
+                                    .trim();
+
+                                if (rawSubTag.includes('의미상') || rawSubTag === '의미상 S') {
+                                    displaySubTag = '의미상 S';
+                                    tagColor = 'blue';
+                                } else if (displaySubTag === '목적어절') {
+                                    displaySubTag = 'O';
+                                } else if (displaySubTag.includes('진목적어')) {
+                                    displaySubTag = '진목적어';
+                                }
+
+                                // Top Label (rendered ABOVE the word token for verbals: Vt/Vi/O/C, but NOT for conjunctions)
+                                const topLabel = t.top_label || '';
+                                let topColorClass = 'text-slate-900';
+                                const topClean = topLabel.toUpperCase();
+                                if (topClean.startsWith('S')) topColorClass = 'text-blue-600';
+                                else if (topClean.startsWith('V')) topColorClass = 'text-rose-600';
+                                else if (topClean.startsWith('OC')) topColorClass = 'text-purple-600';
+                                else if (topClean.startsWith('O')) topColorClass = 'text-emerald-600';
+                                else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColorClass = 'text-indigo-600';
+
+                                // Word Display (Overlay triangle directly over conjunction word)
                                 let wordDisplayHtml = '';
-                                if (isConjunctionOrAdverb) {
+                                if (isConjunctionOrAdverb || topLabel === '△') {
                                     wordDisplayHtml = `
-                                        <div class="relative inline-block px-1 py-0 align-middle">
-                                            <svg class="absolute inset-x-0 top-0 bottom-0 h-[75%] my-auto w-full text-sky-500 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
-                                                <polygon points="50,4 96,94 4,94" fill="none" stroke="#0284c7" stroke-width="3.5"/>
-                                            </svg>
-                                            <span class="relative z-10 text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5 leading-none">${t.text.replace(/ /g, '&nbsp;')}</span>
-                                        </div>
+                                        <span class="relative inline-flex items-center justify-center px-1">
+                                            <span class="text-[10pt] font-black font-outfit ${colorClass} ${hasUnderline} tracking-normal whitespace-nowrap leading-tight relative z-10">${cleanWordText}</span>
+                                            <span class="absolute inset-0 flex items-center justify-center text-[24px] font-black text-sky-500/80 select-none pointer-events-none -translate-y-[2px] leading-none z-0">△</span>
+                                        </span>
                                     `;
                                 } else {
-                                    wordDisplayHtml = `<span class="text-[11pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${t.text.replace(/ /g, '&nbsp;')}</span>`;
+                                    wordDisplayHtml = `<span class="text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} tracking-normal whitespace-nowrap leading-tight">${cleanWordText}</span>`;
                                 }
 
-                                const cleanTag = subTag.replace('⬑', '').trim();
-                                const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
-                                const tagSizeClass = isVerbal ? 'text-[9px] font-black' : 'text-[10px] font-black';
-                                const subTagHtml = subTag ? `<span class="absolute top-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${colorClass.split(' ')[0]}">${subTag}</span>` : '';
+                                let topLabelHtml = '';
+                                if (topLabel && topLabel !== '△' && !isConjunctionOrAdverb) {
+                                    topLabelHtml = `<span class="absolute bottom-[100%] pb-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-black tracking-tight ${topColorClass} pointer-events-none">${topLabel}</span>`;
+                                }
+
+                                // Sub Tag (rendered BELOW the word token)
+                                // Point 2: ⬑ arrow positioned directly under ( character with clear spacing (no overlap)
+                                let subTagHtml = '';
+
+                                if (displaySubTag || hasArrow) {
+                                    if (hasArrow) {
+                                        const cleanTagText = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
+                                        const labelPart = cleanTagText ? `<span class="ml-0.5 text-[8.5px] font-black">${cleanTagText}</span>` : '';
+                                        subTagHtml = `
+                                            <span class="absolute top-[100%] pt-0.5 left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
+                                                <span class="text-[12px] font-black leading-none text-indigo-600">⬑</span>
+                                                ${labelPart}
+                                            </span>
+                                        `;
+                                    } else if (displaySubTag) {
+                                        const cleanTag = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
+                                        const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
+                                        const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : colorClass.split(' ')[0];
+                                        const tagSizeClass = cleanTag === '의미상 S' ? 'text-[8.5px] font-black' : (isVerbal ? 'text-[8.5px] font-black' : 'text-[9.5px] font-black');
+                                        subTagHtml = `<span class="absolute top-[100%] pt-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
+                                    }
+                                }
 
                                 pageHtml += `
-                                    <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
+                                    <div class="relative inline-flex items-center justify-center my-2 mx-[2px] px-[1px]">
+                                        ${topLabelHtml}
                                         ${wordDisplayHtml}
                                         ${subTagHtml}
                                     </div>
@@ -1918,28 +2462,82 @@
                             }
                         });
                     } else {
-                        pageHtml += `<span class="text-[11pt] font-bold text-slate-800">${s.original}</span>`;
+                        pageHtml += `<span class="text-[10pt] font-bold text-slate-800">${s.original}</span>`;
                     }
 
                     pageHtml += '</div>'; // End token list
 
-                    if (s.chunk_korean) {
-                        const formattedChunkKr = s.chunk_korean.replace(/\s*\/\s*/g, ' <span class="slash-mark text-purple-600 font-black">/</span> ');
+                    // 1. [직독직해] Block
+                    const chunkKrRaw = typeof s.chunk_korean === 'string' ? s.chunk_korean : (Array.isArray(s.chunk_korean) ? s.chunk_korean.join(' / ') : '');
+                    if (chunkKrRaw && chunkKrRaw.trim()) {
+                        const formattedChunkKr = chunkKrRaw.replace(/\s*\/\s*/g, ' <span class="slash-mark text-purple-600 font-black px-0.5">/</span> ');
                         pageHtml += `
                         <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-lg p-2 text-[10px] text-emerald-900 leading-relaxed font-semibold">
                             <span class="text-emerald-700 font-bold mr-1.5">[직독직해]</span> ${formattedChunkKr}
                         </div>`;
                     }
 
-                    if (s.grammar_points && s.grammar_points.trim()) {
-                        const points = s.grammar_points.split('\n')
+                    // 2. [문장형식] Block (Clause & Sentence Structure Breakdown)
+                    let rawStruct = '';
+                    if (typeof s.clause_structure === 'string') {
+                        rawStruct = s.clause_structure.trim();
+                    } else if (Array.isArray(s.clause_structure)) {
+                        rawStruct = s.clause_structure.join('\n').trim();
+                    } else if (typeof s.clause_structure === 'object' && s.clause_structure !== null) {
+                        rawStruct = Object.values(s.clause_structure).join('\n').trim();
+                    }
+
+                    if (rawStruct) {
+                        const lines = rawStruct.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                        const mainTitle = lines[0] || '[문장형식]';
+                        const subDetails = lines.slice(1);
+
+                        let detailsHtml = '';
+                        if (subDetails.length > 0) {
+                            detailsHtml = `
+                                <div class="space-y-0.5 mt-1 pt-1 border-t border-sky-200/60 text-[9.5px] text-slate-700 font-medium">
+                                    ${subDetails.map(dl => {
+                                        const cleanDl = dl.replace(/^[•\-\*]\s*/, '');
+                                        return `
+                                            <div class="flex items-start gap-1">
+                                                <span class="text-sky-600 font-bold">•</span>
+                                                <span>${cleanDl}</span>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            `;
+                        }
+
+                        pageHtml += `
+                        <div class="bg-sky-50/80 border border-sky-200 rounded-lg p-2 text-[10px] text-sky-950 leading-relaxed font-semibold">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-sky-700 font-bold mr-1">[문장형식]</span>
+                                <span class="text-slate-800 font-bold">${mainTitle}</span>
+                            </div>
+                            ${detailsHtml}
+                        </div>`;
+                    }
+
+                    // 3. [중요 어법 포인트] Block
+                    let rawGp = '';
+                    if (typeof s.grammar_points === 'string') {
+                        rawGp = s.grammar_points.trim();
+                    } else if (Array.isArray(s.grammar_points)) {
+                        rawGp = s.grammar_points.join('\n').trim();
+                    } else if (typeof s.grammar_points === 'object' && s.grammar_points !== null) {
+                        rawGp = Object.values(s.grammar_points).join('\n').trim();
+                    }
+
+                    if (rawGp) {
+                        const points = rawGp.split('\n')
                             .map(pt => pt.trim())
                             .filter(pt => pt.length > 0);
                         
                         if (points.length > 0) {
                             let pointsListHtml = '';
                             points.forEach(pt => {
-                                let cleanPt = pt.replace(/^\d+[\.\s]*/, '');
+                                let cleanPt = pt.replace(/^\d+[\.\s]*/, '').replace(/[\*`]+/g, '').trim();
                                 pointsListHtml += `
                                     <div class="flex items-start gap-1.5 text-slate-700 text-[10px] font-semibold leading-relaxed">
                                         <span class="text-indigo-600 font-bold mt-0.5">•</span>
@@ -2360,6 +2958,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
         // Switch Main View (dashboard | generator | repository | stats)
         async function switchMainView(viewName) {
+            window.switchMainView = switchMainView;
             // Reset Tab Styles
             const inactiveClass = "text-xs font-bold px-3 py-1.5 rounded text-slate-300 hover:text-white transition flex items-center gap-1.5";
             const activeClass = "text-xs font-bold px-3 py-1.5 rounded bg-indigo-600 text-white transition flex items-center gap-1.5 shadow-sm";
@@ -2386,6 +2985,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             } else if (viewName === 'repository') {
                 navTabRepository.className = activeClass;
                 viewRepository.classList.remove('hidden');
+                currentRepoActiveFolder = null;
+                if (repoSearchInput) repoSearchInput.value = '';
                 updateRepoScopeUI();
                 await refreshRepositoryView();
             } else if (viewName === 'stats') {
@@ -2394,6 +2995,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 await refreshStatsView();
             }
         }
+        window.switchMainView = switchMainView;
 
         function updateRepoScopeUI() {
             const myBranch = getCurrentBranch();
@@ -2483,10 +3085,26 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             cardGoStats.addEventListener('click', () => switchMainView('stats'));
         }
 
-        // ================= SERVER REPOSITORY & STATS LOGIC =================
+        // ================= SERVER REPOSITORY & FOLDER EXPLORER LOGIC =================
+        let currentRepoActiveFolder = null; // null: Folder Grid View, object: {folder_name, material_type}
+        const repoBreadcrumbArea = document.getElementById('repoBreadcrumbArea');
+        const btnRepoBackToFolders = document.getElementById('btnRepoBackToFolders');
+        const repoActiveFolderTitle = document.getElementById('repoActiveFolderTitle');
+        const repoFoldersGrid = document.getElementById('repoFoldersGrid');
+        const repoFilesGrid = document.getElementById('repoFilesGrid');
+
+        if (btnRepoBackToFolders) {
+            btnRepoBackToFolders.addEventListener('click', () => {
+                currentRepoActiveFolder = null;
+                repoSearchInput.value = '';
+                filterAndRenderRepoGrid();
+            });
+        }
+
         async function refreshRepositoryView() {
             repoLoadingState.classList.remove('hidden');
-            repoGrid.classList.add('hidden');
+            repoFoldersGrid.classList.add('hidden');
+            repoFilesGrid.classList.add('hidden');
             repoEmptyState.classList.add('hidden');
             
             try {
@@ -2495,10 +3113,11 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 const data = await response.json();
                 
                 savedHandoutsList = data.saves || [];
+                populateFolderSelectDropdown(selectedMaterialType);
                 filterAndRenderRepoGrid();
             } catch (err) {
-                repoGrid.innerHTML = `<div class="text-rose-500 py-4 col-span-full text-center">오류: ${err.message}</div>`;
-                repoGrid.classList.remove('hidden');
+                repoFoldersGrid.innerHTML = `<div class="text-rose-500 py-4 col-span-full text-center">오류: ${err.message}</div>`;
+                repoFoldersGrid.classList.remove('hidden');
             } finally {
                 repoLoadingState.classList.add('hidden');
             }
@@ -2526,169 +3145,417 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
             }
 
-            // 2. Filter by Label / Type (Matches either Material Type or Doc Type)
+            // 2. Filter by Material Category: 전체 / 교과서 / 모의고사 / 부교재 / 기타
             if (currentRepoLabel !== 'all') {
                 list = list.filter(s => {
-                    const mat = (s.material_type || s.label || '').trim();
-                    const doc = (s.doc_type || '').trim();
-                    if (currentRepoLabel === '변형문제') {
-                        return doc.includes('변형문제') || mat === '변형문제';
-                    }
-                    if (currentRepoLabel === '단어테스트' || currentRepoLabel === '단어TEST') {
-                        return doc.includes('단어') || mat === '단어테스트';
-                    }
-                    return mat === currentRepoLabel || doc === currentRepoLabel;
+                    const mat = (s.material_type || s.label || '모의고사').trim();
+                    return mat === currentRepoLabel;
                 });
             }
 
-            // 3. Filter by Search Query
+            // LEVEL 2: In-Folder Files View
+            if (currentRepoActiveFolder) {
+                repoBreadcrumbArea.classList.remove('hidden');
+                repoActiveFolderTitle.innerText = `${currentRepoActiveFolder.folder_name} (${currentRepoActiveFolder.material_type})`;
+                repoFoldersGrid.classList.add('hidden');
+
+                // Filter files belonging to active folder
+                let folderFiles = list.filter(s => {
+                    const fName = s.folder_name || extractDefaultFolderName(s.title, s.material_type);
+                    const mat = s.material_type || s.label || '모의고사';
+                    return fName === currentRepoActiveFolder.folder_name && mat === currentRepoActiveFolder.material_type;
+                });
+
+                if (query) {
+                    folderFiles = folderFiles.filter(s => 
+                        (s.title || '').toLowerCase().includes(query) ||
+                        (s.doc_type || '').toLowerCase().includes(query)
+                    );
+                }
+
+                renderFilesInFolderGrid(folderFiles);
+                return;
+            }
+
+            // LEVEL 1: Folders List View
+            repoBreadcrumbArea.classList.add('hidden');
+            repoFilesGrid.classList.add('hidden');
+
+            // Group into Folders
+            const foldersMap = {};
+            list.forEach(s => {
+                const mat = s.material_type || s.label || '모의고사';
+                const fName = s.folder_name || extractDefaultFolderName(s.title, mat);
+                const key = `${mat}:::${fName}`;
+                if (!foldersMap[key]) {
+                    foldersMap[key] = {
+                        key: key,
+                        folder_name: fName,
+                        material_type: mat,
+                        branch: s.branch,
+                        mtime: s.mtime || 0.0,
+                        items: []
+                    };
+                }
+                foldersMap[key].items.push(s);
+                if ((s.mtime || 0.0) > foldersMap[key].mtime) {
+                    foldersMap[key].mtime = s.mtime || 0.0;
+                }
+            });
+
+            let folderList = Object.values(foldersMap);
+            folderList.sort((a, b) => (b.mtime || 0.0) - (a.mtime || 0.0));
+
+            // Search by Folder Name or Title inside
             if (query) {
-                list = list.filter(s => 
-                    (s.title || '').toLowerCase().includes(query) || 
-                    (s.branch || '').toLowerCase().includes(query) ||
-                    (s.material_type || '').toLowerCase().includes(query) ||
-                    (s.doc_type || '').toLowerCase().includes(query)
+                folderList = folderList.filter(f => 
+                    f.folder_name.toLowerCase().includes(query) ||
+                    f.material_type.toLowerCase().includes(query) ||
+                    f.items.some(item => (item.title || '').toLowerCase().includes(query))
                 );
             }
 
-            renderRepositoryGrid(list);
+            renderFoldersGrid(folderList);
         }
 
-        function renderRepositoryGrid(saves) {
-            repoGrid.innerHTML = '';
-            if (saves.length === 0) {
+        // Render Folder Cards
+        function renderFoldersGrid(folders) {
+            repoFoldersGrid.innerHTML = '';
+            if (folders.length === 0) {
                 repoEmptyState.classList.remove('hidden');
-                repoGrid.classList.add('hidden');
+                repoFoldersGrid.classList.add('hidden');
                 return;
             }
-            
+
             repoEmptyState.classList.add('hidden');
-            repoGrid.classList.remove('hidden');
+            repoFoldersGrid.classList.remove('hidden');
 
             const myBranch = getCurrentBranch();
             const admin = isUserAdmin();
-            
+
             let gridHtml = '';
-            saves.forEach(s => {
+            folders.forEach(f => {
                 let date = '최근 등록';
-                if (s.mtime && s.mtime > 100000) {
-                    date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
+                if (f.mtime && f.mtime > 100000) {
+                    date = new Date(f.mtime * 1000).toLocaleString('ko-KR', {
                         year: 'numeric',
-                        month: 'long',
+                        month: 'numeric',
                         day: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit'
                     });
                 }
 
-                const matType = s.material_type || s.label || '모의고사';
-                const docType = s.doc_type || (s.label === '단어테스트' ? '단어TEST' : (s.label === '변형문제' ? '변형문제 1차' : '강의용교안'));
-
-                const isVocab = docType.includes('단어') || s.label === '단어테스트';
-                const isExam = docType.includes('변형문제') || s.label === '변형문제';
-
-                const itemBranch = s.branch || '본사';
-                const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
-                const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
-                const canDelete = (isMyItem || admin);
-
-                // A열: 자료종류 뱃지 (교과서/모의고사/부교재/기타)
                 let matColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-                if (matType === '교과서') matColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                else if (matType === '부교재') matColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                else if (matType === '기타') matColor = 'bg-slate-50 text-slate-700 border-slate-200';
+                if (f.material_type === '교과서') matColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (f.material_type === '부교재') matColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                else if (f.material_type === '기타') matColor = 'bg-slate-50 text-slate-700 border-slate-200';
 
-                const materialTypeBadge = `<span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${matColor}">${matType}</span>`;
-
-                // B열: 문서구분 뱃지 (강의용교안/단어TEST/변형문제 1차/2차)
-                let docColor = 'bg-blue-100 text-blue-800';
-                let docIcon = 'fa-file-invoice text-blue-600';
-                if (isVocab) {
-                    docColor = 'bg-violet-100 text-violet-800';
-                    docIcon = 'fa-spell-check text-violet-600';
-                } else if (docType.includes('2차')) {
-                    docColor = 'bg-rose-100 text-rose-800';
-                    docIcon = 'fa-file-pen text-rose-600';
-                } else if (isExam) {
-                    docColor = 'bg-amber-100 text-amber-800';
-                    docIcon = 'fa-file-pen text-amber-600';
-                }
-
-                const docTypeBadge = `<span class="text-[10px] font-black tracking-wider uppercase ${docColor} px-1.5 py-0.5 rounded flex items-center gap-1">${docType}</span>`;
-
-                // G열: 지점명 뱃지 (admin -> 본사)
-                let branchBadge = '';
-                if (isMainOffice) {
-                    branchBadge = `
-                        <span class="text-[10px] font-black bg-indigo-950 text-amber-300 border border-indigo-700 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                            <i class="fa-solid fa-building-flag text-[9px]"></i> 본사
-                        </span>
-                    `;
-                } else {
-                    branchBadge = `
-                        <span class="text-[10px] font-bold ${isMyItem ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'} px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
-                            <i class="fa-solid fa-location-dot text-[9px] ${isMyItem ? 'text-amber-300' : 'text-slate-500'}"></i> ${itemBranch}
-                        </span>
-                    `;
-                }
-
-                let actionButtonsHtml = '';
-                if (isVocab) {
-                    actionButtonsHtml = `
-                        <button type="button" class="btn-repo-run-speed-test flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
-                            <i class="fa-solid fa-bolt text-amber-300"></i> <span>3초 단어 테스트 실행</span>
-                        </button>
-                    `;
-                } else if (isExam) {
-                    actionButtonsHtml = `
-                        <button type="button" class="btn-repo-view-exam flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
-                            <i class="fa-solid fa-file-pen"></i> <span>변형문제 보기 / 인쇄</span>
-                        </button>
-                    `;
-                } else {
-                    const loadBtnText = isMyItem ? '교안 열기' : '내 교안으로 끌고 오기';
-                    const loadBtnIcon = isMyItem ? 'fa-file-import' : 'fa-cloud-arrow-down';
-                    actionButtonsHtml = `
-                        <button type="button" class="btn-repo-load flex-1 ${isMyItem ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" data-ismy="${isMyItem}">
-                            <i class="fa-solid ${loadBtnIcon}"></i> <span>${loadBtnText}</span>
-                        </button>
-                    `;
-                }
-
-                const deleteBtnHtml = canDelete ? `
-                    <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-3 rounded-lg border border-rose-200 transition shrink-0" data-filename="${s.filename}" data-title="${s.title}" data-material="${matType}" data-doctype="${docType}" title="삭제">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                ` : '';
+                const canManage = (f.branch === myBranch || admin || f.branch === '본사');
 
                 gridHtml += `
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition duration-200 space-y-3">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition duration-200 space-y-3 cursor-pointer group btn-open-folder" data-folder="${encodeURIComponent(f.folder_name)}" data-material="${encodeURIComponent(f.material_type)}">
                         <div class="space-y-2">
                             <div class="flex items-center justify-between gap-1.5">
                                 <div class="flex items-center gap-1.5">
-                                    <i class="fa-solid ${docIcon} text-sm"></i>
-                                    ${materialTypeBadge}
-                                    ${docTypeBadge}
+                                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded border ${matColor}">${f.material_type}</span>
+                                    <span class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">
+                                        <i class="fa-solid fa-file-lines text-slate-500 mr-0.5"></i> ${f.items.length}개 자료
+                                    </span>
                                 </div>
-                                ${branchBadge}
+                                <span class="text-[10px] text-slate-400 font-mono">${f.branch}</span>
                             </div>
-                            <h3 class="text-xs font-bold text-slate-800 truncate" title="${s.title}">${s.title}</h3>
-                            <p class="text-[10px] text-slate-400 flex items-center gap-1">
-                                <i class="fa-solid fa-clock"></i> ${date}
-                            </p>
+                            
+                            <div class="flex items-start gap-2.5 pt-1">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition">
+                                    <i class="fa-solid fa-folder text-lg"></i>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="text-sm font-black text-slate-900 truncate group-hover:text-indigo-600 transition" title="${f.folder_name}">
+                                        ${f.folder_name}
+                                    </h3>
+                                    <p class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-clock"></i> 최근 수정: ${date}
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div class="flex gap-2 pt-2 border-t border-slate-100">
-                            ${actionButtonsHtml}
-                            ${deleteBtnHtml}
+
+                        <div class="flex items-center gap-1.5 pt-2 border-t border-slate-200/80">
+                            <button type="button" class="btn-open-folder-direct flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-folder="${encodeURIComponent(f.folder_name)}" data-material="${encodeURIComponent(f.material_type)}">
+                                <i class="fa-solid fa-folder-open text-amber-300"></i> <span>폴더 열기 (${f.items.length})</span>
+                            </button>
+                            ${canManage ? `
+                                <button type="button" class="btn-rename-folder bg-white hover:bg-slate-100 text-slate-600 text-xs font-bold py-2 px-2.5 rounded-lg border border-slate-300 transition" data-folder="${encodeURIComponent(f.folder_name)}" data-material="${encodeURIComponent(f.material_type)}" title="폴더명 수정">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button type="button" class="btn-delete-folder bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-2.5 rounded-lg border border-rose-200 transition" data-folder="${encodeURIComponent(f.folder_name)}" data-material="${encodeURIComponent(f.material_type)}" title="폴더 및 내부 전체 삭제">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
             });
-            repoGrid.innerHTML = gridHtml;
-            
-            // Bind actions
-            repoGrid.querySelectorAll('.btn-repo-run-speed-test').forEach(btn => {
+
+            repoFoldersGrid.innerHTML = gridHtml;
+
+            // Bind Folder Open
+            repoFoldersGrid.querySelectorAll('.btn-open-folder, .btn-open-folder-direct').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-rename-folder') || e.target.closest('.btn-delete-folder')) return;
+                    const folderName = decodeURIComponent(el.getAttribute('data-folder'));
+                    const matType = decodeURIComponent(el.getAttribute('data-material'));
+                    currentRepoActiveFolder = { folder_name: folderName, material_type: matType };
+                    repoSearchInput.value = '';
+                    filterAndRenderRepoGrid();
+                });
+            });
+
+            // Bind Folder Rename
+            repoFoldersGrid.querySelectorAll('.btn-rename-folder').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const oldFolder = decodeURIComponent(btn.getAttribute('data-folder'));
+                    const matType = decodeURIComponent(btn.getAttribute('data-material'));
+                    const newFolder = prompt(`[${oldFolder}] 폴더의 새로운 이름을 입력해 주세요:`, oldFolder);
+                    if (newFolder && newFolder.trim() && newFolder.trim() !== oldFolder) {
+                        showLoading("폴더명 변경 중", "폴더 내 모든 자료의 폴더명을 업데이트하고 있습니다...");
+                        try {
+                            const res = await fetch('/api/folder/rename', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    old_folder: oldFolder,
+                                    new_folder: newFolder.trim(),
+                                    material_type: matType
+                                })
+                            });
+                            if (!res.ok) throw new Error('폴더명 수정 실패');
+                            hideLoading();
+                            showToast(`폴더명이 '${newFolder.trim()}'(으)로 성공적으로 변경되었습니다.`);
+                            await refreshRepositoryView();
+                        } catch (err) {
+                            hideLoading();
+                            showToast(err.message, 'error');
+                        }
+                    }
+                });
+            });
+
+            // Bind Folder Delete
+            repoFoldersGrid.querySelectorAll('.btn-delete-folder').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const folderName = decodeURIComponent(btn.getAttribute('data-folder'));
+                    const matType = decodeURIComponent(btn.getAttribute('data-material'));
+                    if (confirm(`⚠️ [${folderName}] 폴더와 폴더에 포함된 모든 교안 및 시험지를 영구히 삭제하시겠습니까?`)) {
+                        showLoading("폴더 삭제 중", "폴더 내 모든 자료를 구글 서버에서 안전하게 삭제하고 있습니다...");
+                        try {
+                            const res = await fetch('/api/folder/delete', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    folder_name: folderName,
+                                    material_type: matType
+                                })
+                            });
+                            if (!res.ok) throw new Error('폴더 삭제 실패');
+                            hideLoading();
+                            showToast(`[${folderName}] 폴더가 성공적으로 삭제되었습니다.`);
+                            await refreshRepositoryView();
+                        } catch (err) {
+                            hideLoading();
+                            showToast(err.message, 'error');
+                        }
+                    }
+                });
+            });
+        }
+
+        let currentFolderDocFilter = 'all'; // 'all', 'handout', 'exam', 'vocab'
+
+        // Render Files Inside Selected Folder
+        function renderFilesInFolderGrid(saves) {
+            repoFilesGrid.innerHTML = '';
+            if (saves.length === 0) {
+                repoEmptyState.classList.remove('hidden');
+                repoFilesGrid.classList.add('hidden');
+                return;
+            }
+
+            repoEmptyState.classList.add('hidden');
+            repoFilesGrid.classList.remove('hidden');
+
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
+
+            const handouts = saves.filter(s => {
+                const dt = s.doc_type || s.label || '';
+                return !dt.includes('단어') && !dt.includes('변형') && s.label !== '단어테스트' && s.label !== '변형문제';
+            });
+            const exams = saves.filter(s => {
+                const dt = s.doc_type || s.label || '';
+                return dt.includes('변형') || s.label === '변형문제';
+            });
+            const vocabs = saves.filter(s => {
+                const dt = s.doc_type || s.label || '';
+                return dt.includes('단어') || s.label === '단어테스트';
+            });
+
+            // Top In-Folder Sub-Category Bar
+            let topFilterHtml = `
+                <div class="col-span-full bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 mb-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="text-xs font-bold text-indigo-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-folder-open text-amber-400"></i>
+                            <span>자료 구분:</span>
+                        </span>
+                        <div class="flex bg-slate-800/80 p-0.5 rounded-lg border border-slate-700 gap-1 text-[11px] font-bold" id="folderDocFilterTabGroup">
+                            <button type="button" data-docfilter="all" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'all' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
+                                전체 (${saves.length})
+                            </button>
+                            <button type="button" data-docfilter="handout" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'handout' ? 'bg-blue-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
+                                <i class="fa-solid fa-file-invoice mr-1 text-blue-300"></i> 교안 (${handouts.length})
+                            </button>
+                            <button type="button" data-docfilter="exam" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'exam' ? 'bg-amber-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
+                                <i class="fa-solid fa-file-pen mr-1 text-amber-300"></i> 변형문제 (${exams.length})
+                            </button>
+                            <button type="button" data-docfilter="vocab" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'vocab' ? 'bg-violet-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
+                                <i class="fa-solid fa-spell-check mr-1 text-violet-300"></i> 단어테스트 (${vocabs.length})
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-[11px] text-indigo-200 font-medium">
+                        💡 폴더 내 교안, 변형문제, 단어테스트를 선택하여 즉시 실행하거나 열람할 수 있습니다.
+                    </div>
+                </div>
+            `;
+
+            let displayList = saves;
+            if (currentFolderDocFilter === 'handout') displayList = handouts;
+            else if (currentFolderDocFilter === 'exam') displayList = exams;
+            else if (currentFolderDocFilter === 'vocab') displayList = vocabs;
+
+            let gridHtml = topFilterHtml;
+
+            if (displayList.length === 0) {
+                gridHtml += `
+                    <div class="col-span-full py-12 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
+                        <i class="fa-solid fa-circle-info text-2xl text-slate-300 mb-2"></i>
+                        <p class="text-xs font-bold">해당 구분의 자료가 없습니다.</p>
+                    </div>
+                `;
+            } else {
+                displayList.forEach(s => {
+                    let date = '최근 등록';
+                    if (s.mtime && s.mtime > 100000) {
+                        date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    }
+
+                    const matType = s.material_type || s.label || '모의고사';
+                    const docType = s.doc_type || (s.label === '단어테스트' ? '단어TEST' : (s.label === '변형문제' ? '변형문제 1차' : '강의용교안'));
+
+                    const isVocab = docType.includes('단어') || s.label === '단어테스트';
+                    const isExam = docType.includes('변형문제') || s.label === '변형문제';
+
+                    const itemBranch = s.branch || '본사';
+                    const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
+                    const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
+                    const canDelete = (isMyItem || admin);
+
+                    let matColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                    if (matType === '교과서') matColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    else if (matType === '부교재') matColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                    else if (matType === '기타') matColor = 'bg-slate-50 text-slate-700 border-slate-200';
+
+                    let docColor = 'bg-blue-100 text-blue-800';
+                    let docIcon = 'fa-file-invoice text-blue-600';
+                    if (isVocab) {
+                        docColor = 'bg-violet-100 text-violet-800';
+                        docIcon = 'fa-spell-check text-violet-600';
+                    } else if (docType.includes('2차')) {
+                        docColor = 'bg-rose-100 text-rose-800';
+                        docIcon = 'fa-file-pen text-rose-600';
+                    } else if (isExam) {
+                        docColor = 'bg-amber-100 text-amber-800';
+                        docIcon = 'fa-file-pen text-amber-600';
+                    }
+
+                    let actionButtonsHtml = '';
+                    if (isVocab) {
+                        actionButtonsHtml = `
+                            <button type="button" class="btn-repo-run-speed-test flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
+                                <i class="fa-solid fa-bolt text-amber-300"></i> <span>3초 단어 테스트 실행</span>
+                            </button>
+                        `;
+                    } else if (isExam) {
+                        actionButtonsHtml = `
+                            <button type="button" class="btn-repo-view-exam flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
+                                <i class="fa-solid fa-file-pen"></i> <span>변형문제 보기 / 인쇄</span>
+                            </button>
+                        `;
+                    } else {
+                        const loadBtnText = isMyItem ? '교안 열기' : '내 교안으로 끌고 오기';
+                        const loadBtnIcon = isMyItem ? 'fa-file-import' : 'fa-cloud-arrow-down';
+                        actionButtonsHtml = `
+                            <button type="button" class="btn-repo-load flex-1 ${isMyItem ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" data-ismy="${isMyItem}">
+                                <i class="fa-solid ${loadBtnIcon}"></i> <span>${loadBtnText}</span>
+                            </button>
+                        `;
+                    }
+
+                    const deleteBtnHtml = canDelete ? `
+                        <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-3 rounded-lg border border-rose-200 transition shrink-0" data-filename="${s.filename}" data-title="${s.title}" data-material="${matType}" data-doctype="${docType}" title="삭제">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    ` : '';
+
+                    gridHtml += `
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition duration-200 space-y-3">
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-1.5">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-solid ${docIcon} text-sm"></i>
+                                        <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${matColor}">${matType}</span>
+                                        <span class="text-[10px] font-black tracking-wider uppercase ${docColor} px-1.5 py-0.5 rounded flex items-center gap-1">${docType}</span>
+                                    </div>
+                                    <span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">${itemBranch}</span>
+                                </div>
+                                <h3 class="text-xs font-bold text-slate-800 truncate" title="${s.title}">${s.title}</h3>
+                                <p class="text-[10px] text-slate-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-clock"></i> ${date}
+                                </p>
+                            </div>
+                            
+                            <div class="flex gap-2 pt-2 border-t border-slate-100">
+                                ${actionButtonsHtml}
+                                ${deleteBtnHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            repoFilesGrid.innerHTML = gridHtml;
+
+            // Bind In-Folder Doc Type Filter Buttons
+            repoFilesGrid.querySelectorAll('.folder-doc-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentFolderDocFilter = btn.getAttribute('data-docfilter') || 'all';
+                    renderFilesInFolderGrid(saves);
+                });
+            });
+
+            // Bind File Card Actions
+            repoFilesGrid.querySelectorAll('.btn-repo-run-speed-test').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
@@ -2698,7 +3565,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
 
-            repoGrid.querySelectorAll('.btn-repo-view-exam').forEach(btn => {
+            repoFilesGrid.querySelectorAll('.btn-repo-view-exam').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
@@ -2708,7 +3575,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
 
-            repoGrid.querySelectorAll('.btn-repo-load').forEach(btn => {
+            repoFilesGrid.querySelectorAll('.btn-repo-load').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const filename = btn.getAttribute('data-filename');
                     const material = btn.getAttribute('data-material');
@@ -2722,7 +3589,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
             
-            repoGrid.querySelectorAll('.btn-repo-delete').forEach(btn => {
+            repoFilesGrid.querySelectorAll('.btn-repo-delete').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const filename = btn.getAttribute('data-filename');
                     const title = btn.getAttribute('data-title');
@@ -2754,6 +3621,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 // Populate UI
                 titleInput.value = data.title || '';
                 selectedMaterialType = data.material_type || data.label || material || '모의고사';
+                const fName = data.folder_name || extractDefaultFolderName(data.title || '', selectedMaterialType);
+                if (folderNameInput) folderNameInput.value = fName;
                 updateMaterialTypeButtons();
                 
                 // Clear and rebuild sentences
@@ -3214,6 +4083,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     return;
                 }
 
+                const folderName = getActiveFolderName();
+
                 // Gather current sentences and page breaks
                 const pairs = [];
                 const rows = pairContainer.querySelectorAll('.pair-row');
@@ -3235,6 +4106,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 const payload = {
                     title: title,
+                    folder_name: folderName,
                     material_type: selectedMaterialType,
                     doc_type: '강의용교안',
                     label: selectedMaterialType,
@@ -3245,7 +4117,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 btnSaveLectureHandout.disabled = true;
                 btnSaveLectureHandout.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
-                showLoading("강의용 교안 저장 중", "수정된 삽화 및 교안 정보를 서버 데이터베이스에 안전하게 기록하고 있습니다...");
+                showLoading("강의용 교안 저장 중", `[${selectedMaterialType} / ${folderName}] 폴더 안에 교안 정보를 안전하게 기록하고 있습니다...`);
 
                 try {
                     const response = await fetch('/api/save', {
@@ -3256,7 +4128,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                     if (!response.ok) throw new Error('서버 저장 실패');
                     hideLoading();
-                    showToast(`'${title}' 강의용 교안(수정사항 반영)이 서버에 성공적으로 저장되었습니다!`);
+                    showToast(`'${title}' 강의용 교안이 [${folderName}] 폴더에 성공적으로 저장되었습니다!`);
                 } catch (err) {
                     hideLoading();
                     showToast(err.message, 'error');
@@ -3280,6 +4152,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             }
 
             const title = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+            const folderName = getActiveFolderName();
 
             // Gather sentence pairs
             const pairs = [];
@@ -3300,11 +4173,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 vocabulary: vocabList
             }));
 
-            showLoading("단어 테스트 저장 중", `15개 단어를 기반으로 구글 서버에 [${selectedMaterialType} / 단어TEST]로 안전하게 저장하고 있습니다...`);
+            showLoading("단어 테스트 저장 중", `15개 단어를 기반으로 구글 서버 [${selectedMaterialType} / ${folderName}]에 안전하게 저장하고 있습니다...`);
 
             try {
                 const payload = {
                     title: title,
+                    folder_name: folderName,
                     material_type: selectedMaterialType,
                     doc_type: '단어TEST',
                     label: selectedMaterialType,
@@ -3313,6 +4187,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     analysis_data: {
                         ...(currentAnalysisData || {}),
                         title: title,
+                        folder_name: folderName,
                         material_type: selectedMaterialType,
                         doc_type: '단어TEST',
                         branch: getCurrentBranch(),
@@ -3334,7 +4209,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
 
                 hideLoading();
-                showToast(`단어 테스트가 구글 서버에 [${selectedMaterialType} / 단어TEST]로 저장되었습니다! [자료 저장소]에서 언제든 실행하실 수 있습니다.`);
+                showToast(`단어 테스트가 [${folderName}] 폴더에 [단어TEST]로 저장되었습니다! [자료 저장소]에서 언제든 실행하실 수 있습니다.`);
             } catch (err) {
                 hideLoading();
                 showToast(err.message, 'error');
@@ -3346,6 +4221,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         if (btnCreateVariationExam) {
             btnCreateVariationExam.addEventListener('click', async () => {
                 const title = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                const folderName = getActiveFolderName();
 
                 // Gather sentence pairs and full passage
                 const pairs = [];
@@ -3372,11 +4248,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 const apiKey = (typeof apiKeyInput !== 'undefined' && apiKeyInput) ? apiKeyInput.value.trim() : '';
 
-                showLoading("9종 변형문제 1차 & 2차 동시 출제 및 저장 중", `동일 지문으로 서로 다른 문항 구성의 [1차] 및 [2차] 변형문제 2개 세트를 AI로 동시 출제하여 구글 시트 [${selectedMaterialType} / 변형문제 1차, 2차]에 각각 저장하고 있습니다. (약 15~25초 소요)`);
+                showLoading("9종 변형문제 1차 & 2차 동시 출제 및 저장 중", `동일 지문으로 서로 다른 문항 구성의 [1차] 및 [2차] 변형문제 2개 세트를 AI로 동시 출제하여 [${selectedMaterialType} / ${folderName}]에 각각 저장하고 있습니다. (약 15~25초 소요)`);
 
                 try {
                     const payload = {
                         title: title,
+                        folder_name: folderName,
                         material_type: selectedMaterialType,
                         passage: fullPassage,
                         topic: title,
@@ -3576,7 +4453,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         function showLoading(title, message = "잠시만 기다려 주세요...") {
             loadingOverlayTitle.innerText = title;
             loadingOverlayMsg.innerText = message;
-            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.style.setProperty('display', 'flex', 'important');
+            loadingOverlay.classList.remove('pointer-events-none');
             // Force reflow
             loadingOverlay.offsetHeight;
             loadingOverlay.classList.remove('opacity-0');
@@ -3586,8 +4464,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         function hideLoading() {
             loadingOverlay.classList.remove('opacity-100');
             loadingOverlay.classList.add('opacity-0');
+            loadingOverlay.classList.add('pointer-events-none');
             setTimeout(() => {
-                loadingOverlay.classList.add('hidden');
+                loadingOverlay.style.setProperty('display', 'none', 'important');
             }, 300);
         }
 
@@ -3623,7 +4502,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             }, 3000);
         }
 
-        // ==================== AUTHENTICATION MANAGEMENT ====================
+        // ==================== AUTHENTICATION (delegates to standalone login script) ====================
         const loginModalOverlay = document.getElementById('loginModalOverlay');
         const loginForm = document.getElementById('loginForm');
         const loginIdInput = document.getElementById('loginIdInput');
@@ -3633,120 +4512,15 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         const btnLoginText = document.getElementById('btnLoginText');
         const loginErrorBox = document.getElementById('loginErrorBox');
         const loginErrorMessage = document.getElementById('loginErrorMessage');
-        const btnTogglePassword = document.getElementById('btnTogglePassword');
-        const eyeIcon = document.getElementById('eyeIcon');
         const userBadgeArea = document.getElementById('userBadgeArea');
         const loggedInUserName = document.getElementById('loggedInUserName');
         const btnLogout = document.getElementById('btnLogout');
 
-        // Toggle password visibility
-        if (btnTogglePassword && loginPasswordInput && eyeIcon) {
-            btnTogglePassword.addEventListener('click', () => {
-                const isPass = loginPasswordInput.type === 'password';
-                loginPasswordInput.type = isPass ? 'text' : 'password';
-                eyeIcon.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
-            });
-        }
-
-        function showAppForUser(username) {
-            loginModalOverlay.classList.add('hidden');
-            userBadgeArea.classList.remove('hidden');
-            const admin = (username.toLowerCase() === 'admin');
-            loggedInUserName.innerText = admin ? '👑 관리자 (admin)' : `${username} 지점`;
-            if (dashBranchName) dashBranchName.innerText = username;
-            
-            // Switch to Dashboard View on initial login
-            switchMainView('dashboard');
-        }
-
-        function showLoginModal() {
-            loginModalOverlay.classList.remove('hidden');
-            userBadgeArea.classList.add('hidden');
-            loginErrorBox.classList.add('hidden');
-            loginPasswordInput.value = '';
-            
-            const savedId = localStorage.getItem('saved_adot_id');
-            if (savedId) {
-                loginIdInput.value = savedId;
-                cbRememberId.checked = true;
-                setTimeout(() => loginPasswordInput.focus(), 100);
-            } else {
-                loginIdInput.value = '';
-                cbRememberId.checked = false;
-                setTimeout(() => loginIdInput.focus(), 100);
-            }
-        }
-
-        // Check authentication on load
+        function showAppForUser(u) { if (typeof _showAppForUser === 'function') _showAppForUser(u); }
+        function showLoginModal() { if (typeof _showLoginModal === 'function') _showLoginModal(); }
         function checkAuthState() {
             const authUser = sessionStorage.getItem('adot_auth_user');
-            if (authUser) {
-                showAppForUser(authUser);
-            } else {
-                showLoginModal();
-            }
-        }
-
-        // Login form submit
-        if (loginForm) {
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const username = loginIdInput.value.trim();
-                const password = loginPasswordInput.value.trim();
-
-                if (!username) {
-                    loginErrorMessage.innerText = "아이디(지점명)를 입력해 주세요.";
-                    loginErrorBox.classList.remove('hidden');
-                    loginIdInput.focus();
-                    return;
-                }
-
-                if (!password) {
-                    loginErrorMessage.innerText = "비밀번호(원장 CRM 아이디)를 입력해 주세요.";
-                    loginErrorBox.classList.remove('hidden');
-                    loginPasswordInput.focus();
-                    return;
-                }
-
-                loginErrorBox.classList.add('hidden');
-                btnLoginSubmit.disabled = true;
-                btnLoginText.innerText = "인증 확인 중...";
-
-                try {
-                    const response = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        const verifiedUser = data.username || username;
-                        sessionStorage.setItem('adot_auth_user', verifiedUser);
-
-                        if (cbRememberId.checked) {
-                            localStorage.setItem('saved_adot_id', verifiedUser);
-                        } else {
-                            localStorage.removeItem('saved_adot_id');
-                        }
-
-                        showAppForUser(verifiedUser);
-                        showToast(`'${verifiedUser}' 지점으로 로그인되었습니다. 환영합니다!`, 'success');
-                    } else {
-                        loginErrorMessage.innerText = data.error || "아이디 또는 비밀번호가 일치하지 않습니다.";
-                        loginErrorBox.classList.remove('hidden');
-                        loginPasswordInput.value = '';
-                        loginPasswordInput.focus();
-                    }
-                } catch (err) {
-                    loginErrorMessage.innerText = "서버와 통신하는 중 오류가 발생했습니다. 다시 시도해 주세요.";
-                    loginErrorBox.classList.remove('hidden');
-                } finally {
-                    btnLoginSubmit.disabled = false;
-                    btnLoginText.innerText = "로그인";
-                }
-            });
+            if (authUser) { showAppForUser(authUser); } else { showLoginModal(); }
         }
 
         // Custom Confirmation / Logout Modal
@@ -3756,19 +4530,31 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
         if (btnLogout) {
             btnLogout.addEventListener('click', () => {
-                if (customConfirmModal) customConfirmModal.classList.remove('hidden');
+                if (customConfirmModal) {
+                    customConfirmModal.classList.remove('hidden', 'pointer-events-none');
+                    customConfirmModal.classList.add('flex');
+                    customConfirmModal.style.setProperty('display', 'flex', 'important');
+                }
             });
         }
 
         if (btnConfirmModalCancel) {
             btnConfirmModalCancel.addEventListener('click', () => {
-                if (customConfirmModal) customConfirmModal.classList.add('hidden');
+                if (customConfirmModal) {
+                    customConfirmModal.classList.add('hidden', 'pointer-events-none');
+                    customConfirmModal.classList.remove('flex');
+                    customConfirmModal.style.setProperty('display', 'none', 'important');
+                }
             });
         }
 
         if (btnConfirmModalOk) {
             btnConfirmModalOk.addEventListener('click', () => {
-                if (customConfirmModal) customConfirmModal.classList.add('hidden');
+                if (customConfirmModal) {
+                    customConfirmModal.classList.add('hidden', 'pointer-events-none');
+                    customConfirmModal.classList.remove('flex');
+                    customConfirmModal.style.setProperty('display', 'none', 'important');
+                }
                 showLoading("로그아웃 중", "세션을 안전하게 종료하고 있습니다...");
                 setTimeout(() => {
                     hideLoading();
@@ -3779,7 +4565,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
-        // Initial Auth Check
+        // Initial Auth Check (redundant safety - standalone script already ran)
         checkAuthState();
     </script>
 </body>

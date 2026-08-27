@@ -7,3 +7,6 @@ test_output.pdf
 .vercel/
 scratch/
 
+saves/*.json
+static/uploads/*
+!static/uploads/.gitkeep

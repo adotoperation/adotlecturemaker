@@ -1,5 +1,6 @@
 import os
 import io
+import re
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import (
@@ -71,6 +72,7 @@ color_map = {
     'blue': '#2563eb',
     'rose': '#e11d48',
     'emerald': '#059669',
+    'purple': '#9333ea',
     'indigo': '#4f46e5',
     'amber': '#0f172a',
     'slate': '#0f172a'
@@ -88,11 +90,12 @@ def create_token_tables_for_sentence(tokens, style_word, style_sub, max_width=51
     for t in tokens:
         txt = t.get('text', '')
         sub = t.get('sub_tag', '')
+        top = t.get('top_label', '')
         if txt.strip() == '/':
-            w = 16
+            w = 6  # Compact slash width for tight natural text flow
         else:
-            max_chars = max(len(txt), len(sub))
-            w = max(24, max_chars * 6.2 + 8)
+            max_chars = max(len(txt), len(sub), len(top))
+            w = max(16, max_chars * 6.0 + 4)
 
         if current_width + w > max_width and current_row:
             rows_of_tokens.append(current_row)
@@ -114,21 +117,52 @@ def create_token_tables_for_sentence(tokens, style_word, style_sub, max_width=51
         for t, w in r_tokens:
             txt = t.get('text', '')
             sub = t.get('sub_tag', '')
+            top = t.get('top_label', '')
             col_widths.append(w)
 
             if txt.strip() == '/':
                 w_html = "<font color='#9333ea'><b>/</b></font>"
                 s_html = ""
             else:
-                c_hex = color_map.get(t.get('color'), '#0f172a')
+                sub_clean = sub.upper()
+                top_clean = (top or '').upper()
+                if (sub_clean.startswith('S') and not '전치사' in sub_clean) or top_clean.startswith('S'):
+                    c_hex = '#2563eb'
+                elif sub_clean.startswith('VI') or sub_clean.startswith('VT') or (sub_clean.startswith('V') and not '부사' in sub_clean) or top_clean.startswith('V'):
+                    c_hex = '#e11d48'
+                elif sub_clean.startswith('OC') or sub_clean == '목적격보어' or top_clean.startswith('OC') or top_clean == '목적격보어':
+                    c_hex = '#9333ea' # OC gets distinct purple!
+                elif sub_clean.startswith('O') or sub_clean.startswith('IO') or sub_clean.startswith('DO') or '가목적어' in sub_clean or '진목적어' in sub_clean or top_clean.startswith('O'):
+                    c_hex = '#059669'
+                elif sub_clean.startswith('SC') or sub_clean.startswith('C') or top_clean.startswith('SC') or top_clean.startswith('C'):
+                    c_hex = '#4f46e5'
+                else:
+                    c_hex = color_map.get(t.get('color'), '#0f172a')
+
                 u_tag = "<u>" if t.get('underline') else ""
                 u_close = "</u>" if t.get('underline') else ""
                 
-                safe_txt = txt.replace(' ', '&nbsp;')
-                if sub == '접속부사' or t.get('is_conjunction'):
-                    w_html = f"<font color='#0284c7'><b>△ {safe_txt}</b></font>"
+                safe_txt = txt.replace('△', '').replace('▲', '').strip().replace(' ', '&nbsp;')
+                if sub in ['접속부사', '접속사'] or t.get('is_conjunction') or top == '△':
+                    w_html = f"{u_tag}<font color='{c_hex}'><b>{safe_txt}</b></font>{u_close}"
+                    top = '△'
+                    sub = ''
                 else:
                     w_html = f"{u_tag}<font color='{c_hex}'><b>{safe_txt}</b></font>{u_close}"
+
+                if top:
+                    top_c_hex = '#0284c7' if top == '△' else '#0f172a'
+                    if top_clean.startswith('S'): top_c_hex = '#2563eb'
+                    elif top_clean.startswith('V'): top_c_hex = '#e11d48'
+                    elif top_clean.startswith('OC') or top_clean == '목적격보어': top_c_hex = '#9333ea'
+                    elif top_clean.startswith('O'): top_c_hex = '#059669'
+                    elif top_clean.startswith('SC') or top_clean.startswith('C'): top_c_hex = '#4f46e5'
+                    w_html = f"<font color='{top_c_hex}' size={'8.5' if top == '△' else '7'}><b>{top}</b></font><br/>{w_html}"
+
+                if '⬑' in sub:
+                    sub = '⤹'
+                else:
+                    sub = re.sub(r'전치사구|전치사|부사구|부사|형용사구|주격관계대명사|목적격관계대명사|소유격관계대명사|관계대명사|관계부사|형용사절|to부정사구|to부정사|분사구문|분사구', '', sub).strip()
 
                 s_html = f"<font color='{c_hex}' size=7><b>{sub}</b></font>" if sub else ""
 
@@ -385,6 +419,25 @@ def create_handout_pdf(analysis_data):
                 ('PADDING', (0, 0), (-1, -1), 4),
             ]))
             s_blocks.append(kr_table)
+
+        c_struct = s.get('clause_structure', '')
+        if c_struct:
+            c_lines = [l.strip() for l in c_struct.split('\n') if l.strip()]
+            if c_lines:
+                c_html = f"<b><font color='#0284c7'>[문장형식]</font></b> <font color='#0f172a'><b>{c_lines[0]}</b></font>"
+                for cl in c_lines[1:]:
+                    clean_cl = re.sub(r'^[•\-\*]\s*', '', cl)
+                    c_html += f"<br/>• <font color='#334155'>{clean_cl}</font>"
+                c_p = Paragraph(c_html, style_chunk_kr)
+                c_table = Table([[c_p]], colWidths=[523])
+                c_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f0f9ff')),
+                    ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#bae6fd')),
+                    ('PADDING', (0, 0), (-1, -1), 4),
+                ]))
+                s_blocks.append(Spacer(1, 2))
+                s_blocks.append(c_table)
+
         raw_gp = s.get('grammar_points', '')
         if raw_gp:
             import re

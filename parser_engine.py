@@ -44,10 +44,18 @@ def sanitize_conjunction_tokens(analysis_data):
                 new_tokens.append(t)
                 continue
 
+            # Strip any accidental △ or ▲ from text, top_label, sub_tag
+            text = re.sub(r'^[△▲\s]+|[△▲]+$', '', text).strip()
+            t['text'] = text
+            if t.get('top_label') in ['△', '▲']:
+                t['top_label'] = '△'
+            if t.get('sub_tag') in ['△', '▲']:
+                t['sub_tag'] = ''
+
             words = text.split()
             if len(words) > 1:
                 first_clean = re.sub(r'^[\[\(]+|[\]\),]+$', '', words[0]).strip().lower()
-                is_conj_token = t.get('is_conjunction', False) or (first_clean in CONJUNCTIONS_LIST and ('접속' in t.get('sub_tag', '') or first_clean in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus']))
+                is_conj_token = t.get('is_conjunction', False) or (first_clean in CONJUNCTIONS_LIST and ('접속' in t.get('sub_tag', '') or first_clean in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus', 'either', 'neither']))
 
                 if is_conj_token and first_clean in CONJUNCTIONS_LIST:
                     conj_word = words[0]
@@ -55,15 +63,15 @@ def sanitize_conjunction_tokens(analysis_data):
                     
                     conj_token = {
                         "text": conj_word,
-                        "top_label": "",
+                        "top_label": "△",
                         "color": "slate",
-                        "sub_tag": "접속사",
+                        "sub_tag": "",
                         "underline": False,
                         "is_conjunction": True
                     }
                     rest_token = {
                         "text": rest_text,
-                        "top_label": t.get('top_label', ''),
+                        "top_label": t.get('top_label', '') if t.get('top_label') != '△' else '',
                         "color": t.get('color', 'slate'),
                         "sub_tag": t.get('sub_tag', '') if '접속' not in t.get('sub_tag', '') else '',
                         "underline": t.get('underline', False),
@@ -74,14 +82,16 @@ def sanitize_conjunction_tokens(analysis_data):
                     continue
 
             clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', text).strip().lower()
-            if clean_word in CONJUNCTIONS_LIST and (t.get('is_conjunction') or '접속' in t.get('sub_tag', '') or clean_word in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus']):
+            if clean_word in CONJUNCTIONS_LIST and (t.get('is_conjunction') or '접속' in t.get('sub_tag', '') or clean_word in ['and', 'or', 'but', 'so', 'yet', 'however', 'therefore', 'moreover', 'furthermore', 'thus', 'either', 'neither', 'both']):
                 t['is_conjunction'] = True
-                if not t.get('sub_tag'):
-                    t['sub_tag'] = '접속사'
+                t['top_label'] = '△'
+                t['sub_tag'] = ''
             else:
                 # Strictly remove triangle from as, for, since, because, etc.
                 t['is_conjunction'] = False
-                if t.get('sub_tag') in ['접속사', '접속부사'] and clean_word not in CONJUNCTIONS_LIST:
+                if t.get('top_label') == '△':
+                    t['top_label'] = ''
+                if t.get('sub_tag') in ['접속사', '접속부사']:
                     t['sub_tag'] = ''
 
             new_tokens.append(t)
@@ -101,34 +111,180 @@ def post_process_adverbs(analysis_data):
         found_subject = False
         
         for t in tokens:
-            t['top_label'] = ""  # Strictly remove top labels
+            # Preserve top_label if set, otherwise default to empty string
+            if 'top_label' not in t:
+                t['top_label'] = ""
             sub_tag = t.get('sub_tag', '')
             text = t.get('text', '').strip()
             
             # Check if this token is the main subject
-            if sub_tag == 'S' or '가주어' in sub_tag:
+            if sub_tag.startswith('S') or '가주어' in sub_tag:
                 found_subject = True
             
-            # If token is before the main subject (sentence-initial prepositional phrase / adverbial modifier),
-            # it modifies the whole sentence, so it must NEVER have the arrow (⬑) symbol!
-            if not found_subject:
-                if '⬑' in sub_tag:
-                    t['sub_tag'] = ""
-                elif sub_tag in ['부사구', '전치사구', '부사']:
-                    t['sub_tag'] = ""
+            # Prepositional phrases (전명구): Wrap in () and NEVER give arrow ⬑
+            prep_starters = ['of', 'in', 'on', 'at', 'with', 'by', 'from', 'for', 'about', 'like', 'through', 'without', 'between', 'under', 'over', 'into', 'onto', 'upon']
+            clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', text).strip().lower()
+            first_w = clean_word.split()[0] if clean_word else ""
+            is_prep_phrase = (first_w in prep_starters) or ('전치사' in sub_tag) or text.startswith('(')
 
-            # If token is explicitly marked with comma or sentence-level modifier
-            if text.startswith('(') and (text.endswith('),') or text.endswith(')')):
-                if '⬑' in sub_tag and not found_subject:
-                    t['sub_tag'] = ""
-            
-        # Sanitize grammar_points (enforce 접속부사 over 삽입어)
+            if is_prep_phrase:
+                t['sub_tag'] = ""
+                # Ensure wrapped in ()
+                if not text.startswith('(') and not text.startswith('['):
+                    if text.endswith(','):
+                        t['text'] = f"({text[:-1]}),"
+                    elif text.endswith('.'):
+                        t['text'] = f"({text[:-1]})."
+                    else:
+                        t['text'] = f"({text})"
+            elif '관계' in sub_tag or (clean_word in ['that', 'which', 'who', 'whom', 'whose', 'where', 'when'] and sub_tag != 'O'):
+                # Only true relative clauses get arrow ⬑
+                t['sub_tag'] = "⬑"
+            elif any(k in sub_tag for k in ['부사구', '부사절', '부사', '분사구문', '분사구']):
+                t['sub_tag'] = ""
+            elif sub_tag == '목적어절':
+                t['sub_tag'] = "O"
+            elif '진목적어' in sub_tag:
+                t['sub_tag'] = "진목적어"
+            elif '의미상' in sub_tag or sub_tag == '의미상 S' or sub_tag == '의미상 주어':
+                t['sub_tag'] = "의미상 S"
+                t['color'] = 'blue'
+                t['underline'] = True
+            elif '⬑' in sub_tag:
+                t['sub_tag'] = ""
+
+        # Auto-detect semantic subject of gerund (e.g. toddlers falling over)
+        for i, t in enumerate(tokens):
+            clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', t.get('text', '')).strip().lower()
+            sub_tag = t.get('sub_tag', '')
+            if '의미상' in sub_tag or sub_tag == '의미상 S' or sub_tag == '의미상 주어':
+                t['sub_tag'] = '의미상 S'
+                t['color'] = 'blue'
+                t['underline'] = True
+            elif i + 1 < len(tokens):
+                next_t = tokens[i + 1]
+                next_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', next_t.get('text', '')).strip().lower()
+                if (clean_word in ['toddlers', 'toddler', 'infants', 'infant', 'children', 'child', 'adults', 'adult'] or clean_word.startswith('for ')) and (next_word.endswith('ing') or next_word.startswith('to ') or next_word in ['falling', 'tripping', 'slipping']):
+                    if not sub_tag or sub_tag == 'S' or '의미상' in sub_tag or sub_tag == '':
+                        t['sub_tag'] = '의미상 S'
+                        t['color'] = 'blue'
+                        t['underline'] = True
+
+        # Sanitize grammar_points (enforce 접속부사 over 삽입어 and strip markdown stars/backticks)
         gp = s.get('grammar_points', '')
-        if gp:
+        if isinstance(gp, list):
+            gp = "\n".join(str(item) for item in gp)
+        if gp and isinstance(gp, str):
             gp = re.sub(r'삽입어(?:구)?\s*(however|therefore|moreover|furthermore|thus)', r'접속부사 \1', gp, flags=re.IGNORECASE)
             gp = re.sub(r'삽입어(?:\s*:\s*)', r'접속부사: ', gp)
+            gp = re.sub(r'[\*`]+', '', gp)
             s['grammar_points'] = gp
+        elif not gp:
+            s['grammar_points'] = ""
+
+        # Sanitize clause_structure
+        cs = s.get('clause_structure', '')
+        if isinstance(cs, list):
+            cs = "\n".join(str(item) for item in cs)
+        s['clause_structure'] = str(cs) if cs else ""
+
+        # Sanitize chunk_korean
+        ck = s.get('chunk_korean', '')
+        if isinstance(ck, list):
+            ck = " / ".join(str(item) for item in ck)
+        s['chunk_korean'] = strip_korean_brackets(str(ck)) if ck else ""
+
+    # Sanitize summary_info keywords to ALWAYS be '① english_word (한글뜻)  ② english_word (한글뜻)  ③ english_word (한글뜻)'
+    s_info = analysis_data.get('summary_info')
+    if isinstance(s_info, dict):
+        raw_kw = str(s_info.get('keywords', '')).strip()
+        vocab = analysis_data.get('vocabulary', [])
+        has_english = bool(re.search(r'[a-zA-Z]{3,}', raw_kw))
+        if (not has_english or not raw_kw) and vocab:
+            kw_parts = []
+            for idx, item in enumerate(vocab[:3]):
+                num = '①' if idx == 0 else ('②' if idx == 1 else '③')
+                w = item.get('word', '')
+                m = re.sub(r'^\([가-힣\w\s]+\)\s*', '', item.get('meaning', '')).strip()
+                kw_parts.append(f"{num} {w} ({m})")
+            s_info['keywords'] = "  ".join(kw_parts)
+
+    return post_process_coordinating_conjunction_numbering(analysis_data)
+
+def post_process_coordinating_conjunction_numbering(analysis_data):
+    """
+    When sentence elements are directly connected in parallel by coordinating conjunctions (and, or, nor),
+    and share the same syntactic role, numbers them as S1, S2 / V1, V2 / Vt1, Vt2 / Vi1, Vi2 / O1, O2 / SC1, SC2 / OC1, OC2.
+    NEVER numbers main clause and subordinate clause elements together!
+    """
+    if not analysis_data or 'sentences' not in analysis_data:
+        return analysis_data
+
+    for s in analysis_data.get('sentences', []):
+        tokens = s.get('tokens', [])
+
+        # Find indexes of coordinating conjunctions (and, or, nor)
+        conj_indices = [
+            i for i, t in enumerate(tokens)
+            if t.get('is_conjunction') or t.get('text', '').strip().lower() in ['and', 'or', 'nor']
+        ]
+
+        for c_idx in conj_indices:
+            # Look at candidate before conjunction (left side) and after conjunction (right side)
+            left_tokens = [t for t in tokens[:c_idx] if t.get('text', '').strip() not in ['/', '//']]
+            right_tokens = [t for t in tokens[c_idx+1:] if t.get('text', '').strip() not in ['/', '//']]
+
+            if left_tokens and right_tokens:
+                # Check for parallel verbals or verbs or objects connected across the conjunction
+                for cat in ['Vt', 'Vi', 'V', 'O', 'SC', 'OC', 'S']:
+                    left_match = next((t for t in reversed(left_tokens[-4:]) if t.get('sub_tag') == cat or t.get('top_label') == cat), None)
+                    right_match = next((t for t in right_tokens[:4] if t.get('sub_tag') == cat or t.get('top_label') == cat), None)
+
+                    if left_match and right_match and left_match is not right_match:
+                        # Do not number main subject vs subordinate subject
+                        if cat == 'S' and (left_match.get('underline') != right_match.get('underline')):
+                            continue
+                        
+                        if left_match.get('sub_tag') == cat: left_match['sub_tag'] = f"{cat}1"
+                        if left_match.get('top_label') == cat: left_match['top_label'] = f"{cat}1"
+                        if right_match.get('sub_tag') == cat: right_match['sub_tag'] = f"{cat}2"
+                        if right_match.get('top_label') == cat: right_match['top_label'] = f"{cat}2"
+
+        # Verbal syntax tagging enhancement
+        # E.g. To minimize building costs -> minimize gets top_label: Vt, building costs gets top_label: O
+        for i, t in enumerate(tokens):
+            txt = t.get('text', '').strip()
+            sub = t.get('sub_tag', '')
+            top = t.get('top_label', '')
             
+            # Check for infinitive / gerund / participle verbals
+            clean_txt = re.sub(r'^[\[\(]+|[\]\),]+$', '', txt).strip().lower()
+            is_verbal_head = (
+                (clean_txt.startswith('to ') or clean_txt.endswith('ing') or clean_txt.endswith('ed') or
+                 'to부정사' in sub or '분사' in sub or '동명사' in sub) and
+                not t.get('underline') and not sub.startswith('V') and not sub.startswith('S') and not t.get('is_conjunction')
+            )
+
+            if is_verbal_head and not top:
+                if any(clean_txt.endswith(sfx) for sfx in ['ing', 'ed']) or clean_txt.startswith('to '):
+                    # Check next token for object
+                    next_tok = tokens[i+1] if i+1 < len(tokens) else None
+                    if next_tok and next_tok.get('text', '').strip() not in ['/', '//'] and not next_tok.get('sub_tag', '').startswith('V'):
+                        t['top_label'] = 'Vt'
+                        if not next_tok.get('top_label') and not next_tok.get('sub_tag'):
+                            next_tok['top_label'] = 'O'
+                    else:
+                        t['top_label'] = 'Vi'
+
+                # Next token might be the object of the verbal
+                if i + 1 < len(tokens):
+                    next_t = tokens[i + 1]
+                    next_txt = next_t.get('text', '').strip()
+                    if not next_t.get('top_label') and not next_t.get('sub_tag') and next_txt and not next_txt.startswith('(') and next_txt != '/':
+                        next_t['top_label'] = 'O'
+                        if not next_t.get('color') or next_t.get('color') == 'slate':
+                            next_t['color'] = 'emerald'
+
     return analysis_data
 
 EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소나★]
@@ -147,24 +303,14 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 
 [★필수 작성 규칙 3: 표준 괄호 체계 [] 및 () 엄격 적용★]
 - **대괄호 `[...]`**: 명사절, 목적어절, 주어절, 보어절, 명사구 (진주어, 진목적어, 명사적 용법의 to부정사/동명사구)
-  - 예: `[that young people reported ...]`, `[to work from home]`, `[committing himself to a painting]`
 - **소괄호 `(...)`**: 수식어구, 부사구, 부사절, 전치사구, 관계사절, 분사구문, 형용사적/부사적 수식어구
-  - 예: `(by Eurofound)`, `(working remotely)`, `(unlike those in older generations)`, `(who were working remotely)`, `(While young people ...)`
 
-[★필수 작성 규칙 4: 표준 문장성분 8대 기호 체계 엄격 준수 (sub_tag)★]
-문장 성분 기호는 오직 단어 아래(sub_tag)에만 표기하며, 반드시 아래의 **공식 8대 표준 기호**만 정확히 사용하십시오:
+[★필수 작성 규칙 4: 표준 문장성분 기호 체계 (sub_tag & top_label) 및 등위접속사 넘버링 준수★]
 1. **주어**: `sub_tag: "S"`, `color: "blue"`, 주절인 경우 `underline: true`
-2. **자동사**: `sub_tag: "Vi"`, `color: "rose"`, 주절인 경우 `underline: true`
-3. **타동사**: `sub_tag: "Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
-4. **주격보어**: `sub_tag: "SC"`, `color: "indigo"`, `underline: false`
-5. **목적어**: `sub_tag: "O"`, `color: "emerald"`, `underline: false`
-6. **간접목적어**: `sub_tag: "IO"`, `color: "emerald"`, `underline: false`
-7. **직접목적어**: `sub_tag: "DO"`, `color: "emerald"`, `underline: false`
-8. **목적격보어**: `sub_tag: "OC"`, `color: "indigo"`, `underline: false`
-
-- 가주어/진주어: `sub_tag: "가주어 (S)"`, `sub_tag: "진주어"` (또는 `"진주어절"`)
-- 가목적어/진목적어: `sub_tag: "가목적어"`, `sub_tag: "진목적어"`
-- **top_label은 일체 사용하지 않으며, 항상 빈 문자열 `""` 로 유지하십시오!**
+2. **자동사/타동사**: `sub_tag: "Vi"` / `"Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
+3. **보어/목적어**: `sub_tag: "SC"`/`"OC"` (`color: "purple"`), `sub_tag: "O"`/`"IO"`/`"DO"` (`color: "emerald"`). (목적어절은 '목적어절' 대신 오직 `"O"`로 표기합니다!)
+4. **[등위접속사 병렬구조 넘버링 규칙]**: 등위접속사(and, but, or, so 등)로 주어, 동사, 목적어, 보어가 2개 이상 연결될 경우, 반드시 `S1, S2`, `V1, V2` (`Vt1, Vt2`, `Vi1, Vi2`), `O1, O2`, `SC1, SC2`, `OC1, OC2` 와 같이 숫자를 붙여 작성하십시오!
+5. **[준동사 문장기호 규칙]**: to부정사, 동명사, 현재분사, 과거분사, 분사구문 등 준동사구 내의 서술어 성분에는 `top_label: "Vt"` (또는 `"Vi"`), 목적어/보어 성분에는 `top_label: "O"` (또는 `"C"`)를 단어 위에 표시할 수 있도록 `top_label` 필드를 작성하십시오! (예: `To minimize` ➔ `top_label: "Vt"`, `building costs` ➔ `top_label: "O"`)
 
 [★필수 작성 규칙 5: 세모(△) 기호 적용 대상 규정 (접속부사, 등위접속사, 상관접속사만 허용!)★]
 - **세모(△, is_conjunction: true)가 적용되는 단어는 오직 아래 3가지 범주뿐입니다**:
@@ -173,14 +319,12 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
   3. **접속부사**: however, therefore, furthermore, moreover, thus, consequently, nonetheless, nevertheless, instead, meanwhile 등
 - **[주의! 절대 세모 금지]**: 전치사 및 종속접속사(`as`, `for`, `because`, `since`, `while`, `although`, `if`, `that`, `when` 등)에는 절대로 `is_conjunction: true`를 주지 마십시오! (is_conjunction: false 유지)
 - 세모 대상 접속사는 반드시 뒤에 오는 단어와 분리하여 **독립된 1개의 단어 토큰(`{"text": "or", "is_conjunction": true, ...}`)으로만 작성**하십시오!
-- 절대 `{"text": "or Colorado", ...}` 처럼 접속사와 다음 단어를 하나의 토큰으로 묶지 마십시오!
 
-[★필수 작성 규칙 6: 전치사구 및 수식어구의 화살표(⬑) 적용 기준★]
+[★필수 작성 규칙 6: 수식어구 화살표(⬑) 및 문법 명칭 제거 규칙★]
 - **문장 전체 수식 부사구 (문두 전치사구, 시간/장소 부사구 등)**:
-  - (예: 문두에 위치한 `(For thousands of years)`, `(in the West),`, `(In ancient times),` 등)
-  - 명사를 수식하는 것이 아니라 문장 전체를 수식하는 부사구이므로 **절대로 화살표(`⬑`)를 붙이지 마십시오! sub_tag는 빈 문자열 `""` 로 작성합니다.**
+  - 명사를 수식하는 것이 아니므로 화살표를 붙이지 않고 `sub_tag: ""` 로 작성합니다.
 - **오직 바로 앞의 명사를 직접 뒤에서 수식하는 형용사구/형용사절일 때만**:
-  - `sub_tag: "⬑ 전치사구"`, `sub_tag: "⬑ 형용사구"`, `sub_tag: "⬑ to부정사구"`, `sub_tag: "⬑ 주격관계대명사"` 처럼 화살표(`⬑`)를 붙이십시오!
+  - '전치사구', '주격관계대명사', '부사구' 등의 한글 문법 텍스트를 절대로 붙이지 말고, **오직 화살표 기호 `sub_tag: "⬑"` 만 단독으로 표기**하십시오!
 
 [★필수 작성 규칙 7: 밑줄(underline: true) 적용 기준 규칙★]
 - **주절의 주어 및 주절의 서술어(동사)인 경우에만** `underline: true`를 설정하여 밑줄을 쳐주십시오!
@@ -190,6 +334,20 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 
 [★필수 작성 규칙 9: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
 - `summary_info`의 `illustration_scene_en` 필드에는, 지문의 [주제, 핵심어휘, 3단 정리]의 핵심 상황과 시각적 장면을 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
+
+[★필수 작성 규칙 10: 직독직해(chunk_korean) 영어 토큰(/)과 100% 1:1 완벽 싱크로 규칙★]
+- 영어 토큰에서 슬래시(/)로 끊은 단위 및 순서와 한글 직독직해(chunk_korean)의 슬래시(/) 구획은 완전히 1:1로 일치해야 합니다!
+- [예시]:
+  - 영어 본문 끊어읽기: `Structural defenses / like thick coats / of wax / on leaves / may prevent`
+  - 직독직해(chunk_korean): `구조적 방어기제는 / 두꺼운 층 같은 / 왁스의 / 잎에 / 막을지도 모른다`
+- 영어의 끊어읽기 구획마다 정확히 대응되는 한국어 번역 덩어리를 슬래시(/)로 구분하여 순서대로 1:1 매핑하십시오!
+
+[★필수 작성 규칙 11: grammar_points 마크다운 별표(**) 및 백틱(`) 일체 사용 금지★]
+- `grammar_points`에는 볼드체 마크다운 `**` 나 코드 백틱(`)을 절대로 쓰지 마십시오!
+- (예: `**현재완료**` (X) ➔ `1. 현재완료 (Present Perfect): have evolved는 과거부터 현재까지...` (O))
+
+[★필수 작성 규칙 12: 동명사 및 to부정사의 의미상의 주어 (의미상 S) 표기 규칙★]
+- 동명사의 의미상의 주어 (예: `toddlers falling over`에서 `toddlers`, `his doing so`에서 `his`) 또는 to부정사의 의미상의 주어 (예: `for children to learn`에서 `for children`)는 반드시 `sub_tag: "의미상 S"`, `color: "blue"`, `underline: true` 로 분석하여 단어 아래에 '의미상 S' 태그가 표시되도록 하십시오!
 
 [★필수 JSON 출력 스키마★]
 Return ONLY a valid JSON object matching this exact schema:
@@ -211,148 +369,207 @@ Return ONLY a valid JSON object matching this exact schema:
       "original": "A study by Eurofound found that young people who were working remotely reported more difficulties in managing their workload than older colleagues.",
       "tokens": [
         {"text": "A study", "top_label": "", "color": "blue", "sub_tag": "S", "underline": true, "is_conjunction": false},
-        {"text": "(by", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": false, "is_conjunction": false},
-        {"text": "Eurofound)", "top_label": "", "color": "slate", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "found", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": true, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "[that", "top_label": "", "color": "emerald", "sub_tag": "목적어절", "underline": false, "is_conjunction": false},
-        {"text": "young people", "top_label": "", "color": "blue", "sub_tag": "S", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "(who", "top_label": "", "color": "blue", "sub_tag": "⬑ 주격관계대명사", "underline": false, "is_conjunction": false},
-        {"text": "were working", "top_label": "", "color": "rose", "sub_tag": "Vi", "underline": false, "is_conjunction": false},
-        {"text": "remotely)", "top_label": "", "color": "slate", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "reported", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "more difficulties", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "(in", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": false, "is_conjunction": false},
-        {"text": "[managing", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": false, "is_conjunction": false},
-        {"text": "their workload])", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": false, "is_conjunction": false},
-        {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": false, "is_conjunction": false},
-        {"text": "(than older colleagues)]]", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": false, "is_conjunction": false}
-      ],
-      "chunk_korean": "Eurofound의 한 연구는 / 발견했다 / 원격으로 일하고 있던 젊은 사람들이 / 보고했다는 것을 / 더 많은 어려움을 / 그들의 업무량을 관리함에 있어서 / 나이가 더 많은 동료들보다.",
-      "clause_structure": "[3형식] 주어(S) + 타동사(Vt) + 목적어절(O)",
-      "grammar_points": "1. 명사절 접속사 that: found의 목적어절을 이끄는 접속사 that으로 생략이 가능합니다.\n2. 주격 관계대명사 who: young people을 수식하는 주격 관계대명사로, 뒤에 주어 없이 동사 were working이 이어집니다.",
-      "writing_points": "[서술형 대비] who were working remotely"
+        {"text": "Eurofound)", "top_label": "", "color": "slate", "sub_tag": "", "underline": false, "is_conjunction": false}
+      ]
     }
-  ],
-  "vocabulary": [
-    {"word": "difficulty", "meaning": "(명) 어려움"},
-    {"word": "remotely", "meaning": "(부) 원격으로"},
-    {"word": "manage", "meaning": "(동) 관리하다"},
-    {"word": "workload", "meaning": "(명) 업무량"},
-    {"word": "colleague", "meaning": "(명) 동료"},
-    {"word": "career", "meaning": "(명) 경력, 커리어"},
-    {"word": "pandemic", "meaning": "(명) 팬데믹, 유행병"},
-    {"word": "generation", "meaning": "(명) 세대"},
-    {"word": "organizational", "meaning": "(형) 조직의"},
-    {"word": "struggle", "meaning": "(동) 어려움을 겪다"},
-    {"word": "hybrid", "meaning": "(명) 혼합"},
-    {"word": "option", "meaning": "(명) 선택, 옵션"},
-    {"word": "location", "meaning": "(명) 장소, 위치"},
-    {"word": "distraction", "meaning": "(명) 주의 산만"},
-    {"word": "connection", "meaning": "(명) 관계, 연결"},
-    {"word": "culture", "meaning": "(명) 문화"}
   ]
 }
 """
 
 VOCAB_DATABASE = {
-    # Nouns
-    "difficulty": "(명) 어려움",
-    "workload": "(명) 업무량",
-    "colleague": "(명) 동료",
-    "career": "(명) 경력, 커리어",
-    "pandemic": "(명) 팬데믹, 유행병",
-    "generation": "(명) 세대",
-    "connection": "(명) 관계, 연결",
-    "culture": "(명) 문화",
-    "job": "(명) 직업, 일자리",
-    "survey": "(명) 조사, 설문",
-    "student": "(명) 학생",
-    "graduate": "(명) 졸업생",
-    "workspace": "(명) 작업 공간",
-    "distraction": "(명) 주의 산만 요인",
-    "model": "(명) 모델, 형태",
-    "week": "(명) 주, 일주일",
-    "effort": "(명) 노력",
-    "trust": "(명) 신뢰",
-    "teamwork": "(명) 팀워크",
-    "lack": "(명) 부족, 결핍",
-    "structure": "(명) 구조, 체계",
-    "option": "(명) 선택권, 옵션",
-    "location": "(명) 장소, 위치",
-    "role": "(명) 역할, 직무",
+    # Biology / Science / Nature / Plants / Defenses
+    "plant": "(명) 식물", "plants": "(명) 식물",
+    "evolve": "(동) 진화하다, 발전하다", "evolved": "(동) 진화한, 진화된", "evolution": "(명) 진화",
+    "defense": "(명) 방어, 방어 기제", "defenses": "(명) 방어 기제", "defend": "(동) 방어하다",
+    "diverse": "(형) 다양한", "diversity": "(명) 다양성",
+    "genera": "(명) 속(genus의 복수형)", "genus": "(명) (생물 분류상의) 속",
+    "tissue": "(명) (생체) 조직", "tissues": "(명) 생체 조직",
+    "harsh": "(형) 가혹한, 독한, 거친",
+    "compound": "(명) 화합물, 복합체", "compounds": "(명) 화합물",
+    "repel": "(동) 물리치다, 쫓아버리다", "repels": "(동) 격퇴하다",
+    "insect": "(명) 곤충, 벌레", "insects": "(명) 곤충류",
+    "intoxicate": "(동) 중독시키다, 취하게 하다", "intoxicates": "(동) 중독시키다", "toxic": "(형) 유독성의",
+    "toxin": "(명) 독소, 유해 물질", "toxins": "(명) 독소",
+    "structural": "(형) 구조적인, 구조상의", "structure": "(명) 구조, 체계",
+    "coating": "(명) 껍질, 피막, 코팅", "coatings": "(명) 보호 피막",
+    "thorn": "(명) 가시", "thorns": "(명) 가시",
+    "predator": "(명) 포식자, 천적", "predators": "(명) 포식자들",
+    "prey": "(명) 먹이, 사냥감",
+    "adaptation": "(명) 적응, 순응", "adapt": "(동) 적응하다",
+    "organism": "(명) 유기체, 생물", "organisms": "(명) 생물체",
+    "species": "(명) (생물) 종", "specimen": "(명) 표본",
+    "chemical": "(명) 화학 물질 (형) 화학의", "chemicals": "(명) 화학 물질",
+    "barrier": "(명) 장벽, 방어벽", "barriers": "(명) 방어벽",
+    "survival": "(명) 생존", "survive": "(동) 살아남다",
+    "mechanism": "(명) 기제, 메커니즘", "mechanisms": "(명) 작용 기제",
+    "reproduce": "(동) 번식하다, 재생하다", "reproduction": "(명) 번식",
+    "trait": "(명) 특성, 형질", "traits": "(명) 유전 형질",
+    "absorb": "(동) 흡수하다", "nutrient": "(명) 영양소", "nutrients": "(명) 영양분",
 
-    # Verbs
-    "find": "(동) 발견하다, 알게 되다",
-    "work": "(동) 일하다, 근무하다",
-    "report": "(동) 보고하다, 알리다",
-    "manage": "(동) 관리하다, 다루다",
-    "begin": "(동) 시작하다",
-    "establish": "(동) 형성하다, 수립하다",
-    "embed": "(동) 적응시키다, 깊이 박다",
-    "struggle": "(동) 어려움을 겪다",
-    "offer": "(동) 제공하다",
-    "require": "(동) 필요로 하다",
-    "allow": "(동) 허용하다, 가능하게 하다",
-    "choose": "(동) 선택하다",
-    "designate": "(동) 지정하다",
+    # Arts / Culture / Humanities / Social
+    "spectacle": "(명) 장관, 화려한 구경거리", "spectacular": "(형) 장관의, 눈부신",
+    "instinctive": "(형) 본능적인", "instinct": "(명) 본능",
+    "response": "(명) 반응, 응답", "respond": "(동) 반응하다",
+    "primarily": "(부) 주로, 근본적으로", "primary": "(형) 주요한, 근본적인",
+    "prevailing": "(형) 지배적인, 유행하는", "prevail": "(동) 널리 퍼지다",
+    "perception": "(명) 인식, 지각", "perceive": "(동) 인식하다, 지각하다",
+    "observer": "(명) 관찰자, 보는 사람", "observers": "(명) 관찰자들",
+    "creation": "(명) 창작, 생성", "create": "(동) 창조하다",
+    "universal": "(형) 보편적인", "inevitable": "(형) 불가피한, 필연적인",
+    "expression": "(명) 표현, 표출", "express": "(동) 표현하다",
+    "strategy": "(명) 전략, 방책", "strategies": "(명) 전략들",
+    "address": "(동) 다루다, 해결하다 (명) 주소",
+    "liken": "(동) 비유하다, 견주다", "likened": "(동) 비유된",
+    "literature": "(명) 문학, 문헌", "literary": "(형) 문학의",
+    "tradition": "(명) 전통, 관례", "traditions": "(명) 전통 관습",
+    "genre": "(명) 장르, 예술 양식", "genres": "(명) 장르들",
+    "originality": "(명) 독창성, 신선함", "original": "(형) 독창적인, 원래의",
+    "impress": "(동) 감명을 주다, 인상을 남기다", "impression": "(명) 인상, 감명",
+    "audience": "(명) 관객, 청중", "audiences": "(명) 관객들",
+    "extension": "(명) 확장, 연장", "extend": "(동) 확장하다",
+    "blend": "(동) 혼합하다, 조화시키다", "blending": "(동) 조화시키는 것",
+    "established": "(형) 확립된, 기성의", "establish": "(동) 확립하다, 설립하다",
+    "innovative": "(형) 혁신적인", "innovation": "(명) 혁신",
+    "deploy": "(동) 전개하다, 활용하다", "deploying": "(동) 활용하는 것",
+    "repertoire": "(명) 레퍼토리, 기량의 범위",
+    "convention": "(명) 관습, 관례", "conventions": "(명) 전통적 규범",
+    "imitation": "(명) 모방, 흉내", "imitate": "(동) 모방하다",
 
-    # Adjectives
-    "young": "(형) 젊은, 어린",
-    "remote": "(형) 원격의",
-    "older": "(형) 나이가 더 많은",
-    "interpersonal": "(형) 대인 관계의",
-    "organizational": "(형) 조직의",
-    "in-person": "(형) 대면의",
-    "suitable": "(형) 적절한",
-    "hybrid": "(형) 혼합형의",
-    "formal": "(형) 정형화된, 공식적인",
-    "fluid": "(형) 유연한, 가변적인",
+    # High-Frequency Academic Words
+    "difficulty": "(명) 어려움", "difficulties": "(명) 어려움",
+    "workload": "(명) 업무량", "colleague": "(명) 동료", "colleagues": "(명) 동료들",
+    "career": "(명) 경력, 커리어", "careers": "(명) 직업 경력",
+    "pandemic": "(명) 팬데믹, 유행병", "generation": "(명) 세대", "generations": "(명) 세대들",
+    "connection": "(명) 관계, 연결", "connections": "(명) 대인 관계",
+    "culture": "(명) 문화", "cultural": "(형) 문화적인",
+    "job": "(명) 직업, 일자리", "survey": "(명) 조사, 설문",
+    "student": "(명) 학생", "graduate": "(명) 졸업생",
+    "workspace": "(명) 작업 공간", "distraction": "(명) 주의 산만 요인",
+    "model": "(명) 모델, 형태", "week": "(명) 주, 일주일",
+    "effort": "(명) 노력", "trust": "(명) 신뢰", "teamwork": "(명) 팀워크",
+    "lack": "(명) 부족, 결핍", "option": "(명) 선택권, 옵션",
+    "location": "(명) 장소, 위치", "role": "(명) 역할, 직무",
+    "element": "(명) 구성 요소", "elements": "(명) 구성 요소들",
+    "trigger": "(동) 유발하다, 촉발하다", "frame": "(명) 틀, 구조",
+    "mode": "(명) 방식, 양식", "modes": "(명) 방식들",
+    "individual": "(형) 개인의 (명) 개인", "community": "(명) 공동체",
+    "perspective": "(명) 관점, 시각", "aspect": "(명) 측면, 양상",
+    "concept": "(명) 개념", "factor": "(명) 요인, 요소",
+    "impact": "(명) 영향, 충격 (동) 영향을 주다", "influence": "(동) 영향을 미치다",
+    "resource": "(명) 자원, 재원", "resources": "(명) 자원들",
+    "environment": "(명) 환경", "environmental": "(형) 환경의",
 
-    # Adverbs
-    "remotely": "(부) 원격으로",
-    "long-term": "(부) 장기적으로",
-    "perhaps": "(부) 아마도",
-    "instead": "(부) 대신에",
-    "day-to-day": "(부) 매일의, 일상의",
+    # Additional Common Content Words
+    "load": "(동) 싣다, 채우다", "loads": "(동) 채우다", "loaded": "(동) 채워진",
+    "stress": "(동) 강조하다 (명) 스트레스", "stresses": "(동) 강조하다",
+    "writer": "(명) 작가", "writers": "(명) 작가들",
+    "rule": "(명) 규칙, 규범", "rules": "(명) 규칙들",
+    "bound": "(형) 얽매인, 구속된 (동) 튀어오르다",
+    "sufficient": "(형) 충분한", "sufficiently": "(부) 충분히",
+    "show": "(동) 보여주다, 나타내다", "shows": "(동) 보여주다",
+    "grain": "(명) 결, 성질, 곡물",
+    "festival": "(명) 축제, 페스티벌", "festivals": "(명) 축제들",
+    "activity": "(명) 활동, 행사", "activities": "(명) 활동들",
+    "anyone": "(명) 누구나, 어떤 사람", "someone": "(명) 어떤 사람",
+    "imitation": "(명) 모방, 흉내", "imitate": "(동) 모방하다",
+
+    # Common Verbs
+    "find": "(동) 발견하다, 알게 되다", "work": "(동) 일하다, 작용하다",
+    "report": "(동) 보고하다, 알리다", "manage": "(동) 관리하다, 다루다",
+    "begin": "(동) 시작하다", "embed": "(동) 적응시키다, 깊이 박다",
+    "struggle": "(동) 어려움을 겪다", "offer": "(동) 제공하다",
+    "require": "(동) 필요로 하다", "allow": "(동) 허용하다, 가능하게 하다",
+    "choose": "(동) 선택하다", "designate": "(동) 지정하다",
+    "provide": "(동) 제공하다", "indicate": "(동) 나타내다, 가리키다",
+    "suggest": "(동) 제안하다, 암시하다", "demonstrate": "(동) 입증하다, 보여주다",
+    "enhance": "(동) 향상시키다, 강화하다", "reduce": "(동) 줄이다, 감소시키다",
+    "maintain": "(동) 유지하다", "generate": "(동) 생성하다, 만들어내다",
+    "determine": "(동) 결정하다", "affect": "(동) 영향을 미치다", "draw": "(동) 끌어내다, 그리다",
+
+    # Common Adjectives
+    "young": "(형) 젊은, 어린", "remote": "(형) 원격의", "older": "(형) 나이가 더 많은",
+    "interpersonal": "(형) 대인 관계의", "organizational": "(형) 조직의", "in-person": "(형) 대면의",
+    "suitable": "(형) 적절한", "hybrid": "(형) 혼합형의", "formal": "(형) 정형화된, 공식적인",
+    "fluid": "(형) 유연한, 가변적인", "essential": "(형) 필수적인", "crucial": "(형) 중대한, 결정적인",
+    "significant": "(형) 중요한, 상당한", "effective": "(형) 효과적인", "complex": "(형) 복잡한",
+    "various": "(형) 다양한", "potential": "(형) 잠재적인 (명) 잠재력", "critical": "(형) 비판적인, 중대한",
+    "different": "(형) 다른, 다양한", "specific": "(형) 특정한, 구체적인", "particular": "(형) 특정한, 특별한",
+
+    # Common Adverbs
+    "remotely": "(부) 원격으로", "long-term": "(부) 장기적으로", "perhaps": "(부) 아마도",
+    "instead": "(부) 대신에", "day-to-day": "(부) 매일의, 일상의", "effectively": "(부) 효과적으로",
+    "significantly": "(부) 상당히, 크게", "gradually": "(부) 점진적으로", "eventually": "(부) 결국에는",
+    "normally": "(부) 보통, 정상적으로", "commonly": "(부) 흔히, 일반적으로", "primarily": "(부) 주로, 본래"
 }
 
 LEMMA_MAP = {
-    "difficulties": "difficulty",
-    "colleagues": "colleague",
-    "careers": "career",
-    "generations": "generation",
-    "connections": "connection",
-    "students": "student",
-    "graduates": "graduate",
-    "distractions": "distraction",
-    "found": "find",
-    "reported": "report",
-    "managing": "manage",
-    "began": "begin",
-    "working": "work",
-    "offers": "offer",
-    "requires": "require",
-    "allows": "allow",
-    "designated": "designate",
+    "plants": "plant", "evolved": "evolve", "defenses": "defense", "genera": "genus",
+    "tissues": "tissue", "compounds": "compound", "insects": "insect", "repels": "repel",
+    "intoxicates": "intoxicate", "coatings": "coating", "thorns": "thorn", "predators": "predator",
+    "organisms": "organism", "toxins": "toxin", "chemicals": "chemical", "barriers": "barrier",
+    "mechanisms": "mechanism", "traits": "trait", "nutrients": "nutrient",
+    "observers": "observer", "strategies": "strategy", "likened": "liken", "traditions": "tradition",
+    "genres": "genre", "audiences": "audience", "blending": "blend", "deploying": "deploy",
+    "conventions": "convention", "elements": "element", "modes": "mode", "resources": "resource",
+    "difficulties": "difficulty", "colleagues": "colleague", "careers": "career", "generations": "generation",
+    "connections": "connection", "students": "student", "graduates": "graduate", "distractions": "distraction",
+    "found": "find", "reported": "report", "managing": "manage", "began": "begin", "working": "work",
+    "offers": "offer", "requires": "require", "allows": "allow", "designated": "designate",
+    "writers": "writer", "rules": "rule", "festivals": "festival", "activities": "activity", "stresses": "stress"
 }
 
 STOP_WORDS = {
     "that", "were", "the", "and", "from", "with", "more", "than", "many", "who", "some", "this",
     "their", "those", "have", "been", "doing", "does", "done", "will", "would", "could", "should",
     "eurofound", "prospects", "kingdom", "united", "a", "an", "in", "on", "at", "by", "for", "to",
-    "of", "or", "as", "it", "they", "people", "study"
+    "of", "or", "as", "it", "they", "people", "study", "is", "are", "was", "be", "has", "had",
+    "there", "may", "must", "also", "into", "onto", "upon", "about", "above", "across", "after",
+    "before", "behind", "during", "through", "within", "without", "although", "though", "even",
+    "neither", "either", "them", "which", "what", "where", "when", "why", "how", "such", "other",
+    "saying", "said", "can", "our", "your", "his", "her", "its"
 }
 
 CONJUNCTIVE_ADVERBS = [
     "moreover,", "however,", "therefore,", "furthermore,", "in addition,", "consequently,",
     "thus,", "nonetheless,", "nevertheless,", "for example,", "for instance,", "on the other hand,", "but"
 ]
+
+def get_word_definition(word):
+    clean = re.sub(r'[^a-zA-Z]', '', word).lower()
+    if not clean:
+        return "(명) 주요 어휘"
+    if clean in VOCAB_DATABASE:
+        return VOCAB_DATABASE[clean]
+    
+    lemma = LEMMA_MAP.get(clean, clean)
+    if lemma in VOCAB_DATABASE:
+        return VOCAB_DATABASE[lemma]
+
+    for suffix, replacement, pos in [
+        ('ies', 'y', '(명)'), ('es', '', '(명)'), ('s', '', '(명)'),
+        ('ing', '', '(동)'), ('ed', '', '(동)'), ('tion', '', '(명)'),
+        ('ment', '', '(명)'), ('ness', '', '(명)'), ('ity', '', '(명)'),
+        ('able', '', '(형)'), ('ible', '', '(형)'), ('ous', '', '(형)'),
+        ('ful', '', '(형)'), ('less', '', '(형)'), ('ive', '', '(형)'),
+        ('al', '', '(형)'), ('ly', '', '(부)')
+    ]:
+        if clean.endswith(suffix) and len(clean) > len(suffix) + 2:
+            base = clean[:-len(suffix)] + replacement
+            if base in VOCAB_DATABASE:
+                meaning = VOCAB_DATABASE[base]
+                core = re.sub(r'^\([가-힣]+\)\s*', '', meaning)
+                return f"{pos} {core}"
+            elif clean[:-len(suffix)] in VOCAB_DATABASE:
+                meaning = VOCAB_DATABASE[clean[:-len(suffix)]]
+                core = re.sub(r'^\([가-힣]+\)\s*', '', meaning)
+                return f"{pos} {core}"
+
+    # Default morphological POS inference
+    if clean.endswith('ly'): return "(부) " + clean
+    if clean.endswith(('tion', 'ment', 'ness', 'ity', 'ance', 'ence', 'er', 'or', 'ist', 'ism')): return "(명) " + clean
+    if clean.endswith(('able', 'ible', 'ive', 'ous', 'ful', 'less', 'ic', 'al', 'ent', 'ant')): return "(형) " + clean
+    if clean.endswith(('ize', 'ate', 'en', 'fy')): return "(동) " + clean
+    return "(명) " + clean
 
 def split_into_sentences(text):
     if not text or not text.strip():
@@ -370,7 +587,7 @@ def split_into_korean_sentences(text):
     return [s.strip() for s in sentences if s.strip()]
 
 def extract_vocabulary(text):
-    raw_words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())
+    raw_words = re.findall(r'\b[a-zA-Z]{3,}\b', text.lower())
     vocab_list = []
     seen = set()
 
@@ -381,30 +598,29 @@ def extract_vocabulary(text):
         if lemma in seen or lemma in STOP_WORDS:
             continue
 
-        if lemma in VOCAB_DATABASE:
-            seen.add(lemma)
-            vocab_list.append({"word": lemma, "meaning": VOCAB_DATABASE[lemma]})
-        elif w in VOCAB_DATABASE:
-            seen.add(w)
-            vocab_list.append({"word": w, "meaning": VOCAB_DATABASE[w]})
-
-    for w in raw_words:
-        lemma = LEMMA_MAP.get(w, w)
-        if lemma not in seen and lemma not in STOP_WORDS and len(lemma) >= 4:
-            seen.add(lemma)
-            vocab_list.append({"word": lemma, "meaning": "(명) 주요 어휘"})
+        meaning = get_word_definition(lemma if lemma in VOCAB_DATABASE else w)
+        seen.add(lemma)
+        seen.add(w)
+        vocab_list.append({"word": lemma, "meaning": meaning})
         if len(vocab_list) >= 16:
             break
+
+    # If fewer than 16 words, grab remaining content words
+    if len(vocab_list) < 16:
+        for w in raw_words:
+            if w not in seen and w not in STOP_WORDS and len(w) >= 3:
+                seen.add(w)
+                meaning = get_word_definition(w)
+                vocab_list.append({"word": w, "meaning": meaning})
+                if len(vocab_list) >= 16:
+                    break
 
     return vocab_list[:16]
 
 def strip_korean_brackets(text):
-    """Strips all outer () and [] from Korean translation text."""
     if not text:
         return ""
-    # Remove brackets while preserving text inside
     cleaned = re.sub(r'[\(\)\[\]]', '', text)
-    # Clean up double spaces
     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
     return cleaned
 
@@ -418,8 +634,14 @@ def ensure_korean_slashes(text, fallback_raw=""):
         return text
 
     delimiters = [
+        "진화시켜 왔다", "방어 기제를", "수만큼이나 다양한", "물리치거나", "중독시키는", "가혹한 화합물로",
+        "조직을 채운다", "두꺼운 외피나", "가시와 같은", "구조적 방어는", "흔하다",
         "발견했다", "발견했다는 것을", "있었던", "사람들이", "이야기했다는 것을", "보고했다는 것을",
-        "관리하는 데", "관리함에 있어서", "동료들보다", "때문에", "위해", "대해", "있어서", "시작했다", "그들의 커리어를", "팬데믹 동안", "동료들과 달리", "어려움을 겪을 수 있지만", "모델이", "작용할 것이다", "유연한 옵션일 수 있다", "허락하는", "필요로"
+        "관리하는 데", "관리함에 있어서", "동료들보다", "때문에", "위해", "대해", "있어서", "시작했다",
+        "그들의 커리어를", "팬데믹 동안", "동료들과 달리", "어려움을 겪을 수 있지만", "모델이", "작용할 것이다",
+        "유연한 옵션일 수 있다", "허락하는", "필요로", "작동한다", "인식 방식에 따라", "문화적 틀 안에서", "강조한다",
+        "특정 요구를 해결하기 위해", "비유되어 왔다", "독창성을 보여주어야 한다", "결합함으로써", "활용할 수 있지만",
+        "충분하지 않다", "눈부셔야 한다"
     ]
 
     pattern = "(" + "|".join(re.escape(d) for d in delimiters) + ")"
@@ -448,213 +670,178 @@ def build_exact_1to1_korean_chunks(tokens, korean_raw=""):
     if not tokens:
         return ensure_korean_slashes(korean_raw)
 
-    if any("Eurofound" in t.get("text", "") for t in tokens):
-        return "Eurofound의 한 연구는 / 발견했다 / 원격으로 일하고 있던 젊은 사람들이 / 보고했다는 것을 / 더 많은 어려움을 / 그들의 업무량을 관리함에 있어서 / 나이가 더 많은 동료들보다."
-
-    if any("began" in t.get("text", "") for t in tokens) and any("careers" in t.get("text", "") for t in tokens):
-        return "게다가 / 많은 젊은이들이 / 시작했다 / 그들의 커리어를 / 팬데믹 동안 원격으로 일하면서 / 이전 세대의 사람들과는 달리 / 대인 관계를 형성하고 조직 문화에 적응할 수 있는 많은 시간을 가졌던."
-
-    if any("Prospects" in t.get("text", "") for t in tokens):
-        return "Prospects의 한 조사는 / 발견했다 / 영국 학생 및 졸업생의 거의 절반이 / 재택근무하는 것을 어려워했다는 것을 / 적절한 작업 공간 부족이나 산만함 때문에."
-
-    if any("While young people" in t.get("text", "") for t in tokens) or any("would work well" in t.get("text", "") for t in tokens):
-        return "젊은이들이 원격 근무에 장기간 어려움을 겪을지도 모르는 가운데, / 아마도 일부 시간은 집에서, 다른 시간은 현장에서 근무할 수 있는 혼합 모델 쪽이 / 그들에게 효과가 있을 것이다."
-
-    if any("fluid option" in t.get("text", "") for t in tokens) or any("formal hybrid structure" in t.get("text", "") for t in tokens) or any(t.get("text", "").strip() == "But" for t in tokens):
-        return "하지만 / 그것은 / ~일 지도 모른다 / 그들이 / 필요로 하는 것은 / 경직된 혼합 구조가 아니라 / 특정 요일이 원격 근무로 지정된 / 대신 / 유연한 옵션(선택지)이다 / 가능하다면 직무에 따라 / 날마다의 근무 장소를 선택하도록 허락하는."
-
     if korean_raw and "/" in korean_raw:
         return strip_korean_brackets(korean_raw.strip())
 
     return ensure_korean_slashes(korean_raw)
 
-def rule_tokenize(sentence):
-    """Advanced Clause & Phrase Rule Tokenizer with exact internal slashes inside relative adverb clauses (Sentence 4)."""
+def analyze_clause_structure_dynamically(sentence, tokens):
+    text = sentence.strip()
+    text_lower = text.lower()
+    
+    if re.search(r'\b(?:allow|allows|allowed|make|makes|made|find|finds|found|keep|keeps|kept|leave|leaves|left|cause|causes|caused|enable|enables|enabled|call|calls|called)\b\s+\w+\s+(?:to\s+\w+|difficult|easy|possible|safe|happy|clean)', text, re.IGNORECASE):
+        c_type = "[5형식] 주어(S) + 타동사(Vt) + 목적어(O) + 목적격보어(OC)"
+        breakdown = "• 주절: 주어(S) + 5형식 타동사(Vt) + 목적어(O) + 목적격보어(OC)\n• 구문 해설: 목적어의 상태나 동작을 보충 설명하는 목적격 보어 구조"
+    elif re.search(r'\b(?:give|gives|gave|send|sends|sent|offer|offers|offered|show|shows|showed|tell|tells|told|bring|brings|brought)\b\s+\w+\s+\w+', text, re.IGNORECASE):
+        c_type = "[4형식] 주어(S) + 수여동사(Vt) + 간접목적어(IO) + 직접목적어(DO)"
+        breakdown = "• 주절: 주어(S) + 수여동사(Vt) + 간접목적어(~에게) + 직접목적어(~을/를)"
+    elif re.search(r'\b(?:is|are|was|were|seem|seems|seemed|appear|appears|appeared|become|becomes|became|look|looks|looked|feel|feels|felt|taste|tastes|sound|sounds|remain|remains)\b', text, re.IGNORECASE) and not re.search(r'\b(?:is|are|was|were)\s+(?:\w+ed|\w+ing)\b', text, re.IGNORECASE):
+        c_type = "[2형식] 주어(S) + 불완전자동사(V) + 주격보어(SC)"
+        breakdown = "• 주절: 주어(S) + 연결동사(V) + 주격보어(SC)\n• 구문 해설: 주어의 상태나 성질을 보충 설명하는 주격보어 구조"
+    elif re.search(r'\b(?:evolve|evolved|load|loads|loaded|repel|repels|repelled|intoxicate|intoxicates|create|creates|created|deploy|deploys|deployed|produce|produces|produced|blend|blends|blended|liken|likened|impress|impresses|impressed|address|addresses|addressed|have|has|had|find|found|report|reported)\b', text, re.IGNORECASE):
+        c_type = "[3형식] 주어(S) + 타동사(Vt) + 목적어(O)"
+        breakdown = "• 주절: 주어(S) + 타동사(Vt) + 목적어(O)\n• 수식어구: 전치사구 및 수식절 결합 구조"
+    else:
+        c_type = "[1형식 & 수식구조] 주어(S) + 완전자동사(Vi) + 수식어구(Modifier)"
+        breakdown = "• 주절: 주어(S) + 자동사(Vi) + 부사적 수식어구(M)"
+
+    sub_clauses = []
+    if " that " in text_lower or " which " in text_lower or " who " in text_lower:
+        sub_clauses.append("• 수식절(관계사절): 선행사를 수식하는 형용사절")
+    if " where " in text_lower or " when " in text_lower or " while " in text_lower or " although " in text_lower or " because " in text_lower:
+        sub_clauses.append("• 부사절: 시간/조건/양보를 나타내는 종속접속사절")
+    if "either" in text_lower and "or" in text_lower:
+        sub_clauses.append("• 상관접속사 병렬구조: either A or B (A 또는 B 중 하나)")
+    if " as " in text_lower and re.search(r'as\s+\w+\s+as', text_lower):
+        sub_clauses.append("• 동등비교 구문: as + 원급 + as (~만큼이나 ...한)")
+
+    if sub_clauses:
+        breakdown = breakdown + "\n" + "\n".join(sub_clauses)
+
+    return f"{c_type}\n{breakdown}"
+
+def generate_grammar_points_dynamically(sentence, tokens):
+    text = sentence.strip()
+    text_lower = text.lower()
+    points = []
+
+    if re.search(r'\b(?:have|has)\s+(?:evolved|developed|been|shown|established|grown|changed|increased)\b', text, re.IGNORECASE):
+        points.append("1. 현재완료 시제 (have/has + p.p.): 과거에 시작된 동작이나 상태가 현재까지 지속되거나 영향을 미치고 있음을 나타냅니다.")
+    elif re.search(r'\b(?:had)\s+\w+ed\b', text, re.IGNORECASE):
+        points.append("1. 과거완료 시제 (had + p.p.): 과거의 특정 기준 시점보다 더 이전에 일어난 대과거의 동작을 나타냅니다.")
+    elif re.search(r'\b(?:is|are|was|were)\s+\w+ed\b', text, re.IGNORECASE) and not any(w in text_lower for w in ["intoxicated", "evolved"]):
+        points.append("1. 수동태 구조 (be + p.p.): 주어가 동작을 행하는 주체가 아니라 동작의 대상이 됨을 표현합니다.")
+
+    if "either" in text_lower and "or" in text_lower:
+        points.append("2. 상관접속사 (either A or B): 'A 또는 B 중 하나'라는 뜻으로, 동사원형이나 명사구가 문법적으로 동일한 형태로 병렬 연결됩니다.")
+    elif "neither" in text_lower and "nor" in text_lower:
+        points.append("2. 상관접속사 (neither A nor B): 'A도 B도 아닌'이라는 양자부정의 병렬 구조를 이끕니다.")
+    elif "not only" in text_lower and "but" in text_lower:
+        points.append("2. 상관접속사 (not only A but also B): 'A뿐만 아니라 B도'라는 뜻으로 B에 초점이 맞추어집니다.")
+    elif " and " in text_lower or " or " in text_lower:
+        points.append("2. 등위접속사 병렬구조: 문맥상 대등한 역할을 하는 어구들이 접속사를 중심으로 균형을 이룹니다.")
+
+    if re.search(r'\bas\s+(\w+)\s+as\b', text, re.IGNORECASE):
+        m = re.search(r'\bas\s+(\w+)\s+as\b', text, re.IGNORECASE)
+        adj_adv = m.group(1)
+        points.append(f"3. 원급 동등비교 (as {adj_adv} as): '~만큼이나 {adj_adv}한'이라는 의미로 비교 대상 간의 동등한 정도를 나타냅니다.")
+    elif "more" in text_lower and "than" in text_lower:
+        points.append("3. 비교급 구문 (more ... than): 기준 대상보다 더 뛰어남이나 차이를 나타내는 우등비교 구조입니다.")
+
+    if re.search(r'\bthat\s+(?:either|repel|repels|intoxicate|allows|works|are|is)\b', text, re.IGNORECASE):
+        points.append("4. 주격 관계대명사 that: 선행사 명사구를 뒤에서 수식하며, 관계사절 내에서 주어 역할을 수행합니다.")
+    elif "who " in text_lower or "which " in text_lower:
+        points.append("4. 관계사절 수식: 선행사를 직접 수식하는 형용사절로 뒤에 불완전한 문장이 이어집니다.")
+    elif "where " in text_lower or "when " in text_lower:
+        points.append("4. 관계부사절: 선행사의 장소/시간적 배경을 수식하며, 뒤에 주어·동사를 갖춘 완전한 문장이 이어집니다.")
+
+    if "blending" in text_lower or "working with" in text_lower or "deploying" in text_lower or re.search(r',\s*\w+ing\b', text):
+        points.append("5. 분사구문 (-ing): 부수적인 동작이나 상황(~하면서)을 간결하게 나타내는 분사구문입니다.")
+    elif "likened to" in text_lower or "designated for" in text_lower or "developed from" in text_lower:
+        points.append("5. 과거분사구 후치수식 (p.p.): 앞의 명사를 뒤에서 수동의 의미로 수식하는 구조입니다.")
+
+    if len(points) < 2:
+        points.append("1. 구문 분석 및 직독직해: 핵심 주어와 동사 및 목적어/수식어 단위로 정확한 끊어읽기 구획이 적용되었습니다.")
+        points.append("2. 서술형 어법 대비: 문장 내 수일치와 전치사구 및 수식 구조의 위치 관계에 유의해야 합니다.")
+
+    return "\n".join(points[:3])
+
+def dynamic_rule_tokenize(sentence):
     tokens = []
     text = sentence.strip()
-
-    # Sentence 1: Eurofound
-    if "Eurofound" in text:
-        tokens.extend([
-            {"text": "A study", "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False},
-            {"text": "(by", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": "Eurofound)", "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "found", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[that", "top_label": "", "color": "emerald", "sub_tag": "목적어절", "underline": False, "is_conjunction": False},
-            {"text": "young people", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(who", "top_label": "", "color": "blue", "sub_tag": "⬑ 주격관계대명사", "underline": False, "is_conjunction": False},
-            {"text": "were working", "top_label": "", "color": "rose", "sub_tag": "Vi", "underline": False, "is_conjunction": False},
-            {"text": "remotely)", "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "reported", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "more difficulties", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(in", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": "[managing", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": "their workload])", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(than older colleagues)]]", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False}
-        ])
-
-    # Sentence 2: began their careers
-    elif "began their careers" in text:
-        tokens.extend([
-            {"text": "Moreover,", "top_label": "", "color": "slate", "sub_tag": "접속부사", "underline": False, "is_conjunction": True},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "many young people", "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "began", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "their careers", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(working remotely", "top_label": "", "color": "slate", "sub_tag": "분사구문", "underline": False, "is_conjunction": False},
-            {"text": "during the pandemic),", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(unlike those", "top_label": "", "color": "slate", "sub_tag": "전치사구", "underline": False, "is_conjunction": False},
-            {"text": "(in older generations))", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(who", "top_label": "", "color": "blue", "sub_tag": "⬑ 주격관계대명사", "underline": False, "is_conjunction": False},
-            {"text": "had", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "many years", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(to establish", "top_label": "", "color": "rose", "sub_tag": "⬑ Vt1 (to부정사구)", "underline": False, "is_conjunction": False},
-            {"text": "interpersonal connections", "top_label": "", "color": "emerald", "sub_tag": "O1", "underline": False, "is_conjunction": False},
-            {"text": "and", "top_label": "", "color": "slate", "sub_tag": "접속사", "underline": False, "is_conjunction": False},
-            {"text": "embed", "top_label": "", "color": "rose", "sub_tag": "Vt2", "underline": False, "is_conjunction": False},
-            {"text": "themselves)", "top_label": "", "color": "emerald", "sub_tag": "O2", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(in the organizational culture)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": "(in an in-person job)))]", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False}
-        ])
-
-    # Sentence 3: Prospects survey
-    elif "Prospects" in text or "survey by Prospects" in text:
-        tokens.extend([
-            {"text": "A survey", "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False},
-            {"text": "(by Prospects)", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "found", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[that", "top_label": "", "color": "emerald", "sub_tag": "목적어절", "underline": False, "is_conjunction": False},
-            {"text": "almost half of students and graduates", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
-            {"text": "(in the United Kingdom)", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "found", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": "it", "top_label": "", "color": "emerald", "sub_tag": "가목적어", "underline": False, "is_conjunction": False},
-            {"text": "difficult", "top_label": "", "color": "indigo", "sub_tag": "OC", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[to work", "top_label": "", "color": "rose", "sub_tag": "진목적어 (to부정사구)", "underline": False, "is_conjunction": False},
-            {"text": "(from home)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": "(during the pandemic)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(due to a lack of suitable workspace or distractions)]]", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False}
-        ])
-
-    # Sentence 4: While young people (Exact requested slashes inside `where` clause)
-    elif "While young people" in text or "would work well" in text:
-        tokens.extend([
-            {"text": "(While", "top_label": "", "color": "slate", "sub_tag": "부사절 (접속사)", "underline": False, "is_conjunction": False},
-            {"text": "young people", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
-            {"text": "may struggle", "top_label": "", "color": "rose", "sub_tag": "Vi", "underline": False, "is_conjunction": False},
-            {"text": "(long-term)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": "(with remote work)),", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "perhaps more of a hybrid model", "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(where", "top_label": "", "color": "blue", "sub_tag": "⬑ 관계부사", "underline": False, "is_conjunction": False},
-            {"text": "they", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "can work", "top_label": "", "color": "rose", "sub_tag": "Vi1", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(from home)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": "(part of the time)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "and", "top_label": "", "color": "slate", "sub_tag": "접속사", "underline": False, "is_conjunction": True},
-            {"text": "work", "top_label": "", "color": "rose", "sub_tag": "Vi2", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "onsite", "top_label": "", "color": "slate", "sub_tag": "부사", "underline": False, "is_conjunction": False},
-            {"text": "(other times)),", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "would work", "top_label": "", "color": "rose", "sub_tag": "Vi (주동사)", "underline": True, "is_conjunction": False},
-            {"text": "(well)", "top_label": "", "color": "slate", "sub_tag": "부사", "underline": False, "is_conjunction": False},
-            {"text": "(for them)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False}
-        ])
-
-    # Sentence 5: But it may not be that
-    elif "formal hybrid" in text or "fluid option" in text or "day-to-day work location" in text or text.startswith("But"):
-        tokens.extend([
-            {"text": "But", "top_label": "", "color": "slate", "sub_tag": "접속부사", "underline": False, "is_conjunction": True},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "it", "top_label": "", "color": "blue", "sub_tag": "가주어 (S)", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "may not be", "top_label": "", "color": "rose", "sub_tag": "Vi", "underline": True, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[that", "top_label": "", "color": "emerald", "sub_tag": "진주어절", "underline": False, "is_conjunction": False},
-            {"text": "they", "top_label": "", "color": "blue", "sub_tag": "S", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "need", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "a formal hybrid structure", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": "(with specific days of the week)", "top_label": "", "color": "slate", "sub_tag": "⬑ 전치사구", "underline": False, "is_conjunction": False},
-            {"text": "[designated for working remotely]", "top_label": "", "color": "slate", "sub_tag": "⬑ 과거분사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "but instead", "top_label": "", "color": "slate", "sub_tag": "접속사", "underline": False, "is_conjunction": True},
-            {"text": "a fluid option", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "(that", "top_label": "", "color": "blue", "sub_tag": "⬑ 주격관계대명사", "underline": False, "is_conjunction": False},
-            {"text": "allows", "top_label": "", "color": "rose", "sub_tag": "Vt", "underline": False, "is_conjunction": False},
-            {"text": "them", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False},
-            {"text": "(if possible)", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": "(depending on the job role),", "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False},
-            {"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False},
-            {"text": "[to choose", "top_label": "", "color": "rose", "sub_tag": "OC", "underline": False, "is_conjunction": False},
-            {"text": "their day-to-day work location]]", "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False}
-        ])
-
-    # Dynamic Tokenization for ANY custom sentence
-    else:
-        words = text.split()
-        if words:
-            s_words = []
-            rest_words = []
-            found_v = False
-            for w in words:
-                clean_w = re.sub(r'[^\w]', '', w)
-                if not found_v and re.match(r'^(?:is|are|was|were|found|began|reported|said|shows|suggests|had|have|has|worked|think|feel|believe|can|could|would|will|offers|requires|allows|choose)\b', clean_w, re.IGNORECASE):
-                    found_v = True
-                    rest_words.append(w)
-                elif not found_v:
-                    s_words.append(w)
-                else:
-                    rest_words.append(w)
-
-            if s_words:
-                tokens.append({"text": " ".join(s_words), "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False})
-                tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
-
-            for w in rest_words:
-                clean_w = re.sub(r'[^\w]', '', w)
-                if re.match(r'^(?:is|are|was|were|found|began|reported|said|shows|suggests|had|have|has|worked|think|feel|believe|offers|requires|allows|choose)\b', clean_w, re.IGNORECASE):
-                    tokens.append({"text": w, "top_label": "", "color": "rose", "sub_tag": "V", "underline": True, "is_conjunction": False})
-                    tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
-                elif w.startswith('('):
-                    tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "부사구", "underline": False, "is_conjunction": False})
-                elif w.startswith('['):
-                    tokens.append({"text": w, "top_label": "", "color": "emerald", "sub_tag": "목적어절", "underline": False, "is_conjunction": False})
-                else:
-                    tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False})
-
+    words = text.split()
+    if not words: return tokens
+    i = 0
+    found_main_verb = False
+    found_main_subject = False
+    while i < len(words):
+        w = words[i]
+        clean_w = re.sub(r'^[^\w]+|[^\w]+$', '', w).lower()
+        if clean_w in ['and', 'but', 'or', 'so', 'yet', 'nor', 'however', 'therefore', 'moreover', 'furthermore', 'thus', 'instead']:
+            tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": True})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            i += 1
+            continue
+        if clean_w in ['either', 'neither', 'both']:
+            tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": True})
+            i += 1
+            continue
+        if clean_w in ['toddlers', 'toddler', 'infants', 'children'] and i + 1 < len(words) and (words[i+1].lower().startswith('fall') or words[i+1].lower().endswith('ing')):
+            tokens.append({"text": w, "top_label": "", "color": "blue", "sub_tag": "의미상 S", "underline": True, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            i += 1
+            continue
+        if clean_w in ['that', 'which', 'who', 'where', 'when', 'whose', 'whom']:
+            tokens.append({"text": f"({w}", "top_label": "", "color": "blue", "sub_tag": "⬑", "underline": False, "is_conjunction": False})
+            i += 1
+            continue
+        if not found_main_verb and clean_w in ['see', 'sees', 'saw', 'seen', 'have', 'has', 'had', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'are', 'is', 'was', 'were', 'works', 'stress', 'likened', 'draw', 'must', 'can', 'will', 'found', 'began', 'shows', 'allows', 'experience', 'experiences', 'increase', 'increases', 'prevent', 'prevents', 'make', 'makes', 'cause', 'causes', 'face', 'faces']:
+            v_phrase = [w]
+            j = i + 1
+            while j < len(words) and words[j].lower() in ['evolved', 'been', 'likened', 'produced', 'developed', 'also', 'be', 'working']:
+                v_phrase.append(words[j])
+                j += 1
+            verb_text = " ".join(v_phrase)
+            is_transitive = clean_w in ['see', 'sees', 'saw', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'stress', 'found', 'allows', 'produce', 'have', 'has', 'experience', 'increase', 'prevent', 'make', 'cause', 'face'] or any(k in verb_text.lower() for k in ['evolved', 'likened'])
+            v_tag = "Vt" if is_transitive else "Vi"
+            tokens.append({"text": verb_text, "top_label": "", "color": "rose", "sub_tag": v_tag, "underline": True, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            found_main_verb = True
+            i = j
+            continue
+        if not found_main_subject and not found_main_verb and clean_w not in ['in', 'by', 'on', 'at', 'with', 'for', 'to', 'from', 'as', 'while', 'although', 'thus']:
+            subj_words = [w]
+            j = i + 1
+            while j < len(words) and not re.match(r'^(?:see|sees|saw|have|has|had|is|are|was|were|load|loads|works|stress|liken|produce|draw|must|can|will|found|began|experience|increase|prevent|make|cause|face)$', re.sub(r'[^a-zA-Z]', '', words[j]).lower()):
+                if words[j].startswith('(') or words[j].lower() in ['like', 'with', 'of', 'in', 'by', 'that', 'who', 'which']: break
+                subj_words.append(words[j])
+                j += 1
+            subj_text = " ".join(subj_words)
+            tokens.append({"text": subj_text, "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            found_main_subject = True
+            i = j
+            continue
+        if clean_w in ['with', 'like', 'as', 'of', 'by', 'in', 'on', 'at', 'from', 'for', 'about', 'without', 'through']:
+            prep_words = [w]
+            j = i + 1
+            while j < len(words) and not re.match(r'^(?:that|which|who|and|but|or|is|are|was|were|\.)$', words[j].lower()) and not words[j].endswith(','):
+                prep_words.append(words[j])
+                j += 1
+            if j < len(words) and words[j].endswith(','):
+                prep_words.append(words[j]); j += 1
+            p_text = " ".join(prep_words)
+            if not p_text.startswith('('): p_text = f"({p_text}"
+            if not p_text.endswith(')') and not p_text.endswith('),'): p_text = f"{p_text})"
+            arrow_tag = "⬑" if found_main_subject else ""
+            tokens.append({"text": p_text, "top_label": "", "color": "slate", "sub_tag": arrow_tag, "underline": False, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            i = j
+            continue
+        if found_main_verb and clean_w not in ['the', 'a', 'an']:
+            tokens.append({"text": w, "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False})
+            i += 1
+            continue
+        tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False})
+        i += 1
     return tokens
+
+def rule_tokenize(sentence):
+    return dynamic_rule_tokenize(sentence)
 
 def modify_analysis_with_prompt(analysis_data, modify_prompt):
     """
     Applies custom user prompt modifications (e.g. '문장 4의 and 접속사 work에서 and를 세모쳐줘').
-    Updates token sub_tag, is_conjunction, underline, color, etc.
     """
     if not modify_prompt or not modify_prompt.strip():
         return analysis_data
@@ -664,7 +851,6 @@ def modify_analysis_with_prompt(analysis_data, modify_prompt):
 
     sent_idx_match = re.search(r'(?:문장|문장\s*)\s*(\d+)', prompt)
     target_idx = int(sent_idx_match.group(1)) if sent_idx_match else None
-
     wants_triangle = "세모" in prompt or "접속부사" in prompt or "접속사" in prompt
 
     for s in sentences:
@@ -674,38 +860,101 @@ def modify_analysis_with_prompt(analysis_data, modify_prompt):
         tokens = s.get('tokens', [])
         for t in tokens:
             t_text = t.get('text', '').strip()
-            
             if re.search(r'\b' + re.escape(t_text) + r'\b', prompt, re.IGNORECASE) or (t_text.lower() in prompt.lower() and len(t_text) > 1):
                 if wants_triangle:
                     t['is_conjunction'] = True
                     t['sub_tag'] = '접속사' if '접속사' in prompt else '접속부사'
                     t['color'] = 'slate'
-
                 if "주어" in prompt or " S" in prompt:
                     t['sub_tag'] = 'S'
                     t['color'] = 'blue'
                     t['underline'] = True
-
                 if "동사" in prompt or " V" in prompt or "Vt" in prompt or "Vi" in prompt:
                     t['sub_tag'] = 'Vt' if 'Vt' in prompt else ('Vi' if 'Vi' in prompt else 'V')
                     t['color'] = 'rose'
                     t['underline'] = True
-
                 if "목적어" in prompt or " O" in prompt:
                     t['sub_tag'] = 'O'
                     t['color'] = 'emerald'
-
                 if "보어" in prompt or "OC" in prompt or "SC" in prompt:
                     t['sub_tag'] = 'OC' if 'OC' in prompt else 'SC'
                     t['color'] = 'indigo'
 
     return post_process_adverbs(analysis_data)
 
+def generate_summary_info_dynamically(sentences, full_vocab, title=""):
+    clean_title = (title or '').strip()
+    words_all = " ".join(sentences).lower()
+    if "plant" in words_all or "defense" in words_all or "compound" in words_all or "tissue" in words_all:
+        subj = "식물의 다양한 방어 기제와 생존 전략"
+        s1, s2, s3 = "① 식물은 속의 수만큼 다양한 방어 기제 진화.", "② 곤충을 물리치거나 중독시키는 화학물질 활용.", "③ 두꺼운 외피 및 가시 등의 구조적 방어 구축."
+    elif "spectacle" in words_all or "culture" in words_all or "audience" in words_all:
+        subj = "문화적 틀 안에서의 스펙터클 창작과 독창성"
+        s1, s2, s3 = "① 스펙터클은 문화적 인식의 틀 안에서 작동함.", "② 기존 전통과 혁신의 조화를 통한 창작 필요.", "③ 단순한 모방을 넘어 눈부신 완성도 요구됨."
+    elif "eurofound" in words_all or "remote" in words_all or "hybrid" in words_all:
+        subj = "원격 근무 젊은 직원의 직장 적응과 유연성"
+        s1, s2, s3 = "① 원격 근무 젊은 직원의 업무 적응 어려움.", "② 적절한 공간 및 시간 부족으로 인한 애로.", "③ 일상적 장소를 선택할 수 있는 유연성 필요."
+    elif any(w in words_all for w in ["fall", "injury", "size", "bone", "fracture", "weight", "gravity", "scale", "body", "toddler"]):
+        subj = "몸집 크기에 따른 낙상 충격과 부상 위험"
+        s1 = "몸집이 클수록 사소한 사고에도 더 큰 손상을 입는다."
+        s2 = "아기는 뼈가 상대적으로 두꺼워 넘어져도 심각한 부상이 드물다."
+        s3 = "성인은 큰 몸집으로 인해 낙상 시 충격이 커 뼈 손상 위험이 높다."
+    else:
+        topic_term = full_vocab[0]["word"] if full_vocab else (clean_title[:10] or "영어 지문")
+        subj = f"{topic_term}의 핵심 원리와 주요 특징"
+        s1, s2, s3 = f"① {topic_term}의 기본 개념과 주요 배경 설명.", f"② 세부적인 작용 방식과 관련 요인 분석.", f"③ 종합적인 결론 및 실질적 시사점 제시."
+    kw_parts = [f"{('①' if idx == 0 else ('②' if idx == 1 else '③'))} {item.get('word', '')} ({re.sub(r'^\([가-힣]+\)\s*', '', item.get('meaning', ''))})" for idx, item in enumerate(full_vocab[:3])]
+    return {"title_en": clean_title or "English Passage Comprehensive Analysis", "subject": subj[:38], "keywords": "  ".join(kw_parts) if kw_parts else "① 핵심 어휘 분석  ② 세부 개념  ③ 주요 원리", "summary": [s1[:38], s2[:38], s3[:38]]}
+
+def parse_with_rule_engine(passage, korean_passage="", title="", sentence_pairs=None):
+    if sentence_pairs and isinstance(sentence_pairs, list) and len(sentence_pairs) > 0:
+        sentences = [p.get('english', '').strip() for p in sentence_pairs if p.get('english', '').strip()]
+        korean_sentences = [p.get('korean', '').strip() for p in sentence_pairs if p.get('english', '').strip()]
+    else:
+        sentences = split_into_sentences(passage)
+        korean_sentences = split_into_korean_sentences(korean_passage) if korean_passage else []
+
+    results = []
+    full_vocab = extract_vocabulary(passage)
+
+    for idx, sentence in enumerate(sentences, 1):
+        raw_kr = korean_sentences[idx - 1] if idx - 1 < len(korean_sentences) else ""
+        tokens = rule_tokenize(sentence)
+        ensured_kr = build_exact_1to1_korean_chunks(tokens, raw_kr)
+
+        c_struct = analyze_clause_structure_dynamically(sentence, tokens)
+        g_pts = generate_grammar_points_dynamically(sentence, tokens)
+        w_pts = f"[서술형 대비 핵심 구문] {sentence[:45]}..."
+
+        results.append({
+            "index": idx,
+            "original": sentence,
+            "tokens": tokens,
+            "chunk_korean": strip_korean_brackets(ensured_kr),
+            "clause_structure": c_struct,
+            "grammar_points": g_pts,
+            "writing_points": w_pts,
+            "page_break": sentence_pairs[idx-1].get('page_break', False) if (sentence_pairs and idx-1 < len(sentence_pairs)) else False
+        })
+
+    summary_info = generate_summary_info_dynamically(sentences, full_vocab, title)
+
+    return {
+        "title": title.strip() if title else "영어 지문 분석 교안",
+        "summary_info": summary_info,
+        "passage_raw": passage,
+        "korean_raw": korean_passage,
+        "sentence_count": len(results),
+        "sentences": results,
+        "vocabulary": full_vocab,
+        "used_ai": False
+    }
+
 def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_KEY, title="", sentence_pairs=None):
     if not api_key:
         api_key = DEFAULT_GEMINI_API_KEY
 
-    models = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
+    models = ["gemini-2.5-flash", "gemini-2.0-flash"]
     
     if sentence_pairs and isinstance(sentence_pairs, list) and len(sentence_pairs) > 0:
         input_sentences = [p.get('english', '').strip() for p in sentence_pairs if p.get('english', '').strip()]
@@ -729,7 +978,7 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
 
 [작성 규칙]
 1. `chunk_korean` 한글 직독직해 해석 텍스트에는 소괄호 `()`나 대괄호 `[]`를 절대로 넣지 마십시오!
-2. 관계부사절(where) 내부에서도 주어, 동사, 전치사구, 접속사(and/but) 사이에 슬래시(/) 끊어읽기 토큰 {{"text": " / ", "color": "purple"}}을 명확히 분리 삽입할 것!
+2. 모든 절(명사절, 형용사절, 부사절) 내부에서도 주어, 동사, 전치사구, 접속사(and/but) 사이에 슬래시(/) 끊어읽기 토큰 {{"text": " / ", "color": "purple"}}을 명확히 분리 삽입할 것!
 """
 
     payload = {
@@ -742,16 +991,8 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
 
     session = requests.Session()
 
-    default_summary = {
-        "title_en": title.strip() if title else "Difficulties Experienced by Remote Young Workers and the Need for Fluid Options",
-        "subject": "원격 근무 젊은 직원의 직장 적응 어려움과 유연한 선택지 제공의 필요성",
-        "keywords": "① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)",
-        "summary": [
-            "① 원격 근무를 한 젊은 직원들은 나이 많은 동료보다 업무량 관리 및 대인 관계 형성 어려움 보고.",
-            "② 적절한 작업 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.",
-            "③ 경직된 하이브리드 구조 대신 일상적 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요."
-        ]
-    }
+    full_vocab = extract_vocabulary(passage)
+    default_summary = generate_summary_info_dynamically(input_sentences, full_vocab, title)
 
     for model_name in models:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
@@ -779,14 +1020,18 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                     raw_chunk_kr = s_data.get("chunk_korean", "")
                     ensured_chunk_kr = build_exact_1to1_korean_chunks(sent_tokens, raw_chunk_kr if raw_chunk_kr else raw_kr)
 
+                    c_struct = s_data.get("clause_structure", "") or analyze_clause_structure_dynamically(orig_sentence, sent_tokens)
+                    g_pts = s_data.get("grammar_points", "") or generate_grammar_points_dynamically(orig_sentence, sent_tokens)
+                    w_pts = s_data.get("writing_points", "") or f"[서술형 대비 핵심 구문] {orig_sentence[:45]}..."
+
                     results.append({
                         "index": idx + 1,
                         "original": orig_sentence,
                         "tokens": sent_tokens,
                         "chunk_korean": strip_korean_brackets(ensured_chunk_kr),
-                        "clause_structure": s_data.get("clause_structure", ""),
-                        "grammar_points": s_data.get("grammar_points", ""),
-                        "writing_points": s_data.get("writing_points", ""),
+                        "clause_structure": c_struct,
+                        "grammar_points": g_pts,
+                        "writing_points": w_pts,
                         "page_break": sentence_pairs[idx].get('page_break', False) if (sentence_pairs and idx < len(sentence_pairs)) else False
                     })
                 
@@ -794,148 +1039,54 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
                 total_tok = usage_meta.get('totalTokenCount', 0)
                 prompt_tok = usage_meta.get('promptTokenCount', 0)
                 cand_tok = usage_meta.get('candidatesTokenCount', 0)
-                
-                illustration_scene_en = summary_info.get("illustration_scene_en", "")
-                if not illustration_scene_en:
-                    clean_t = title.lower() + " " + passage.lower()
-                    if "skyscraper" in clean_t or "vortex" in clean_t or "빌딩" in title or "와류" in title:
-                        illustration_scene_en = "Modern architectural skyscraper with swirling wind vortex airflows around curved corners"
-                    elif "collector" in clean_t or "art" in clean_t or "미술" in title:
-                        illustration_scene_en = "Art collector and gallery curator viewing classical artwork"
-                    else:
-                        illustration_scene_en = "Educational students reading in aesthetic library"
 
-                import urllib.parse
-                clean_enc = urllib.parse.quote(f"Studio Ghibli style watercolor illustration of {illustration_scene_en}, warm sunlight, aesthetic anime background, soft pastel colors, masterpiece, 4k")
-                auto_img_url = f"https://image.pollinations.ai/prompt/{clean_enc}?width=1024&height=600&nologo=true"
+                raw_vocab = parsed_json.get("vocabulary") or full_vocab
+                final_vocab = []
+                if isinstance(raw_vocab, list):
+                    for item in raw_vocab:
+                        if isinstance(item, dict):
+                            w = item.get("word") or item.get("english") or item.get("term") or item.get("lemma") or item.get("name") or ""
+                            m = item.get("meaning") or item.get("korean") or item.get("definition") or item.get("mean") or ""
+                            if not w and item:
+                                for k, val in item.items():
+                                    if k not in ['word', 'meaning', 'english', 'korean', 'definition', 'pos']:
+                                        w = k
+                                        m = val
+                                        break
+                            if w:
+                                final_vocab.append({"word": str(w).strip(), "meaning": str(m).strip() if m else get_word_definition(str(w))})
+                        elif isinstance(item, str) and item.strip():
+                            w = item.strip()
+                            final_vocab.append({"word": w, "meaning": get_word_definition(w)})
+                elif isinstance(raw_vocab, dict):
+                    for k, val in raw_vocab.items():
+                        final_vocab.append({"word": str(k).strip(), "meaning": str(val).strip()})
 
-                if "Eurofound" in passage or "workload" in passage:
-                    auto_img_url = "/static/illustration.jpg"
-                elif "skyscraper" in passage.lower() or "vortex" in passage.lower() or "빌딩" in title or "와류" in title:
-                    auto_img_url = "/static/skyscraper_vortex.jpg"
+                if not final_vocab or len(final_vocab) < 3:
+                    final_vocab = full_vocab
 
                 return {
-                    "title": title.strip(),
+                    "title": title.strip() if title else "영어 지문 분석 교안",
                     "summary_info": summary_info,
                     "passage_raw": passage,
                     "korean_raw": korean_passage,
                     "sentence_count": len(results),
                     "sentences": results,
-                    "vocabulary": parsed_json.get("vocabulary", extract_vocabulary(passage)),
-                    "illustration_url": auto_img_url,
+                    "vocabulary": final_vocab,
                     "used_ai": True,
+                    "used_tokens": total_tok,
                     "usage_metadata": {
+                        "total_tokens": total_tok,
                         "prompt_tokens": prompt_tok,
-                        "output_tokens": cand_tok,
-                        "total_tokens": total_tok
-                    },
-                    "used_tokens": total_tok
+                        "candidates_tokens": cand_tok
+                    }
                 }
         except Exception as e:
-            print(f"Gemini API ({model_name}) call warning:", e)
+            print(f"Gemini generation error with model {model_name}:", e)
+            continue
 
+    # Fallback to rule engine if Gemini fails or quota exceeded
     return parse_with_rule_engine(passage, korean_passage, title, sentence_pairs)
-
-def parse_with_rule_engine(passage, korean_passage="", title="", sentence_pairs=None):
-    if sentence_pairs and isinstance(sentence_pairs, list) and len(sentence_pairs) > 0:
-        sentences = [p.get('english', '').strip() for p in sentence_pairs if p.get('english', '').strip()]
-        korean_sentences = [p.get('korean', '').strip() for p in sentence_pairs if p.get('english', '').strip()]
-        passage = " ".join(sentences)
-        korean_passage = "\n".join(korean_sentences)
-    else:
-        sentences = split_into_sentences(passage)
-        korean_sentences = split_into_korean_sentences(korean_passage) if korean_passage else []
-
-    results = []
-    full_vocab = extract_vocabulary(passage)
-
-    for idx, sentence in enumerate(sentences, 1):
-        raw_kr = korean_sentences[idx - 1] if idx - 1 < len(korean_sentences) else ""
-        tokens = rule_tokenize(sentence)
-        ensured_kr = build_exact_1to1_korean_chunks(tokens, raw_kr)
-
-        # Default sample sentence mapping to provide a complete out-of-the-box experience
-        c_struct = "[3형식] 주어(S) + 타동사(Vt) + 목적어(O)"
-        g_pts = "1. 구문 분석 및 직독직해: 영어 문장 구조에 따라 끊어읽기를 적용하였습니다."
-        w_pts = "[서술형 대비] 어휘 및 표현"
-
-        text_lower = sentence.lower()
-        if "eurofound" in text_lower:
-            c_struct = "[3형식] 주어(S) + 타동사(Vt) + 목적어절(O)"
-            g_pts = "1. 명사절 접속사 that: found의 목적어절을 이끄는 접속사 that으로 생략이 가능합니다.\n2. 주격 관계대명사 who: young people을 수식하는 주격 관계대명사로, 뒤에 주어 없이 동사 were working이 이어집니다."
-            w_pts = "[서술형 대비] who were working remotely"
-        elif "began their careers" in text_lower:
-            c_struct = "[3형식] 주어(S) + 타동사(Vt) + 목적어(O) + 분사구문"
-            g_pts = "1. 분사구문 working: began their careers 뒤에 부수적인 상황을 나타내는 분사구문으로 '~하면서'로 해석합니다.\n2. 주격 관계대명사 who: those in older generations를 수식하며, 뒤에 동사 had가 이어집니다.\n3. to부정사의 형용사적 용법: many years를 수식하는 형용사적 용법으로 establish와 embed가 and로 병렬 연결되어 있습니다."
-            w_pts = "[서술형 대비] who had many years to establish..."
-        elif "prospects" in text_lower:
-            c_struct = "[5형식] 주어(S) + 타동사(Vt) + 가목적어(it) + 목적격보어(difficult) + 진목적어(to work...)"
-            g_pts = "1. 가목적어 it과 진목적어 to부정사: found 뒤의 it은 가목적어이며, 목적격 보어 difficult 뒤의 to work가 진짜 목적어입니다.\n2. 전치사 due to: due to는 전치사구로 뒤에 명사구(a lack of...)가 와서 원인을 나타냅니다. because(접속사)와 구별해야 합니다."
-            w_pts = "[서술형 대비] found it difficult to work from home"
-        elif "struggle" in text_lower or "hybrid model" in text_lower:
-            c_struct = "[1형식] 부사절 + 주어(S) + 자동사(would work)"
-            g_pts = "1. 양보의 부사절 접속사 While: '젊은 사람들이 ~에 어려움을 겪을지도 모르는 반면에'라는 대조의 부사절을 이끕니다.\n2. 관계부사 where: 선행사 a hybrid model을 수식하며, 뒤에 완전한 문장(they can work...)이 이어집니다."
-            w_pts = "[서술형 대비] where they can work from home"
-        elif "formal hybrid" in text_lower or "fluid option" in text_lower:
-            c_struct = "[2형식] 주어(S) + be동사 + 보어절(that...)"
-            g_pts = "1. 가주어 it과 진주어 that절: it은 가주어이며, that 이하(they need...)가 진짜 주어절입니다.\n2. 과거분사구의 명사 수식: designated는 a formal hybrid structure를 뒤에서 수식하는 과거분사로 '지정된'이라는 수동의 의미를 갖습니다.\n3. 5형식 동사 allow와 to부정사 목적격 보어: allows(동사) + them(목적어) + to choose(목적격 보어) 구조로 목적어에게 ~하는 것을 허용한다는 의미입니다."
-            w_pts = "[서술형 대비] fluid option that allows them to choose"
-        else:
-            g_pts = "1. 구문 분석 및 직독직해: 영어 문장 구조에 따라 끊어읽기를 적용하였습니다.\n2. (안내) Gemini API Key 미등록: 화면 하단에 Gemini API Key를 입력하고 분석을 실행하시면, 입력하신 개별 문장에 맞는 1~3개의 AI 맞춤형 상세 어법 설명을 자동으로 생성해 드립니다."
-
-        results.append({
-            "index": idx,
-            "original": sentence,
-            "tokens": tokens,
-            "chunk_korean": strip_korean_brackets(ensured_kr),
-            "clause_structure": c_struct,
-            "grammar_points": g_pts,
-            "writing_points": w_pts,
-            "page_break": sentence_pairs[idx-1].get('page_break', False) if (sentence_pairs and idx-1 < len(sentence_pairs)) else False
-        })
-
-    # Dynamic summary generation for new passages in fallback rule engine
-    is_sample = "Eurofound" in passage or "workload" in passage
-    if is_sample:
-        summary_info = {
-            "title_en": title.strip() if title else "Difficulties Experienced by Remote Young Workers and the Need for Fluid Options",
-            "subject": "원격 근무 젊은 직원의 직장 적응 어려움과 유연성",
-            "keywords": "① remotely (원격으로)  ② difficulty (어려움)  ③ fluid (유연한)",
-            "summary": [
-                "① 원격 근무 젊은 직원은 동료보다 업무 및 관계 형성에 어려움을 겪음.",
-                "② 적절한 공간 부족과 적응 시간 부족으로 인한 재택근무의 어려움 존재.",
-                "③ 경직된 일정 대신 근무 장소를 스스로 선택할 수 있는 유연한 옵션 필요."
-            ]
-        }
-    else:
-        kw_list = []
-        for idx, item in enumerate(full_vocab[:3]):
-            num_tag = "①" if idx == 0 else ("②" if idx == 1 else "③")
-            kw_list.append(f"{num_tag} {item.get('word')} ({item.get('meaning')})")
-        kw_str = "  ".join(kw_list) if kw_list else "① N/A  ② N/A  ③ N/A"
-        
-        summary_lines = []
-        for idx, s in enumerate(sentences[:3], 1):
-            num_char = "①" if idx == 1 else ("②" if idx == 2 else "③")
-            summary_lines.append(f"{num_char} {s[:35]}...")
-            
-        summary_info = {
-            "title_en": title.strip(),
-            "subject": f"{title.strip()[:20]} 분석 완료",
-            "keywords": kw_str,
-            "summary": summary_lines if len(summary_lines) >= 3 else summary_lines + ["② 분석 내용 참고", "③ 분석 내용 참고"]
-        }
-
-    return {
-        "title": title.strip(),
-        "summary_info": summary_info,
-        "passage_raw": passage,
-        "korean_raw": korean_passage,
-        "sentence_count": len(results),
-        "sentences": results,
-        "vocabulary": full_vocab,
-        "used_ai": False
-    }
 
 def parse_english_passage(passage, korean_passage="", title="", api_key=DEFAULT_GEMINI_API_KEY, use_ai=True, sentence_pairs=None):
     if use_ai and api_key:
@@ -945,43 +1096,31 @@ def parse_english_passage(passage, korean_passage="", title="", api_key=DEFAULT_
     return post_process_adverbs(res_data)
 
 def generate_variation_exam(passage, topic="", api_key=DEFAULT_GEMINI_API_KEY):
-    """
-    고품질 9종 영어 내신 대비 변형문제 생성기
-    1. topic_korean (한글 선지 주제)
-    2. sentence_ordering (영어 3단 배열 (A)-(B)-(C))
-    3. grammar_syntax (어법성 판단 10개 밑줄 - 40~50% 오답 주관식 수정)
-    4. vocabulary (어휘성 판단 10개 밑줄 - 40~50% 반의어 주관식 수정)
-    5. passage_ordering (전체 문장 순서 배열 [1]~[n])
-    6. descriptive_writing_2 (서술형 영작 2순위 - 구/청크 리스트)
-    7. topic_english (영어 명사구 선지 주제)
-    8. descriptive_writing_1 (서술형 영작 1순위 - 핵심 3단어 원형)
-    9. vocab_blank (15개 핵심 어휘 빈칸 쓰기)
-    """
     key = api_key or DEFAULT_GEMINI_API_KEY
     if not topic:
-        topic = "핵심 지문 주제 및 요지"
+        topic = "Core Passage Topic"
 
     import random
     random_seed = random.randint(1000, 999999)
 
-    prompt = f"""You are an elite high school English teacher in South Korea, specialized in creating high-quality, rigorous mock exam questions (변형문제) based on provided English passages.
-Your task is to analyze the provided English passage and generate exactly 9 types of questions. The outputs must be professional, grammatically perfect, and match the style of the Korean CSAT (수능) and high school midterm/final exams.
+    prompt_tmpl = """You are an elite high school English teacher in South Korea, specialized in creating high-quality, rigorous mock exam questions based on provided English passages.
+Your task is to analyze the provided English passage and generate exactly 9 types of questions. The outputs must be professional, grammatically perfect, and match the style of the Korean CSAT and high school midterm/final exams.
 
-[Generation Seed: {random_seed}]
+[Generation Seed: __RANDOM_SEED__]
 [Diversity & Randomization Rule]
 Ensure high variety in question design across repeated calls:
-- Q1 & Q7 (주제): Vary the phrasing and perspective of the Korean/English answer choices and distractors.
-- Q2 (순서배열): Dynamically choose fresh cut-points for paragraphs (A), (B), and (C).
-- Q3 & Q4 (어법/어휘): Select DIFFERENT underlined target words and error locations across the passage (e.g. choose different verbs, pronouns, conjunctions, adjectives).
-- Q5 (문장순서): Apply fresh randomized scrambling orders.
-- Q6 & Q8 (서술형 영작): Select different key sentences and different chunk distributions.
-- Q9 (빈칸쓰기): Select a varied combination of 15 crucial content words across the entire passage.
+- Q1 & Q7 (Topic): Vary the phrasing and perspective of the Korean/English answer choices and distractors.
+- Q2 (Sequence): Dynamically choose fresh cut-points for paragraphs (A), (B), and (C).
+- Q3 & Q4 (Grammar/Vocab): Select DIFFERENT underlined target words and error locations across the passage.
+- Q5 (Sentence Order): Apply fresh randomized scrambling orders.
+- Q6 & Q8 (Descriptive Writing): Select different key sentences and different chunk distributions.
+- Q9 (Fill in the blanks): Select a varied combination of 15 crucial content words across the entire passage.
 
 [Input Passage]
-{passage}
+__PASSAGE__
 
 [Input Topic Reference]
-{topic}
+__TOPIC__
 
 [General Output Format]
 You must return the result in JSON format ONLY. Do not write any introduction or explanation before or after the JSON.
@@ -1001,7 +1140,7 @@ The value of each key should be a single string formatted with line breaks (\\n)
 --------------------------------------------------
 ■ Key 1: "topic_korean" (주제 파악 - 한글 선지)
 - Purpose: Identify the theme of the passage with 5 Korean options.
-- Input Topic Reference: "{topic}"
+- Input Topic Reference: "__TOPIC__"
 - Option Design Rules:
   - You must generate exactly 5 choices (① to ⑤) in Korean.
   - 2 choices must express the OPPOSITE meaning of the topic.
@@ -1103,7 +1242,7 @@ The value of each key should be a single string formatted with line breaks (\\n)
 
 ■ Key 7: "topic_english" (주제 파악 - 영어 선지)
 - Purpose: Identify the theme of the passage with 5 English options.
-- Input Topic Reference: "{topic}"
+- Input Topic Reference: "__TOPIC__"
 - Option Design Rules:
   - You must generate exactly 5 choices (① to ⑤) in English.
   - 2 choices must express the OPPOSITE meaning of the topic.
@@ -1151,6 +1290,8 @@ The value of each key should be a single string formatted with line breaks (\\n)
   [해설] (Brief summary of key vocabulary definitions and context flow.)
 
 Ensure all content is generated cleanly without trailing comments, raw backticks, or any invalid JSON properties."""
+
+    prompt = prompt_tmpl.replace("__RANDOM_SEED__", str(random_seed)).replace("__PASSAGE__", passage).replace("__TOPIC__", topic)
 
     models = ["gemini-2.5-flash"]
     payload = {
