@@ -2383,9 +2383,9 @@ sanitizedTokens.push({
                                     rawSubTag = ''; // Show only triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
                                 }
 
-                                // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses ONLY)
-                                const isPrepositionOrWrapped = cleanWordText.startsWith('(') || cleanWordText.startsWith('[');
-                                const hasArrow = !isPrepositionOrWrapped && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
+                                // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses & Adjectival phrases)
+                                const isPrepositionOnly = cleanWordText.startsWith('(') && rawSubTag.includes('전치사');
+                                const hasArrow = !isPrepositionOnly && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
 
                                 let displaySubTag = rawSubTag
                                     .replace(/[⬑⤹⤺]/g, '')
@@ -2399,6 +2399,21 @@ sanitizedTokens.push({
                                     displaySubTag = 'O';
                                 } else if (displaySubTag.includes('진목적어')) {
                                     displaySubTag = '진목적어';
+                                }
+
+                                // Top Label (rendered ABOVE the word token for verbal structures: Vt, Vi, O, O1, O2, C, etc.)
+                                let topLabelHtml = '';
+                                const topLabel = (t.top_label || '').trim();
+                                if (topLabel && topLabel !== '△' && !isConjunctionOrAdverb) {
+                                    let topColor = 'text-slate-700';
+                                    const topClean = topLabel.toUpperCase();
+                                    if (topClean.startsWith('V')) topColor = 'text-rose-600';
+                                    else if (topClean.startsWith('O') && !topClean.startsWith('OC')) topColor = 'text-emerald-600';
+                                    else if (topClean.startsWith('OC')) topColor = 'text-purple-600';
+                                    else if (topClean.startsWith('S') && !topClean.startsWith('SC')) topColor = 'text-blue-600';
+                                    else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColor = 'text-indigo-600';
+                                    
+                                    topLabelHtml = `<span class="absolute bottom-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap text-[8.5px] font-black tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
                                 }
 
                                 // Word Display (Overlay SVG triangle directly over conjunction word)
@@ -2438,7 +2453,8 @@ sanitizedTokens.push({
                                 }
 
                                 pageHtml += `
-                                    <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
+                                    <div class="relative inline-block text-center align-baseline my-2 px-0.5 mx-0.5">
+                                        ${topLabelHtml}
                                         ${wordDisplayHtml}
                                         ${subTagHtml}
                                     </div>

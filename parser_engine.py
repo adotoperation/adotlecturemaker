@@ -290,13 +290,12 @@ def post_process_coordinating_conjunction_numbering(analysis_data):
                         if right_match.get('top_label') == cat: right_match['top_label'] = f"{cat}2"
 
         # Verbal syntax tagging enhancement
-        # E.g. To minimize building costs -> minimize gets top_label: Vt, building costs gets top_label: O
+        # E.g. [to maintain (sub_tag: O, top_label: Vt) / an object (top_label: O1) / or (△) / system (top_label: O2)]
         for i, t in enumerate(tokens):
             txt = t.get('text', '').strip()
             sub = t.get('sub_tag', '')
             top = t.get('top_label', '')
             
-            # Check for infinitive / gerund / participle verbals
             clean_txt = re.sub(r'^[\[\(]+|[\]\),]+$', '', txt).strip().lower()
             is_verbal_head = (
                 (clean_txt.startswith('to ') or clean_txt.endswith('ing') or clean_txt.endswith('ed') or
@@ -304,25 +303,31 @@ def post_process_coordinating_conjunction_numbering(analysis_data):
                 not t.get('underline') and not sub.startswith('V') and not sub.startswith('S') and not t.get('is_conjunction')
             )
 
-            if is_verbal_head and not top:
-                if any(clean_txt.endswith(sfx) for sfx in ['ing', 'ed']) or clean_txt.startswith('to '):
-                    # Check next token for object
+            if is_verbal_head:
+                if not top:
+                    # Determine if transitive or intransitive
                     next_tok = tokens[i+1] if i+1 < len(tokens) else None
                     if next_tok and next_tok.get('text', '').strip() not in ['/', '//'] and not next_tok.get('sub_tag', '').startswith('V'):
                         t['top_label'] = 'Vt'
-                        if not next_tok.get('top_label') and not next_tok.get('sub_tag'):
-                            next_tok['top_label'] = 'O'
                     else:
                         t['top_label'] = 'Vi'
 
-                # Next token might be the object of the verbal
-                if i + 1 < len(tokens):
-                    next_t = tokens[i + 1]
-                    next_txt = next_t.get('text', '').strip()
-                    if not next_t.get('top_label') and not next_t.get('sub_tag') and next_txt and not next_txt.startswith('(') and next_txt != '/':
-                        next_t['top_label'] = 'O'
-                        if not next_t.get('color') or next_t.get('color') == 'slate':
-                            next_t['color'] = 'emerald'
+                # If this verbal is inside a bracketed noun phrase or has sub_tag 'O', ensure its object tokens have top_label: 'O'
+                if sub == 'O' or txt.startswith('['):
+                    j = i + 1
+                    while j < len(tokens) and j < i + 6:
+                        tok = tokens[j]
+                        t_txt = tok.get('text', '').strip()
+                        if t_txt in ['/', '//'] or tok.get('is_conjunction'):
+                            j += 1
+                            continue
+                        if tok.get('underline') or tok.get('sub_tag', '').startswith('V') or t_txt.startswith('('):
+                            break
+                        if not tok.get('top_label') and not tok.get('sub_tag'):
+                            tok['top_label'] = 'O'
+                            if not tok.get('color') or tok.get('color') == 'slate':
+                                tok['color'] = 'emerald'
+                        j += 1
 
     return analysis_data
 
@@ -349,7 +354,10 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 2. **자동사/타동사**: `sub_tag: "Vi"` / `"Vt"`, `color: "rose"`, 주절인 경우 `underline: true`
 3. **보어/목적어**: `sub_tag: "SC"`/`"OC"` (`color: "purple"`), `sub_tag: "O"`/`"IO"`/`"DO"` (`color: "emerald"`). (목적어절은 '목적어절' 대신 오직 `"O"`로 표기합니다!)
 4. **[등위접속사 병렬구조 넘버링 규칙]**: 등위접속사(and, but, or, so 등)로 주어, 동사, 목적어, 보어가 2개 이상 연결될 경우, 반드시 `S1, S2`, `V1, V2` (`Vt1, Vt2`, `Vi1, Vi2`), `O1, O2`, `SC1, SC2`, `OC1, OC2` 와 같이 숫자를 붙여 작성하십시오!
-5. **[준동사 문장기호 규칙]**: to부정사, 동명사, 현재분사, 과거분사, 분사구문 등 준동사구 내의 서술어 성분에는 `top_label: "Vt"` (또는 `"Vi"`), 목적어/보어 성분에는 `top_label: "O"` (또는 `"C"`)를 단어 위에 표시할 수 있도록 `top_label` 필드를 작성하십시오! (예: `To minimize` ➔ `top_label: "Vt"`, `building costs` ➔ `top_label: "O"`)
+5. **[준동사구 (명사구/형용사구/부사구) 괄호, 화살표, 상단 문장형식(top_label) 정밀 규칙]**:
+   - **명사구 준동사구 (주어, 목적어, 보어)**: 대괄호 `[ ... ]` 로 묶고, 대괄호 시작 `[` 밑(`sub_tag`)에 `O`(또는 `S`, `C`, `진목적어`) 표기. 준동사 단어 위에는 `top_label: "Vt"` (또는 `"Vi"`), 목적어/보어 위에는 `top_label: "O"` (병렬 시 `top_label: "O1"`, `"O2"`) 표기. (예: `[to maintain` (하단: `O`, 상단: `Vt`) `/ an object` (상단: `O1`) `/ or` (세모) `/ system insofar]` (상단: `O2`))
+   - **형용사구 준동사구 (명사 후치수식)**: 소괄호 `( ... )` 로 묶고, 소괄호 `(` 밑에 수식 화살표 `⬑` 표기. 준동사 단어 위에는 `top_label: "Vt"`/`"Vi"`, 목적어 위에는 `top_label: "O"` 표기. (예: `spaces (designated` (하단: `⬑`, 상단: `Vt`) `/ for working remotely)`)
+   - **부사구 준동사구 (목적, 원인, 결과, 분사구문 등)**: 소괄호 `( ... )` 로 묶고, 화살표 없이 깔끔한 소괄호 유지. 준동사 단어 위에는 `top_label: "Vt"`/`"Vi"`, 목적어 위에는 `top_label: "O"` 표기. (예: `(to protect` (상단: `Vt`) `/ their crops` (상단: `O`))`)
 
 [★필수 작성 규칙 5: 세모(△) 기호 적용 대상 규정 (접속부사, 등위접속사, 상관접속사만 허용!)★]
 - **세모(△, is_conjunction: true)가 적용되는 단어는 오직 아래 3가지 범주뿐입니다**:
@@ -845,14 +853,15 @@ def dynamic_rule_tokenize(sentence):
             tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
             i = j
             continue
-        if not found_main_verb and clean_w in ['see', 'sees', 'saw', 'seen', 'have', 'has', 'had', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'are', 'is', 'was', 'were', 'works', 'stress', 'likened', 'draw', 'must', 'can', 'will', 'may', 'might', 'could', 'should', 'shall', 'found', 'began', 'shows', 'allows', 'experience', 'experiences', 'increase', 'increases', 'prevent', 'prevents', 'make', 'makes', 'cause', 'causes', 'face', 'faces']:
+        VERB_REGEX = r'^(?:see|sees|saw|seen|have|has|had|is|are|was|were|load|loads|loaded|works|worked|stress|stressed|liken|likened|produce|produced|draw|drew|must|can|may|might|could|should|shall|will|would|find|finds|found|began|begin|begins|experience|experiences|experienced|increase|increases|increased|prevent|prevents|prevented|make|makes|made|cause|causes|caused|face|faces|faced|decide|decides|decided|create|creates|created|spray|sprays|sprayed|want|wants|wanted|need|needs|needed|maintain|maintains|maintained|protect|protects|protected|deploy|deploys|deployed|allow|allows|allowed|struggle|struggles|struggled|offer|offers|offered|require|requires|required)$'
+        if not found_main_verb and (re.match(VERB_REGEX, clean_w) or clean_w.endswith('ed')):
             v_phrase = [w]
             j = i + 1
             while j < len(words) and words[j].lower() in ['evolved', 'been', 'likened', 'produced', 'developed', 'also', 'be', 'working', 'prevent', 'prevents', 'feed', 'feeding', 'experience', 'increase', 'make', 'cause', 'face', 'load']:
                 v_phrase.append(words[j])
                 j += 1
             verb_text = " ".join(v_phrase)
-            is_transitive = clean_w in ['see', 'sees', 'saw', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'stress', 'found', 'allows', 'produce', 'experience', 'increase', 'prevent', 'prevents', 'make', 'cause', 'face'] or any(k in verb_text.lower() for k in ['prevent', 'produce', 'load', 'repel', 'intoxicate', 'make', 'cause', 'face', 'experience']) or (clean_w in ['have', 'has', 'had'] and not any(k in verb_text.lower() for k in ['been', 'worked', 'evolved', 'likened']))
+            is_transitive = clean_w not in ['evolve', 'evolved', 'work', 'worked', 'been', 'be', 'struggle', 'struggled']
             v_tag = "Vt" if is_transitive else "Vi"
             tokens.append({"text": verb_text, "top_label": "", "color": "rose", "sub_tag": v_tag, "underline": True, "is_conjunction": False})
             tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
@@ -862,7 +871,7 @@ def dynamic_rule_tokenize(sentence):
         if not found_main_subject and not found_main_verb and clean_w not in ['in', 'by', 'on', 'at', 'with', 'for', 'to', 'from', 'as', 'while', 'although', 'thus', 'since', 'ever', 'during', 'before', 'after']:
             subj_words = [w]
             j = i + 1
-            while j < len(words) and not re.match(r'^(?:see|sees|saw|have|has|had|is|are|was|were|load|loads|works|stress|liken|produce|draw|must|can|will|found|began|experience|increase|prevent|make|cause|face)$', re.sub(r'[^a-zA-Z]', '', words[j]).lower()):
+            while j < len(words) and not re.match(VERB_REGEX, re.sub(r'[^a-zA-Z]', '', words[j]).lower()) and not words[j].lower().endswith('ed'):
                 if words[j].startswith('(') or words[j].lower() in ['like', 'with', 'of', 'in', 'by', 'that', 'who', 'which', 'and', 'or', 'but']: break
                 subj_words.append(words[j])
                 j += 1
