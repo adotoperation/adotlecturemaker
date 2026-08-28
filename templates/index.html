@@ -2346,22 +2346,23 @@ sanitizedTokens.push({
                         sanitizedTokens.forEach((t) => {
                             if (t.text && t.text.trim() === '/') {
                                 pageHtml += `
-                                    <span class="inline-block px-[2px] mx-[2px] text-purple-600 font-black text-xs select-none self-center leading-none">/</span>
+                                    <span class="inline-block px-1 text-purple-600 font-black text-sm select-none self-center">/</span>
                                 `;
                             } else {
                                 let tagColor = t.color || 'slate';
                                 const subTagClean = (t.sub_tag || '').toUpperCase();
-                                const topTagClean = (t.top_label || '').toUpperCase();
 
-                                if ((subTagClean.startsWith('S') && !subTagClean.includes('전치사')) || topTagClean.startsWith('S')) {
+                                if (subTagClean.includes('의미상')) {
                                     tagColor = 'blue';
-                                } else if (subTagClean.startsWith('VI') || subTagClean.startsWith('VT') || (subTagClean.startsWith('V') && !subTagClean.includes('부사구')) || topTagClean.startsWith('V')) {
+                                } else if (subTagClean.startsWith('S') && !subTagClean.includes('전치사')) {
+                                    tagColor = 'blue';
+                                } else if (subTagClean.startsWith('VI') || subTagClean.startsWith('VT') || (subTagClean.startsWith('V') && !subTagClean.includes('부사구'))) {
                                     tagColor = 'rose';
-                                } else if (subTagClean.startsWith('OC') || topTagClean.startsWith('OC')) {
-                                    tagColor = 'purple'; // OC gets distinct purple!
-                                } else if (subTagClean.startsWith('O') || subTagClean.startsWith('IO') || subTagClean.startsWith('DO') || subTagClean.includes('가목적어') || subTagClean.includes('진목적어') || topTagClean.startsWith('O')) {
+                                } else if (subTagClean.startsWith('OC')) {
+                                    tagColor = 'purple';
+                                } else if (subTagClean.startsWith('O') || subTagClean.startsWith('IO') || subTagClean.startsWith('DO') || subTagClean.includes('가목적어') || subTagClean.includes('진목적어')) {
                                     tagColor = 'emerald';
-                                } else if (subTagClean.startsWith('SC') || subTagClean.startsWith('SC') || subTagClean.startsWith('C') || topTagClean.startsWith('C')) {
+                                } else if (subTagClean.startsWith('SC') || subTagClean.startsWith('C')) {
                                     tagColor = 'indigo';
                                 }
 
@@ -2372,18 +2373,17 @@ sanitizedTokens.push({
                                 const textClean = cleanWordText.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 let isConjunctionOrAdverb = false;
                                 
-                                // Triangle applies ONLY if strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
-                                if ((pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && (t.sub_tag.includes('접속사') || t.sub_tag.includes('접속부사'))))) || t.top_label === '△') {
+                                // Triangle SVG applies ONLY if strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
+                                if (pureConjunctions.includes(textClean) && (t.is_conjunction === true || (t.sub_tag && (t.sub_tag.includes('접속사') || t.sub_tag.includes('접속부사'))))) {
                                     isConjunctionOrAdverb = true;
                                 }
 
                                 let rawSubTag = (t.sub_tag || '').trim();
                                 if (isConjunctionOrAdverb) {
-                                    rawSubTag = ''; // Show only top triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
+                                    rawSubTag = ''; // Show only triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
                                 }
 
                                 // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses ONLY)
-                                // Prepositional phrases (enclosed in '(') must NEVER get arrow!
                                 const isPrepositionOrWrapped = cleanWordText.startsWith('(') || cleanWordText.startsWith('[');
                                 const hasArrow = !isPrepositionOrWrapped && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
 
@@ -2401,44 +2401,29 @@ sanitizedTokens.push({
                                     displaySubTag = '진목적어';
                                 }
 
-                                // Top Label (rendered ABOVE the word token for verbals: Vt/Vi/O/C, but NOT for conjunctions)
-                                const topLabel = t.top_label || '';
-                                let topColorClass = 'text-slate-900';
-                                const topClean = topLabel.toUpperCase();
-                                if (topClean.startsWith('S')) topColorClass = 'text-blue-600';
-                                else if (topClean.startsWith('V')) topColorClass = 'text-rose-600';
-                                else if (topClean.startsWith('OC')) topColorClass = 'text-purple-600';
-                                else if (topClean.startsWith('O')) topColorClass = 'text-emerald-600';
-                                else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColorClass = 'text-indigo-600';
-
-                                // Word Display (Overlay triangle directly over conjunction word)
+                                // Word Display (Overlay SVG triangle directly over conjunction word)
                                 let wordDisplayHtml = '';
-                                if (isConjunctionOrAdverb || topLabel === '△') {
+                                if (isConjunctionOrAdverb) {
                                     wordDisplayHtml = `
-                                        <span class="relative inline-flex items-center justify-center px-1">
-                                            <span class="text-[10pt] font-black font-outfit ${colorClass} ${hasUnderline} tracking-normal whitespace-nowrap leading-tight relative z-10">${cleanWordText}</span>
-                                            <span class="absolute inset-0 flex items-center justify-center text-[24px] font-black text-sky-500/80 select-none pointer-events-none -translate-y-[2px] leading-none z-0">△</span>
-                                        </span>
+                                        <div class="relative inline-block px-1 py-0 align-middle">
+                                            <svg class="absolute inset-x-0 top-0 bottom-0 h-[75%] my-auto w-full text-sky-500 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                                <polygon points="50,4 96,94 4,94" fill="none" stroke="#0284c7" stroke-width="3.5"/>
+                                            </svg>
+                                            <span class="relative z-10 text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5 leading-none">${cleanWordText.replace(/ /g, '&nbsp;')}</span>
+                                        </div>
                                     `;
                                 } else {
-                                    wordDisplayHtml = `<span class="text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} tracking-normal whitespace-nowrap leading-tight">${cleanWordText}</span>`;
-                                }
-
-                                let topLabelHtml = '';
-                                if (topLabel && topLabel !== '△' && !isConjunctionOrAdverb) {
-                                    topLabelHtml = `<span class="absolute bottom-[100%] pb-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] font-black tracking-tight ${topColorClass} pointer-events-none">${topLabel}</span>`;
+                                    wordDisplayHtml = `<span class="text-[11pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${cleanWordText.replace(/ /g, '&nbsp;')}</span>`;
                                 }
 
                                 // Sub Tag (rendered BELOW the word token)
-                                // Point 2: ⬑ arrow positioned directly under ( character with clear spacing (no overlap)
                                 let subTagHtml = '';
-
                                 if (displaySubTag || hasArrow) {
                                     if (hasArrow) {
                                         const cleanTagText = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
                                         const labelPart = cleanTagText ? `<span class="ml-0.5 text-[8.5px] font-black">${cleanTagText}</span>` : '';
                                         subTagHtml = `
-                                            <span class="absolute top-[100%] pt-0.5 left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
+                                            <span class="absolute top-[105%] left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
                                                 <span class="text-[12px] font-black leading-none text-indigo-600">⬑</span>
                                                 ${labelPart}
                                             </span>
@@ -2446,15 +2431,14 @@ sanitizedTokens.push({
                                     } else if (displaySubTag) {
                                         const cleanTag = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
                                         const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
-                                        const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : colorClass.split(' ')[0];
-                                        const tagSizeClass = cleanTag === '의미상 S' ? 'text-[8.5px] font-black' : (isVerbal ? 'text-[8.5px] font-black' : 'text-[9.5px] font-black');
-                                        subTagHtml = `<span class="absolute top-[100%] pt-0.5 left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
+                                        const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : (colorClasses[tagColor] || colorClass).split(' ')[0];
+                                        const tagSizeClass = cleanTag === '의미상 S' ? 'text-[8.5px] font-black' : (isVerbal ? 'text-[9px] font-black' : 'text-[10px] font-black');
+                                        subTagHtml = `<span class="absolute top-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
                                     }
                                 }
 
                                 pageHtml += `
-                                    <div class="relative inline-flex items-center justify-center my-2 mx-[2px] px-[1px]">
-                                        ${topLabelHtml}
+                                    <div class="relative inline-block text-center align-baseline my-1.5 px-0.5 mx-0.5">
                                         ${wordDisplayHtml}
                                         ${subTagHtml}
                                     </div>
@@ -2462,7 +2446,7 @@ sanitizedTokens.push({
                             }
                         });
                     } else {
-                        pageHtml += `<span class="text-[10pt] font-bold text-slate-800">${s.original}</span>`;
+                        pageHtml += `<span class="text-[11pt] font-bold text-slate-800">${s.original}</span>`;
                     }
 
                     pageHtml += '</div>'; // End token list

@@ -111,9 +111,7 @@ def post_process_adverbs(analysis_data):
         found_subject = False
         
         for t in tokens:
-            # Preserve top_label if set, otherwise default to empty string
-            if 'top_label' not in t:
-                t['top_label'] = ""
+            t['top_label'] = ""
             sub_tag = t.get('sub_tag', '')
             text = t.get('text', '').strip()
             
