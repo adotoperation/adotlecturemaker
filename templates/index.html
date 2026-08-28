@@ -959,7 +959,7 @@
                                     <!-- 3단 정리 -->
                                     <div class="grid grid-cols-12 gap-3 items-start pt-1">
                                         <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs pt-0.5 text-left">3단 정리</div>
-                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-3 text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed flex flex-col items-start justify-start text-left"></div>
+                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-3 text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed flex flex-col items-center justify-center text-center"></div>
                                     </div>
 
                                 </div>
@@ -2169,18 +2169,18 @@
 
             summaryPoints.innerHTML = '';
             const summaryList = sInfo.summary || [
-                '몸집이 클수록 사소한 사고에도 더 큰 손상을 입는다.',
-                '아기는 뼈가 상대적으로 두꺼워 넘어져도 심각한 부상이 드물다.',
-                '성인은 큰 몸집으로 인해 낙상 시 충격이 커 뼈 손상 위험이 높다.'
+                '보존과 보전은 유사하나 초기 계몽주의부터 밀접히 관련됨.',
+                '보전은 복원을, 보존은 원형 유지를 중시하며 구별됨.',
+                '보존주의자는 최소 개입으로 원본 상태 보호를 선호.'
             ];
 
             summaryList.forEach((pt, idx) => {
                 const cleanPt = pt.replace(/^[①②③④⑤\d\.\s\-\➔\→]+/, '').trim();
                 const pEl = document.createElement('div');
-                pEl.className = "flex items-start justify-start gap-2 text-left w-full";
+                pEl.className = "flex items-center justify-center gap-1.5 text-center w-full";
                 pEl.innerHTML = `
-                    <span class="w-4 h-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">${idx + 1}</span>
-                    <span class="text-left font-semibold text-slate-900 text-[11px] sm:text-xs leading-relaxed flex-1">${cleanPt}</span>
+                    <span class="w-4 h-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-black shrink-0">${idx + 1}</span>
+                    <span class="text-center font-semibold text-slate-900 text-[11px] sm:text-xs leading-relaxed">${cleanPt}</span>
                 `;
                 summaryPoints.appendChild(pEl);
             });

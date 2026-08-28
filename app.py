@@ -343,32 +343,46 @@ def generate_illustration_sync(title, topic, keywords, summary, passage, branch=
     english_scene = scene_en.strip() if scene_en else ""
     if not english_scene and api_key:
         try:
-            prompt_trans = f"""You are a master concept artist and visual director for Studio Ghibli style educational animations.
-Based on the following high school English reading passage, subject, and summary:
-{combined_context}
+            prompt_trans = f"""[System Role]
+You are an expert AI prompt engineer specialized in Studio Ghibli illustration styles for educational textbooks.
+When given a Lesson Topic and a 3-Step Summary, analyze them to extract the core historical/scientific context, and generate a single descriptive English image prompt.
 
-Task:
-Create a rich, vivid, narrative English scene description (50~80 words) for a Studio Ghibli watercolor and pencil illustration that visually dramatizes the passage's core concept into a whimsical, charming fairytale storybook scene.
+[Strict Constraints for Output]
+1. Style: Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, cozy atmosphere.
+2. Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
+3. Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
 
-Structure your scene description with:
-1. Setting & Environment: Detailed lush natural or architectural setting with rich atmospheric elements (e.g. moss, ferns, wildflowers, ancient canopy trees, warm sunbeams filtering through leaves, or cozy atmospheric retro interiors).
-2. Characters & Visual Metaphor: Specific expressive characters (animals or humans) acting out the core concept through concrete physical actions, gestures, and relatable expressions.
-3. Lighting & Art Style: Soft warm sunlight, hand-painted watercolor textures, colored pencil linework, magical peaceful fairytale atmosphere.
+[Input Data]
+Lesson Topic: {topic}
+Title: {title}
+Keywords: {keywords}
+3-Step Summary:
+{summary}
+Reading Passage:
+{passage[:400]}
 
-Rules:
-- Strictly NO speech bubbles, NO dialogue balloons, NO text, NO words, NO letters, NO watermark.
-- Output ONLY the detailed English scene description without any introductory or conversational text."""
-            url_text = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-            resp = requests.post(url_text, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=8)
-            if resp.status_code == 200:
-                english_scene = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
-                english_scene = re.sub(r'[\r\n"]+', ' ', english_scene).strip()
+[Task]
+Generate a single descriptive, self-contained English image prompt that follows all constraints. Output ONLY the English prompt string without any introductory or conversational text."""
+
+            for model_cand in ["gemini-3.7-flash", "gemini-2.5-flash"]:
+                try:
+                    url_text = f"https://generativelanguage.googleapis.com/v1beta/models/{model_cand}:generateContent?key={api_key}"
+                    resp = requests.post(url_text, json={"contents": [{"parts": [{"text": prompt_trans}]}]}, timeout=10)
+                    if resp.status_code == 200:
+                        english_scene = resp.json()['candidates'][0]['content']['parts'][0]['text'].strip()
+                        english_scene = re.sub(r'[\r\n"]+', ' ', english_scene).strip()
+                        if english_scene:
+                            break
+                except Exception as cand_e:
+                    print(f"[generate_illustration_sync] Model {model_cand} try error:", cand_e)
         except Exception as e:
             print("[generate_illustration_sync] Scene description warning:", e)
 
     if not english_scene:
         clean_t = re.sub(r'[\d년월고호번\-]+', '', f"{topic} {summary} {title}").strip()
-        if any(w in clean_t.lower() for w in ["몸집", "낙상", "부상", "뼈", "골절", "충격", "성인", "사고", "체격", "아기", "fall", "injury", "size", "bone", "scale", "fracture", "weight", "gravity", "biological", "physics", "toddler", "bear", "squirrel"]):
+        if any(w in clean_t.lower() for w in ["보존", "보전", "복원", "원형", "계몽주의", "유물", "역사", "유산", "conservation", "preservation", "restoration", "enlightenment", "heritage", "monument", "historic"]):
+            english_scene = "An archivist and historical conservator gently restoring ancient manuscripts and classical stone artifacts inside a sunlit 18th-century library workshop with tall arched windows, soft pastel tones, warm golden hour sunlight, cozy scholarly atmosphere"
+        elif any(w in clean_t.lower() for w in ["몸집", "낙상", "부상", "뼈", "골절", "충격", "성인", "사고", "체격", "아기", "fall", "injury", "size", "bone", "scale", "fracture", "weight", "gravity", "biological", "physics", "toddler", "bear", "squirrel"]):
             english_scene = "In a deep lush ancient forest along a winding dirt path filled with moss and wildflowers, a comical scene unfolds where a large brown bear wearing a scarf clumsily slips backward landing with a thud and a surprised grimace, while a tiny nimble red squirrel happily completes a light tumble-roll landing safely unharmed in soft dappled sunlight"
         elif any(w in clean_t.lower() for w in ["식물", "방어", "곤충", "공진화", "화합물", "가시", "plant", "insect", "defense", "predator", "toxin"]):
             english_scene = "In a vibrant magical sunlit botanical greenhouse filled with ancient ferns and moss, exotic lush plants deploy natural defensive mechanisms with waxy dew-covered leaves and protective thorns, as colorful curious beetles gently flutter around under warm golden sunbeams"
@@ -383,7 +397,7 @@ Rules:
         else:
             english_scene = f"A whimsical fairytale scene representing {clean_t[:25]} with soft dappled sunlight and lush nature"
 
-    ghibli_prompt = f"Studio Ghibli style watercolor and colored pencil illustration. {english_scene}. Soft warm sunlight filtering through, magical peaceful atmosphere, detailed hand-painted texture, pure artwork with absolutely no speech bubbles, no dialog bubbles, no text, no words, no letters, no watermark, masterpiece, 4k"
+    ghibli_prompt = f"Studio Ghibli style watercolor and colored pencil illustration. {english_scene}. Soft warm sunlight filtering through, magical peaceful atmosphere, detailed hand-drawn textures, soft pastel tones, cozy atmosphere, pure artwork with absolutely no text, no speech bubbles, no words, no letters, no labels, no watermark, masterpiece, 4k"
 
     saved_path = None
     if api_key:

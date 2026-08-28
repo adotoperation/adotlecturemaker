@@ -894,6 +894,11 @@ def generate_summary_info_dynamically(sentences, full_vocab, title=""):
     elif "eurofound" in words_all or "remote" in words_all or "hybrid" in words_all:
         subj = "원격 근무 젊은 직원의 직장 적응과 유연성"
         s1, s2, s3 = "① 원격 근무 젊은 직원의 업무 적응 어려움.", "② 적절한 공간 및 시간 부족으로 인한 애로.", "③ 일상적 장소를 선택할 수 있는 유연성 필요."
+    elif any(w in words_all for w in ["conservation", "preservation", "restoration", "enlightenment", "monument", "historic", "preserve", "conserve", "보존", "보전", "복원"]):
+        subj = "보존과 보전의 개념적 차이와 역사적 발전"
+        s1 = "보존과 보전은 유사하나 초기 계몽주의부터 밀접히 관련됨."
+        s2 = "보전은 복원을, 보존은 원형 유지를 중시하며 구별됨."
+        s3 = "보존주의자는 최소 개입으로 원본 상태 보호를 선호."
     elif any(w in words_all for w in ["fall", "injury", "size", "bone", "fracture", "weight", "gravity", "scale", "body", "toddler"]):
         subj = "몸집 크기에 따른 낙상 충격과 부상 위험"
         s1 = "몸집이 클수록 사소한 사고에도 더 큰 손상을 입는다."
@@ -954,7 +959,7 @@ def analyze_with_gemini(passage, korean_passage="", api_key=DEFAULT_GEMINI_API_K
     if not api_key:
         api_key = DEFAULT_GEMINI_API_KEY
 
-    models = ["gemini-2.5-flash", "gemini-2.0-flash"]
+    models = ["gemini-3.7-flash", "gemini-2.5-flash", "gemini-2.0-flash"]
     
     if sentence_pairs and isinstance(sentence_pairs, list) and len(sentence_pairs) > 0:
         input_sentences = [p.get('english', '').strip() for p in sentence_pairs if p.get('english', '').strip()]

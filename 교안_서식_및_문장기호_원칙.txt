@@ -1,37 +1,35 @@
 ========================================================================================
 [에이닷 위브 (A. WEAVE) AI 삽화 및 교안 서식 표준 규정]
-버전: 1.4 (영구 보존 표준 규정)
+버전: 1.5 (영구 보존 표준 규정)
 ========================================================================================
 
-■ [AI 삽화 생성 표준 및 프롬프트 작성 규정]
-1. 화풍 스타일:
-   - 스튜디오 지브리 스타일의 수채화 및 연필 일러스트레이션 (Studio Ghibli style watercolor and colored pencil illustration)
-   - 손으로 그린 섬세한 질감(Hand-painted watercolor texture), 부드럽고 따뜻한 햇살(Soft warm sunlight filtering through), 마법 같은 동화적 분위기(Magical fairytale atmosphere).
-2. 장면 구성 원칙 (지문별 동적 맞춤 생성):
-   - 지문의 핵심 주제와 비유적 스토리를 구체적이고 생동감 있는 동화적 상황으로 시각화.
-   - [예시 (몸집 크기와 낙상 충격 지문)]:
-     '스튜디오 지브리 스타일의 수채화 및 연필 일러스트레이션. 깊고 무성한 고대 숲 속 구불구불한 흙길에서, 스카프를 멘 덩치 큰 갈색 곰이 경사면에서 뒤로 미끄러져 엉덩방아를 찧으며 울상을 짓고 있고, 바로 오른쪽에서는 훨씬 작고 날렵한 붉은 다람쥐가 기뻐하며 착지 굴르기를 성공적으로 마치고 있음. 부드럽고 따뜻한 햇살이 나뭇잎 사이로 비치며 섬세한 손그림 질감이 살아있음.'
-3. 절대 금지 항목 (엄격 준수):
-   - 말풍선(Speech/Dialogue bubbles, 'Oof!', 'Whee!' 등) 일절 금지.
-   - 문자, 알파벳, 한글, 단어, 텍스트 배너, 워터마크 일절 금지 (100% 순수 아트워크).
-   - 토토로 등 특정 저작권 캐릭터 삽입 금지.
+■ [AI 삽화 생성 시스템 표준 (Gemini 3.7 Flash 적용)]
+1. AI 프롬프트 엔진 역할 [System Role]:
+   - You are an expert AI prompt engineer specialized in Studio Ghibli illustration styles for educational textbooks.
+   - When given a Lesson Topic and a 3-Step Summary, analyze them to extract the core historical/scientific context, and generate a single descriptive English image prompt.
+2. 엄격한 출력 제약조건 [Strict Constraints for Output]:
+   가. Style: Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, cozy atmosphere.
+   나. Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
+   다. Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
+3. 프롬프트 생성 모델:
+   - Google Gemini 3.7 Flash (gemini-3.7-flash) 우선 적용 (안정적 백업: gemini-2.5-flash).
 
 ----------------------------------------------------------------------------------------
 ■ [지문 핵심 정리 3단 내용 정리 및 핵심어휘 서식]
-1. 3단 정리 서식:
-   - [화살표 없음]: 단계 간 화살표(↓)를 일절 넣지 않음.
-   - [왼쪽 정렬]: 모든 내용 항목은 번호 뱃지와 함께 [왼쪽 정렬]로 배치.
-   - [엔터 간격]: 각 항목 간에는 엔터를 한번 친 것과 같은 여유 있는 상하 간격(space-y-3)을 적용.
+1. 3단 정리 레이아웃:
+   - [좌측 타이틀 레이블]: '3단 정리' 레이블은 [왼쪽 정렬(text-left)].
+   - [우측 3단 내용]: 3개 내용 항목은 모두 [가운데 정렬(text-center, items-center, justify-center)].
+   - [화살표 없음]: 단계 간 하향 화살표(↓)를 일절 넣지 않음.
+   - [엔터 간격]: 각 항목 사이에는 엔터를 한 번 친 것과 같은 상하 간격(space-y-3)을 적용.
    - [서식 예시]:
-     [1] 몸집이 클수록 사소한 사고에도 더 큰 손상을 입는다.
+     3단 정리    1 보존과 보전은 유사하나 초기 계몽주의부터 밀접히 관련됨.
 
-     [2] 아기는 뼈가 상대적으로 두꺼워 넘어져도 심각한 부상이 드물다.
+                 2 보전은 복원을, 보존은 원형 유지를 중시하며 구별됨.
 
-     [3] 성인은 큰 몸집으로 인해 낙상 시 충격이 커 뼈 손상 위험이 높다.
+                 3 보존주의자는 최소 개입으로 원본 상태 보호를 선호.
 
 2. 핵심 어휘 표기:
    - 반드시 '① 영어단어 (한글 뜻)  ② 영어단어 (한글 뜻)  ③ 영어단어 (한글 뜻)' 형식으로 출력.
-   - 예시: ① size (몸집)  ② injury (부상)  ③ fall (낙상)
 
 ----------------------------------------------------------------------------------------
 ■ [문장기호 및 구문분석 표준 원칙]
