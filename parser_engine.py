@@ -120,7 +120,7 @@ def post_process_adverbs(analysis_data):
                 found_subject = True
             
             # Prepositional phrases (전명구): Wrap in () and NEVER give arrow ⬑
-            prep_starters = ['of', 'in', 'on', 'at', 'with', 'by', 'from', 'for', 'about', 'like', 'through', 'without', 'between', 'under', 'over', 'into', 'onto', 'upon']
+            prep_starters = ['of', 'in', 'on', 'at', 'with', 'by', 'from', 'for', 'about', 'like', 'through', 'without', 'between', 'under', 'over', 'into', 'onto', 'upon', 'since', 'ever', 'during', 'before', 'after', 'throughout', 'across', 'among', 'along', 'despite', 'unlike']
             clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', text).strip().lower()
             first_w = clean_word.split()[0] if clean_word else ""
             is_prep_phrase = (first_w in prep_starters) or ('전치사' in sub_tag) or text.startswith('(')
@@ -151,6 +151,27 @@ def post_process_adverbs(analysis_data):
             elif '⬑' in sub_tag:
                 t['sub_tag'] = ""
 
+            # Strict syntax correction: Adverbs (-ly, time adverbs) must NEVER be O or S or Vt!
+            common_adverbs = ['often', 'always', 'never', 'already', 'still', 'even', 'also', 'just', 'only', 'ever', 'well', 'far', 'so', 'too', 'very', 'almost', 'much', 'more', 'together', 'apart', 'ahead', 'away', 'back', 'down', 'up', 'out', 'in', 'off', 'over']
+            is_pure_adverb = (clean_word.endswith('ly') and clean_word not in ['family', 'likely', 'lonely', 'lovely', 'friendly', 'early', 'ugly', 'silly', 'holy', 'daily', 'weekly', 'monthly', 'yearly']) or clean_word in common_adverbs
+            if is_pure_adverb and not is_prep_phrase:
+                if t.get('sub_tag') in ['O', 'S', 'Vt', 'Vi', 'V', 'C', 'OC', 'SC', 'DO', 'IO']:
+                    t['sub_tag'] = ""
+                    t['color'] = 'slate'
+                    t['underline'] = False
+
+            # Linking verbs (have been, is, are, was, were, become, remain, seem)
+            if clean_word in ['have been', 'has been', 'had been', 'been', 'is', 'are', 'was', 'were', 'become', 'became', 'remained', 'remain', 'seemed', 'seem', 'appeared', 'appear']:
+                t['sub_tag'] = 'Vi'
+                t['color'] = 'rose'
+                t['underline'] = True
+
+            # Predicate Adjectives/Complements (SC) following linking verbs
+            if t.get('sub_tag') in ['O', 'Vt', 'Vi'] and clean_word in ['related', 'different', 'important', 'crucial', 'essential', 'common', 'rare', 'necessary', 'likely', 'possible', 'difficult', 'clear', 'critical', 'effective', 'useful', 'similar']:
+                t['sub_tag'] = 'SC'
+                t['color'] = 'indigo'
+                t['underline'] = False
+
         # Auto-detect semantic subject of gerund (e.g. toddlers falling over)
         for i, t in enumerate(tokens):
             clean_word = re.sub(r'^[\[\(]+|[\]\),]+$', '', t.get('text', '')).strip().lower()
@@ -167,6 +188,26 @@ def post_process_adverbs(analysis_data):
                         t['sub_tag'] = '의미상 S'
                         t['color'] = 'blue'
                         t['underline'] = True
+
+        # Auto-detect parallel subjects (e.g. preservation and conservation)
+        for i, t in enumerate(tokens):
+            if t.get('is_conjunction'):
+                prev_idx = i - 1
+                while prev_idx >= 0 and tokens[prev_idx].get('text') == ' / ':
+                    prev_idx -= 1
+                next_idx = i + 1
+                while next_idx < len(tokens) and tokens[next_idx].get('text') == ' / ':
+                    next_idx += 1
+                
+                if prev_idx >= 0 and next_idx < len(tokens):
+                    prev_t = tokens[prev_idx]
+                    next_t = tokens[next_idx]
+                    if prev_t.get('sub_tag') == 'S' and not next_t.get('sub_tag') and not next_t.get('text', '').startswith('('):
+                        next_clean = re.sub(r'^[\[\(]+|[\]\),]+$', '', next_t.get('text', '')).strip().lower()
+                        if not any(k in next_clean for k in ['have', 'has', 'is', 'are', 'was', 'were', 'see', 'load']):
+                            next_t['sub_tag'] = 'S'
+                            next_t['color'] = 'blue'
+                            next_t['underline'] = True
 
         # Sanitize grammar_points (enforce 접속부사 over 삽입어 and strip markdown stars/backticks)
         gp = s.get('grammar_points', '')
@@ -346,6 +387,11 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 
 [★필수 작성 규칙 12: 동명사 및 to부정사의 의미상의 주어 (의미상 S) 표기 규칙★]
 - 동명사의 의미상의 주어 (예: `toddlers falling over`에서 `toddlers`, `his doing so`에서 `his`) 또는 to부정사의 의미상의 주어 (예: `for children to learn`에서 `for children`)는 반드시 `sub_tag: "의미상 S"`, `color: "blue"`, `underline: true` 로 분석하여 단어 아래에 '의미상 S' 태그가 표시되도록 하십시오!
+
+[★필수 작성 규칙 13: 부사(-ly) 목적어(O) 오표기 방지 및 연결동사/보어(SC) 규정★]
+- `closely`, `greatly`, `severely`, `deeply`, `widely`, `frequently`, `often`, `always` 등 부사는 목적어(O)가 될 수 없으므로 절대로 `sub_tag: "O"`로 표기하지 말고 `sub_tag: ""`, `color: "slate"` 로 작성하십시오!
+- `have been`, `is`, `are`, `was`, `were`, `become`, `remain` 등 be동사 및 연결동사는 타동사(Vt)가 아니므로 `Vi`로 표기하고, 뒤따르는 형용사 보어(예: `related`, `different`, `important`)는 목적어(O)가 아닌 주격보어 `sub_tag: "SC"`, `color: "indigo"` 로 작성하십시오!
+- 문두의 부사구/시간 전치사구(예: `(Ever since the early Enlightenment,)`)는 소괄호 `(...)`로 감싸고 `sub_tag: ""`, `color: "slate"` 로 작성하십시오!
 
 [★필수 JSON 출력 스키마★]
 Return ONLY a valid JSON object matching this exact schema:
@@ -683,9 +729,9 @@ def analyze_clause_structure_dynamically(sentence, tokens):
     elif re.search(r'\b(?:give|gives|gave|send|sends|sent|offer|offers|offered|show|shows|showed|tell|tells|told|bring|brings|brought)\b\s+\w+\s+\w+', text, re.IGNORECASE):
         c_type = "[4형식] 주어(S) + 수여동사(Vt) + 간접목적어(IO) + 직접목적어(DO)"
         breakdown = "• 주절: 주어(S) + 수여동사(Vt) + 간접목적어(~에게) + 직접목적어(~을/를)"
-    elif re.search(r'\b(?:is|are|was|were|seem|seems|seemed|appear|appears|appeared|become|becomes|became|look|looks|looked|feel|feels|felt|taste|tastes|sound|sounds|remain|remains)\b', text, re.IGNORECASE) and not re.search(r'\b(?:is|are|was|were)\s+(?:\w+ed|\w+ing)\b', text, re.IGNORECASE):
-        c_type = "[2형식] 주어(S) + 불완전자동사(V) + 주격보어(SC)"
-        breakdown = "• 주절: 주어(S) + 연결동사(V) + 주격보어(SC)\n• 구문 해설: 주어의 상태나 성질을 보충 설명하는 주격보어 구조"
+    elif re.search(r'\b(?:is|are|was|were|been|seem|seems|seemed|appear|appears|appeared|become|becomes|became|look|looks|looked|feel|feels|felt|taste|tastes|sound|sounds|remain|remains)\b', text, re.IGNORECASE) and (not re.search(r'\b(?:is|are|was|were)\s+\w+ing\b', text, re.IGNORECASE) or "been" in text.lower()):
+        c_type = "[2형식] 주어(S) + 불완전자동사(Vi) + 주격보어(SC)"
+        breakdown = "• 주절: 주어(S) + 연결동사(Vi) + 주격보어(SC)\n• 구문 해설: 주어의 상태나 성질을 보충 설명하는 주격보어 구조"
     elif re.search(r'\b(?:evolve|evolved|load|loads|loaded|repel|repels|repelled|intoxicate|intoxicates|create|creates|created|deploy|deploys|deployed|produce|produces|produced|blend|blends|blended|liken|likened|impress|impresses|impressed|address|addresses|addressed|have|has|had|find|found|report|reported)\b', text, re.IGNORECASE):
         c_type = "[3형식] 주어(S) + 타동사(Vt) + 목적어(O)"
         breakdown = "• 주절: 주어(S) + 타동사(Vt) + 목적어(O)\n• 수식어구: 전치사구 및 수식절 결합 구조"
@@ -783,40 +829,13 @@ def dynamic_rule_tokenize(sentence):
             tokens.append({"text": f"({w}", "top_label": "", "color": "blue", "sub_tag": "⬑", "underline": False, "is_conjunction": False})
             i += 1
             continue
-        if not found_main_verb and clean_w in ['see', 'sees', 'saw', 'seen', 'have', 'has', 'had', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'are', 'is', 'was', 'were', 'works', 'stress', 'likened', 'draw', 'must', 'can', 'will', 'found', 'began', 'shows', 'allows', 'experience', 'experiences', 'increase', 'increases', 'prevent', 'prevents', 'make', 'makes', 'cause', 'causes', 'face', 'faces']:
-            v_phrase = [w]
-            j = i + 1
-            while j < len(words) and words[j].lower() in ['evolved', 'been', 'likened', 'produced', 'developed', 'also', 'be', 'working']:
-                v_phrase.append(words[j])
-                j += 1
-            verb_text = " ".join(v_phrase)
-            is_transitive = clean_w in ['see', 'sees', 'saw', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'stress', 'found', 'allows', 'produce', 'have', 'has', 'experience', 'increase', 'prevent', 'make', 'cause', 'face'] or any(k in verb_text.lower() for k in ['evolved', 'likened'])
-            v_tag = "Vt" if is_transitive else "Vi"
-            tokens.append({"text": verb_text, "top_label": "", "color": "rose", "sub_tag": v_tag, "underline": True, "is_conjunction": False})
-            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
-            found_main_verb = True
-            i = j
-            continue
-        if not found_main_subject and not found_main_verb and clean_w not in ['in', 'by', 'on', 'at', 'with', 'for', 'to', 'from', 'as', 'while', 'although', 'thus']:
-            subj_words = [w]
-            j = i + 1
-            while j < len(words) and not re.match(r'^(?:see|sees|saw|have|has|had|is|are|was|were|load|loads|works|stress|liken|produce|draw|must|can|will|found|began|experience|increase|prevent|make|cause|face)$', re.sub(r'[^a-zA-Z]', '', words[j]).lower()):
-                if words[j].startswith('(') or words[j].lower() in ['like', 'with', 'of', 'in', 'by', 'that', 'who', 'which']: break
-                subj_words.append(words[j])
-                j += 1
-            subj_text = " ".join(subj_words)
-            tokens.append({"text": subj_text, "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False})
-            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
-            found_main_subject = True
-            i = j
-            continue
-        if clean_w in ['with', 'like', 'as', 'of', 'by', 'in', 'on', 'at', 'from', 'for', 'about', 'without', 'through']:
+        if clean_w in ['with', 'like', 'as', 'of', 'by', 'in', 'on', 'at', 'from', 'for', 'about', 'without', 'through', 'since', 'ever', 'during', 'before', 'after', 'throughout', 'across', 'among', 'along', 'despite', 'unlike']:
             prep_words = [w]
             j = i + 1
-            while j < len(words) and not re.match(r'^(?:that|which|who|and|but|or|is|are|was|were|\.)$', words[j].lower()) and not words[j].endswith(','):
+            while j < len(words) and not re.match(r'^(?:that|which|who|and|but|or|is|are|was|were|may|can|will|must|could|should|might|shall|see|sees|saw|load|loads|repel|repels|prevent|prevents|face|faces|make|makes|cause|causes|have|has|had|\.)$', words[j].lower()) and not words[j-1].endswith(','):
                 prep_words.append(words[j])
                 j += 1
-            if j < len(words) and words[j].endswith(','):
+            if j < len(words) and words[j].endswith(',') and not re.match(r'^(?:that|which|who|and|but|or|is|are|was|were|may|can|will|must|could|should|might|shall|see|sees|saw|load|loads|repel|repels|prevent|prevents|face|faces|make|makes|cause|causes|have|has|had|\.)$', words[j].lower()):
                 prep_words.append(words[j]); j += 1
             p_text = " ".join(prep_words)
             if not p_text.startswith('('): p_text = f"({p_text}"
@@ -826,8 +845,41 @@ def dynamic_rule_tokenize(sentence):
             tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
             i = j
             continue
+        if not found_main_verb and clean_w in ['see', 'sees', 'saw', 'seen', 'have', 'has', 'had', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'are', 'is', 'was', 'were', 'works', 'stress', 'likened', 'draw', 'must', 'can', 'will', 'may', 'might', 'could', 'should', 'shall', 'found', 'began', 'shows', 'allows', 'experience', 'experiences', 'increase', 'increases', 'prevent', 'prevents', 'make', 'makes', 'cause', 'causes', 'face', 'faces']:
+            v_phrase = [w]
+            j = i + 1
+            while j < len(words) and words[j].lower() in ['evolved', 'been', 'likened', 'produced', 'developed', 'also', 'be', 'working', 'prevent', 'prevents', 'feed', 'feeding', 'experience', 'increase', 'make', 'cause', 'face', 'load']:
+                v_phrase.append(words[j])
+                j += 1
+            verb_text = " ".join(v_phrase)
+            is_transitive = clean_w in ['see', 'sees', 'saw', 'load', 'loads', 'repel', 'repels', 'intoxicate', 'intoxicates', 'stress', 'found', 'allows', 'produce', 'experience', 'increase', 'prevent', 'prevents', 'make', 'cause', 'face'] or any(k in verb_text.lower() for k in ['prevent', 'produce', 'load', 'repel', 'intoxicate', 'make', 'cause', 'face', 'experience']) or (clean_w in ['have', 'has', 'had'] and not any(k in verb_text.lower() for k in ['been', 'worked', 'evolved', 'likened']))
+            v_tag = "Vt" if is_transitive else "Vi"
+            tokens.append({"text": verb_text, "top_label": "", "color": "rose", "sub_tag": v_tag, "underline": True, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            found_main_verb = True
+            i = j
+            continue
+        if not found_main_subject and not found_main_verb and clean_w not in ['in', 'by', 'on', 'at', 'with', 'for', 'to', 'from', 'as', 'while', 'although', 'thus', 'since', 'ever', 'during', 'before', 'after']:
+            subj_words = [w]
+            j = i + 1
+            while j < len(words) and not re.match(r'^(?:see|sees|saw|have|has|had|is|are|was|were|load|loads|works|stress|liken|produce|draw|must|can|will|found|began|experience|increase|prevent|make|cause|face)$', re.sub(r'[^a-zA-Z]', '', words[j]).lower()):
+                if words[j].startswith('(') or words[j].lower() in ['like', 'with', 'of', 'in', 'by', 'that', 'who', 'which', 'and', 'or', 'but']: break
+                subj_words.append(words[j])
+                j += 1
+            subj_text = " ".join(subj_words)
+            tokens.append({"text": subj_text, "top_label": "", "color": "blue", "sub_tag": "S", "underline": True, "is_conjunction": False})
+            tokens.append({"text": " / ", "top_label": "", "color": "purple", "sub_tag": "", "underline": False, "is_conjunction": False})
+            found_main_subject = True
+            i = j
+            continue
         if found_main_verb and clean_w not in ['the', 'a', 'an']:
-            tokens.append({"text": w, "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False})
+            is_adverb = (clean_w.endswith('ly') and clean_w not in ['family', 'likely', 'lonely', 'lovely', 'friendly', 'early', 'ugly', 'silly', 'holy', 'daily', 'weekly', 'monthly', 'yearly']) or clean_w in ['often', 'always', 'never', 'already', 'still', 'even', 'also', 'just', 'only', 'ever', 'well', 'far', 'so', 'too', 'very', 'almost', 'much', 'more', 'together', 'apart', 'ahead', 'away', 'back', 'down', 'up', 'out', 'in', 'off', 'over']
+            if is_adverb:
+                tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False})
+            elif clean_w in ['related', 'different', 'important', 'crucial', 'essential', 'common', 'rare', 'necessary', 'likely', 'possible', 'difficult', 'clear', 'critical', 'effective', 'useful', 'similar']:
+                tokens.append({"text": w, "top_label": "", "color": "indigo", "sub_tag": "SC", "underline": False, "is_conjunction": False})
+            else:
+                tokens.append({"text": w, "top_label": "", "color": "emerald", "sub_tag": "O", "underline": False, "is_conjunction": False})
             i += 1
             continue
         tokens.append({"text": w, "top_label": "", "color": "slate", "sub_tag": "", "underline": False, "is_conjunction": False})
