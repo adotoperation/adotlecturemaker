@@ -348,9 +348,10 @@ You are an expert AI prompt engineer specialized in Studio Ghibli illustration s
 When given a Lesson Topic and a 3-Step Summary, analyze them to extract the core historical/scientific context, and generate a single descriptive English image prompt.
 
 [Strict Constraints for Output]
-1. Style: Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, cozy atmosphere.
-2. Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
-3. Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
+1. Front Style Tokens: 2D traditional animation cel, anime background art, hand-drawn digital painting, visible watercolor paper texture, delicate ink outlines, cel-shaded, Studio Ghibli background aesthetic, Hayao Miyazaki style painting, soft pastel wash.
+2. Explicit Negative Exclusions: Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action photography, NO glossy gradients, NO hyper-realism.
+3. Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
+4. Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
 
 [Input Data]
 Lesson Topic: {topic}
@@ -362,7 +363,7 @@ Reading Passage:
 {passage[:400]}
 
 [Task]
-Generate a single descriptive, self-contained English image prompt that follows all constraints. Output ONLY the English prompt string without any introductory or conversational text."""
+Generate a single descriptive English image prompt that follows all constraints. Output ONLY the English prompt string starting with 2D traditional animation cel without any introductory or conversational text."""
 
             for model_cand in ["gemini-3.7-flash", "gemini-2.5-flash"]:
                 try:
@@ -381,26 +382,33 @@ Generate a single descriptive, self-contained English image prompt that follows 
     if not english_scene:
         clean_t = re.sub(r'[\d년월고호번\-]+', '', f"{topic} {summary} {title}").strip()
         if any(w in clean_t.lower() for w in ["보존", "보전", "복원", "원형", "계몽주의", "유물", "역사", "유산", "conservation", "preservation", "restoration", "enlightenment", "heritage", "monument", "historic"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration of an archivist and historical conservator gently restoring ancient manuscripts and classical stone artifacts inside a sunlit 18th-century library workshop with tall arched windows, soft pastel tones, warm golden hour sunlight, cozy scholarly atmosphere"
+            english_scene = "An archivist and historical conservator gently restoring ancient manuscripts and classical stone artifacts inside a sunlit 18th-century library workshop with tall arched windows, soft pastel tones, cozy scholarly atmosphere"
         elif any(w in clean_t.lower() for w in ["몸집", "낙상", "부상", "뼈", "골절", "충격", "성인", "사고", "체격", "아기", "fall", "injury", "size", "bone", "scale", "fracture", "weight", "gravity", "biological", "physics", "toddler", "bear", "squirrel"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. In a deep lush ancient forest along a winding dirt path filled with moss and wildflowers, a comical scene unfolds where a large brown bear wearing a scarf clumsily slips backward landing with a thud and a surprised grimace, while a tiny nimble red squirrel happily completes a light tumble-roll landing safely unharmed in soft dappled sunlight"
+            english_scene = "In a deep lush ancient forest along a winding dirt path filled with moss and wildflowers, a comical scene unfolds where a large brown bear wearing a scarf clumsily slips backward landing with a thud and a surprised grimace, while a tiny nimble red squirrel happily completes a light tumble-roll landing safely unharmed in soft dappled sunlight"
         elif any(w in clean_t.lower() for w in ["식물", "방어", "곤충", "공진화", "화합물", "가시", "plant", "insect", "defense", "predator", "toxin"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. In a vibrant magical sunlit botanical greenhouse filled with ancient ferns and moss, exotic lush plants deploy natural defensive mechanisms with waxy dew-covered leaves and protective thorns, as colorful curious beetles gently flutter around under warm golden sunbeams"
+            english_scene = "In a vibrant magical sunlit botanical greenhouse filled with ancient ferns and moss, exotic lush plants deploy natural defensive mechanisms with waxy dew-covered leaves and protective thorns, as colorful curious beetles gently flutter around under warm golden sunbeams"
         elif any(w in clean_t.lower() for w in ["빌딩", "skyscraper", "와류", "vortex", "건축"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. In a breezy coastal metropolis with fantastical retro-futuristic architecture, a soaring aerodynamic skyscraper gracefully deflects swirling wind currents with gentle curved corners, visible pastel wind vortex streams flowing like ribbons under fluffy white clouds"
+            english_scene = "In a breezy coastal metropolis with fantastical retro-futuristic architecture, a soaring aerodynamic skyscraper gracefully deflects swirling wind currents with gentle curved corners, visible pastel wind vortex streams flowing like ribbons under fluffy white clouds"
         elif any(w in clean_t.lower() for w in ["스펙터클", "spectacle", "문화", "culture", "공연", "연극", "관객"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. Inside a grand atmospheric vintage theatre with ornate wooden balconies and warm lantern glow, a magical theatrical stage performance captivates a fascinated audience with glowing fairy lights and expressive performers blending tradition and innovation"
+            english_scene = "Inside a grand atmospheric vintage theatre with ornate wooden balconies and warm lantern glow, a magical theatrical stage performance captivates a fascinated audience with glowing fairy lights and expressive performers blending tradition and innovation"
         elif any(w in clean_t.lower() for w in ["원격", "remote", "재택", "하이브리드", "근무", "직원", "청년"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. Inside a cozy sunlit wooden attic studio filled with potted green plants and bookshelves, a young creative professional in a warm sweater works comfortably on a vintage laptop next to a steaming teacup, looking thoughtfully out an arched window"
+            english_scene = "Inside a cozy sunlit wooden attic studio filled with potted green plants and bookshelves, a young creative professional in a warm sweater works comfortably on a vintage laptop next to a steaming teacup, looking thoughtfully out an arched window"
         elif any(w in clean_t.lower() for w in ["미술", "art", "수집", "collector", "gallery", "화가"]):
-            english_scene = "Studio Ghibli watercolor and colored pencil illustration. An art collector and gallery curator thoughtfully viewing classical impressionist landscape paintings inside a warm sunlit museum gallery hall with polished oak floors"
+            english_scene = "An art collector and gallery curator thoughtfully viewing classical impressionist landscape paintings inside a warm sunlit museum gallery hall with polished oak floors"
         else:
-            english_scene = f"Studio Ghibli watercolor and colored pencil illustration depicting a whimsical fairytale scene representing {clean_t[:25]} with soft dappled sunlight and lush nature"
+            english_scene = f"A whimsical fairytale scene representing {clean_t[:25]} with soft dappled sunlight and lush nature"
 
-    if "studio ghibli" in english_scene.lower():
-        ghibli_prompt = f"{english_scene}. Soft warm sunlight filtering through, magical peaceful atmosphere, detailed hand-drawn textures, soft pastel tones, cozy atmosphere, pure artwork with absolutely no text, no speech bubbles, no words, no letters, no labels, no watermark, masterpiece, 4k"
-    else:
-        ghibli_prompt = f"Studio Ghibli style watercolor and colored pencil illustration. {english_scene}. Soft warm sunlight filtering through, magical peaceful atmosphere, detailed hand-drawn textures, soft pastel tones, cozy atmosphere, pure artwork with absolutely no text, no speech bubbles, no words, no letters, no labels, no watermark, masterpiece, 4k"
+    # Assemble ultimate 2D Studio Ghibli prompt with heavy 2D cel tokens at the front and negative constraints at the back
+    clean_scene = re.sub(r'[\r\n"]+', ' ', english_scene).strip()
+    ghibli_prompt = (
+        f"2D traditional animation cel, anime background art, Studio Ghibli aesthetic, "
+        f"Hayao Miyazaki style painting, hand-drawn watercolor and colored pencil on textured paper, "
+        f"delicate ink line art, soft cel shading. {clean_scene}. "
+        f"Warm golden hour dappled sunlight filtering through, cozy nostalgic atmosphere, soft pastel palette. "
+        f"Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action, NO glossy gradient, "
+        f"NO text, NO speech bubbles, NO words, NO letters, NO labels, NO watermark, masterpiece 2D artwork."
+    )
+    print(f"\n[GHIBLI IMAGE PROMPT LOG] Final Prompt to Image Model:\n{ghibli_prompt}\n")
 
     saved_path = None
     if api_key:

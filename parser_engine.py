@@ -379,8 +379,11 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 [★필수 작성 규칙 8: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
 - `however`, `therefore`, `furthermore`, `moreover`, `thus` 등은 grammar_points에서 '접속부사'로 표기하십시오.
 
-[★필수 작성 규칙 9: 지문 핵심정리 기반 지브리풍 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
-- `summary_info`의 `illustration_scene_en` 필드에는, 지문의 핵심 맥락과 비유를 스튜디오 지브리 스타일(Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, warm golden hour sunlight, pure artwork without any text or speech bubbles)의 풍성한 영문 장면 묘사로 작성하십시오!
+[★필수 작성 규칙 9: 지문 핵심정리 기반 2D 지브리풍 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+- `summary_info`의 `illustration_scene_en` 필드에는, 지문의 핵심 맥락과 비유를 2D 정통 지브리 애니메이션 셀화 스타일로 작성하십시오!
+- [프론트 스타일 토큰]: `2D traditional animation cel, anime background art, Studio Ghibli aesthetic, Hayao Miyazaki style painting, hand-drawn watercolor and colored pencil on textured paper, delicate ink line art, soft cel shading`
+- [네거티브 차단선]: `Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action, NO glossy gradient, NO text, NO speech bubbles, NO words`
+- 따뜻한 골든 아워의 햇살과 지문 주제를 직관적으로 전달하는 정교한 2D 손그림 장면 묘사를 작성하십시오!
 
 [★필수 작성 규칙 10: 직독직해(chunk_korean) 영어 토큰(/)과 100% 1:1 완벽 싱크로 규칙★]
 - 영어 토큰에서 슬래시(/)로 끊은 단위 및 순서와 한글 직독직해(chunk_korean)의 슬래시(/) 구획은 완전히 1:1로 일치해야 합니다!

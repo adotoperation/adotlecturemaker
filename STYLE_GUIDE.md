@@ -33,18 +33,19 @@
 
                  3 보존주의자는 최소 개입으로 원본 상태 보호를 선호.
 
-4. AI 삽화 생성 시스템 표준 (Gemini 3.7 Flash + Google AI Image API):
+4. AI 2D 지브리 손그림 삽화 생성 시스템 표준 (Gemini 3.7 Flash + Google AI Image API):
    - [System Role]:
      You are an expert AI prompt engineer specialized in Studio Ghibli illustration styles for educational textbooks.
      When given a Lesson Topic and a 3-Step Summary, analyze them to extract the core historical/scientific context, and generate a single descriptive English image prompt.
-   - [Strict Constraints for Output]:
-     1) Style: Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, cozy atmosphere.
-     2) Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
-     3) Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
-     4) 지브리 고유 캐릭터(토토로, 가오나시 등) 삽입 금지.
+   - [프롬프트 최전방 2D 애니메이션/선화 토큰 (Front Style Tokens)]:
+     `2D traditional animation cel, anime background art, Studio Ghibli aesthetic, Hayao Miyazaki style painting, hand-drawn watercolor and colored pencil on textured paper, delicate ink line art, soft cel shading`
+   - [실사풍 배제 차단선 (Negative / Exclusion Prompt)]:
+     `Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action photography, NO glossy gradients, NO hyper-realism`
+   - [문자 및 캐릭터 차단선]:
+     `Strictly NO text, NO speech bubbles, NO words, NO letters, NO labels, NO watermark inside the image. 지브리 고유 캐릭터(토토로, 가오나시 등) 삽입 금지.`
    - [프롬프트 엔진]: Google Gemini 3.7 Flash (gemini-3.7-flash) 우선 적용.
    - [이미지 생성 엔진]: Google AI 정품 Gemini 이미지 생성 모델 (gemini-2.5-flash-image / gemini-3.1-flash-image).
-   - [단일 마스터 엔진]: 비지브리 묘사로 덮어쓰기 현상 원천 차단.
+   - [단일 마스터 파이프라인 & 로깅]: 비지브리 덮어쓰기 원천 차단 및 콘솔 프롬프트 로그 출력.
 
 ----------------------------------------------------------------------------------------------------
 ■ [제3장: 제2페이지 문장 구조분석 및 직독직해 (13대 문법 및 문장기호 절대 규칙)]
