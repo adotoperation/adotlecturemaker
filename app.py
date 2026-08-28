@@ -401,21 +401,34 @@ Generate a single descriptive, self-contained English image prompt that follows 
 
     saved_path = None
     if api_key:
-        try:
-            imagen_url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={api_key}"
-            imagen_payload = {
-                "instances": [{"prompt": ghibli_prompt}],
-                "parameters": {"sampleCount": 1, "aspectRatio": "16:9"}
-            }
-            res = requests.post(imagen_url, json=imagen_payload, timeout=12)
-            if res.status_code == 200:
-                pred = res.json().get('predictions', [{}])[0]
-                b64_img = pred.get('bytesBase64Encoded')
-                if b64_img:
-                    raw_data_url = f"data:image/png;base64,{b64_img}"
-                    saved_path = persist_base64_image(raw_data_url, title)
-        except Exception as e:
-            print("[generate_illustration_sync] Imagen 3 warning:", e)
+        # Native Gemini Multimodal Image Generation Models (Google AI API)
+        image_models = ["gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image"]
+        for img_model in image_models:
+            try:
+                img_url = f"https://generativelanguage.googleapis.com/v1beta/models/{img_model}:generateContent?key={api_key}"
+                img_payload = {
+                    "contents": [{"parts": [{"text": ghibli_prompt}]}],
+                    "generationConfig": {
+                        "responseModalities": ["IMAGE"]
+                    }
+                }
+                res = requests.post(img_url, json=img_payload, timeout=25)
+                if res.status_code == 200:
+                    cand = res.json().get('candidates', [{}])[0]
+                    parts = cand.get('content', {}).get('parts', [])
+                    for p in parts:
+                        if 'inlineData' in p:
+                            b64_img = p['inlineData'].get('data')
+                            mime = p['inlineData'].get('mimeType', 'image/png')
+                            if b64_img:
+                                raw_data_url = f"data:{mime};base64,{b64_img}"
+                                saved_path = persist_base64_image(raw_data_url, title)
+                                if saved_path:
+                                    break
+                    if saved_path:
+                        break
+            except Exception as e:
+                print(f"[generate_illustration_sync] {img_model} warning:", e)
 
     if not saved_path:
         try:
@@ -426,7 +439,7 @@ Generate a single descriptive, self-contained English image prompt that follows 
             enc_prompt = urllib.parse.quote(ghibli_prompt)
             poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=800&height=480&nologo=true&seed={clean_seed}"
             
-            p_res = requests.get(poll_url, timeout=8)
+            p_res = requests.get(poll_url, timeout=10)
             if p_res.status_code == 200 and len(p_res.content) > 1000:
                 b64_str = base64.b64encode(p_res.content).decode('utf-8')
                 raw_data_url = f"data:image/jpeg;base64,{b64_str}"
@@ -435,8 +448,8 @@ Generate a single descriptive, self-contained English image prompt that follows 
             print("[generate_illustration_sync] Pollinations AI warning:", poll_e)
 
     if not saved_path:
-        # Guaranteed themed graphic fallback tailored to the topic
-        saved_path = create_themed_svg_illustration(topic or title, title)
+        # Fallback to authentic hand-drawn Ghibli watercolor illustration
+        saved_path = '/static/illustration.jpg'
 
     if saved_path:
         try:
