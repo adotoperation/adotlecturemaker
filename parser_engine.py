@@ -332,8 +332,8 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
 [★필수 작성 규칙 8: 문법 용어 규정 (however, therefore 등은 '삽입어'가 아닌 '접속부사'로 표기)★]
 - `however`, `therefore`, `furthermore`, `moreover`, `thus` 등은 grammar_points에서 '접속부사'로 표기하십시오.
 
-[★필수 작성 규칙 9: 지문 핵심정리 기반 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
-- `summary_info`의 `illustration_scene_en` 필드에는, 지문의 [주제, 핵심어휘, 3단 정리]의 핵심 상황과 시각적 장면을 10~15단어 내외의 구체적인 영어 묘사로 작성하십시오!
+[★필수 작성 규칙 9: 지문 핵심정리 기반 지브리풍 영문 삽화 장면(illustration_scene_en) 작성 규칙★]
+- `summary_info`의 `illustration_scene_en` 필드에는, 지문의 핵심 맥락과 비유를 스튜디오 지브리 스타일(Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, warm golden hour sunlight, pure artwork without any text or speech bubbles)의 풍성한 영문 장면 묘사로 작성하십시오!
 
 [★필수 작성 규칙 10: 직독직해(chunk_korean) 영어 토큰(/)과 100% 1:1 완벽 싱크로 규칙★]
 - 영어 토큰에서 슬래시(/)로 끊은 단위 및 순서와 한글 직독직해(chunk_korean)의 슬래시(/) 구획은 완전히 1:1로 일치해야 합니다!
