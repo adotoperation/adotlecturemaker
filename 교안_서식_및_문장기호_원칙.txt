@@ -43,8 +43,8 @@
      `Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action photography, NO glossy gradients, NO hyper-realism`
    - [문자 및 캐릭터 차단선]:
      `Strictly NO text, NO speech bubbles, NO words, NO letters, NO labels, NO watermark inside the image. 지브리 고유 캐릭터(토토로, 가오나시 등) 삽입 금지.`
-   - [프롬프트 엔진]: Google Gemini 3.7 Flash (gemini-3.7-flash) 우선 적용.
-   - [이미지 생성 엔진]: Google AI 정품 Gemini 이미지 생성 모델 (gemini-2.5-flash-image / gemini-3.1-flash-image).
+   - [프롬프트 생성 엔진]: Google Gemini 3.7 Flash (gemini-3.7-flash) 우선 적용.
+   - [이미지 생성 엔진]: Google AI Gemini 3.7 Flash 이미지 생성 모델 (gemini-3.7-flash-image / gemini-3.7-flash 우선 적용, 백업: gemini-3.1-flash-image / gemini-2.5-flash-image).
    - [단일 마스터 파이프라인 & 로깅]: 비지브리 덮어쓰기 원천 차단 및 콘솔 프롬프트 로그 출력.
 
 ----------------------------------------------------------------------------------------------------

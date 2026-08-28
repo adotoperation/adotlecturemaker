@@ -412,10 +412,11 @@ Generate a single descriptive English image prompt that follows all constraints.
 
     saved_path = None
     if api_key:
-        # Native Gemini Multimodal Image Generation Models (Google AI API)
-        image_models = ["gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3-pro-image"]
+        # Native Gemini 3.7 Flash & Multimodal Image Generation Models (Google AI API)
+        image_models = ["gemini-3.7-flash-image", "gemini-3.7-flash", "gemini-3.1-flash-image", "gemini-2.5-flash-image", "gemini-3-pro-image"]
         for img_model in image_models:
             try:
+                print(f"[GHIBLI IMAGE ENGINE] Requesting image generation with model: {img_model}")
                 img_url = f"https://generativelanguage.googleapis.com/v1beta/models/{img_model}:generateContent?key={api_key}"
                 img_payload = {
                     "contents": [{"parts": [{"text": ghibli_prompt}]}],
