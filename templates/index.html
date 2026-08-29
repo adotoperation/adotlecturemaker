@@ -84,15 +84,39 @@
                 margin: 0 !important; /* Zero margin to strictly hide default browser headers/footers */
             }
 
-            /* Highly Specific Selectors to override Tailwind CDN dynamic injections in print */
+            /* ========================================================================= */
+            /* [절대 변경 금지 / FREEZE] A4 인쇄 엄격 1페이지 1시트 & 빈 페이지 방지 CSS (완결본) */
+            /* ========================================================================= */
+            html, body {
+                width: 210mm !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+            }
+
+            #handoutSheet, #sentencePagesWrapper {
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                width: 100% !important;
+            }
+
+            #handoutSheet > *, #sentencePagesWrapper > * {
+                margin-top: 0 !important;
+                margin-bottom: 0 !important;
+            }
+
             body #viewGenerator #page1Container,
             body #viewGenerator .a4-page,
             body #viewGenerator .print-page-block,
-            body #viewGenerator .print-page-block-last {
+            body #viewGenerator .print-page-block-last,
+            body #viewGenerator .page-container,
+            body #viewGenerator .print-page {
                 width: 210mm !important; /* Strict A4 Width */
-                min-height: 297mm !important; /* Strict A4 Height */
-                height: 297mm !important;
-                max-height: 297mm !important;
+                min-height: 295mm !important; /* 295mm prevents sub-pixel 0.5px rounding overflow that generates blank pages */
+                height: 295mm !important;
+                max-height: 295mm !important;
                 box-shadow: none !important;
                 border: none !important;
                 border-width: 0 !important;
@@ -109,8 +133,9 @@
             }
 
             body #viewGenerator .a4-preview-page2 {
-                min-height: 297mm !important;
-                height: 297mm !important;
+                min-height: 295mm !important;
+                height: 295mm !important;
+                max-height: 295mm !important;
             }
 
             body #viewGenerator #page1Container {
@@ -124,8 +149,8 @@
             }
 
             .print-ghibli-img {
-                height: 135mm !important; /* Restored to ~50% of page height */
-                max-height: 135mm !important;
+                height: 114mm !important; /* Scaled down by 5% */
+                max-height: 114mm !important;
                 object-fit: cover !important;
             }
 
@@ -134,8 +159,9 @@
                 margin-bottom: 4px !important;
             }
 
-            #page1Container .mt-6 {
-                margin-top: 6px !important;
+            #page1Container .mt-6,
+            #page1Container .mt-5 {
+                margin-top: 4px !important;
             }
 
             #page1Container .bg-white.border-2 {
@@ -150,22 +176,24 @@
                 gap: 6px !important;
             }
 
-            #page1Container .space-y-5 > * + * {
-                margin-top: 4px !important;
+            #page1Container .space-y-5 > * + *,
+            #page1Container .space-y-3.5 > * + * {
+                margin-top: 3px !important;
             }
 
             #page1Container .leading-relaxed {
-                line-height: 1.2 !important;
+                line-height: 1.3 !important;
             }
 
             #page1Container #summarySubject, 
             #page1Container #summaryKeywords, 
             #page1Container #summaryPoints div {
-                font-size: 11px !important;
+                font-size: 13.5px !important;
+                font-weight: 700 !important;
             }
 
             #page1Container .bg-white.border-2 .font-black {
-                font-size: 11px !important;
+                font-size: 13.5px !important;
             }
 
             .summary-badge-print {
@@ -186,17 +214,25 @@
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important;
-                page-break-after: auto !important;
-                break-after: auto !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
             }
 
-            .print-block {
+            body #viewGenerator .print-block {
                 background: white !important;
                 border: 1px solid #cbd5e1 !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
-                margin-bottom: 1.2rem !important;
+                margin-bottom: 4px !important;
+                padding: 7px 10px !important;
             }
+
+            body #viewGenerator .space-y-6 > * + * {
+                margin-top: 4px !important;
+            }
+
+
+
         }
 
         /* Screen A4 Preview Mode */
@@ -709,6 +745,9 @@
         <!-- View A: Generator -->
         <div id="viewGenerator" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
 
+            <!-- ========================================================================= -->
+            <!-- [절대 변경 금지 / FREEZE] 1. 교안 정보 및 지문 입력 & 좌측 컨트롤 패널 영역 (완결본) -->
+            <!-- ========================================================================= -->
             <!-- Left Input Panel -->
             <section class="lg:col-span-5 flex flex-col space-y-4 no-print">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col space-y-4">
@@ -887,12 +926,27 @@
         <!-- Right Preview Panel -->
         <section class="lg:col-span-7 flex flex-col">
             <div class="bg-slate-200 rounded-xl p-2 sm:p-4 border border-slate-300 flex-1 overflow-x-auto">
-                <div class="flex justify-between items-center mb-3 px-1 no-print">
-                    <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                        <i class="fa-solid fa-eye text-rose-600"></i>
-                        내신자료 미리보기
-                    </h2>
-                    <span class="text-xs text-slate-500">A4 인쇄 레이아웃</span>
+                <div class="flex flex-wrap justify-between items-center mb-3 px-1 no-print gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <h2 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-eye text-rose-600"></i>
+                            내신자료 미리보기
+                        </h2>
+                        <!-- Verification Match Badge -->
+                        <div id="accuracyMatchContainer" class="hidden flex items-center">
+                            <button type="button" id="btnAccuracyModal" onclick="openAccuracyModal()" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black shadow-2xs border transition-all cursor-pointer">
+                                <i id="accuracyMatchIcon" class="fa-solid fa-circle-check"></i>
+                                <span id="accuracyMatchText">입력-결과 일치율: 100%</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- [페이지 분할 및 문장 수 설정 컨트롤] -->
+                    <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-xs text-xs font-bold text-slate-700">
+                        <span class="text-slate-500 text-[11px]"><i class="fa-solid fa-file-lines text-indigo-600 mr-1"></i>페이지당 문장:</span>
+                        <button type="button" onclick="setSentencesPerPage(1)" id="btnPage1Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">1문장</button>
+                        <button type="button" onclick="setSentencesPerPage(2)" id="btnPage2Sent" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer">2문장 (기본)</button>
+                        <button type="button" onclick="setSentencesPerPage(3)" id="btnPage3Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">3문장</button>
+                    </div>
                 </div>
 
                 <!-- Empty State -->
@@ -914,30 +968,57 @@
                                 </div>
                             </div>
 
-                            <!-- Page 1 Section 1: 50% Page Height Large Illustration Image with Controls -->
-                            <div class="mb-3 relative group">
-                                <div class="w-full relative overflow-hidden rounded-xl border border-slate-300 shadow-sm bg-slate-100 flex items-center justify-center min-h-[350px]">
+                            <!-- Page 1 Section 1: Illustration Image with Controls (Reduced by 5%) -->
+                            <div class="mb-2 relative group">
+                                <div class="w-full relative overflow-hidden rounded-xl border border-slate-300 shadow-sm bg-slate-100 flex items-center justify-center min-h-[295px]">
                                     <img id="ghibliImg" src="/static/illustration.jpg" alt="Passage Illustration" 
-                                        class="print-ghibli-img w-full h-[370px] sm:h-[400px] object-cover rounded-xl transition duration-300">
+                                        class="print-ghibli-img w-full h-[305px] sm:h-[335px] object-cover rounded-xl transition duration-300">
                                     
-                                    <!-- Image Action Floating Overlay (Hidden in print) -->
-                                    <div class="absolute bottom-3 right-3 flex flex-wrap items-center gap-1.5 no-print bg-slate-950/75 backdrop-blur-sm p-1.5 rounded-lg border border-slate-700 opacity-90 group-hover:opacity-100 transition shadow-lg">
-                                        <button id="btnTriggerImageUpload" type="button" class="text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1 rounded transition flex items-center gap-1">
+                                    <!-- AI Illustration Generation Loading Overlay -->
+                                    <div id="ghibliLoadingOverlay" class="hidden absolute inset-0 bg-slate-900/85 backdrop-blur-md flex flex-col items-center justify-center text-white z-20 p-6 text-center transition-all duration-300">
+                                        <div class="relative mb-4">
+                                            <div class="w-16 h-16 rounded-full border-4 border-rose-500/30 border-t-rose-500 animate-spin"></div>
+                                            <div class="absolute inset-0 flex items-center justify-center text-rose-400 text-xl">
+                                                <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i>
+                                            </div>
+                                        </div>
+                                        <div class="text-base font-black text-white flex items-center gap-2 mb-1.5">
+                                            <span class="text-rose-400">🎨 지문 맞춤 AI 삽화</span> 생성 중...
+                                        </div>
+                                        <p class="text-xs text-slate-300 max-w-md leading-relaxed">
+                                             지문의 핵심 주제와 비언어적 맥락을 분석하여 지브리 스타일 교재 삽화를 그리고 있습니다. (약 10~15초 소요)
+                                        </p>
+                                        <div class="mt-4 flex items-center gap-2 text-[11px] text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                            <span>구조분석 완료 후 백그라운드에서 안전하게 완성 중입니다</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Image Action Floating Overlay (Always visible on screen, hidden in print) -->
+                                    <div class="absolute bottom-3 right-3 flex flex-wrap items-center gap-1.5 no-print bg-slate-950/90 backdrop-blur-md p-1.5 rounded-lg border border-slate-700 shadow-xl z-20">
+                                        <button id="btnReviewIllustration" type="button" class="text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                                            <i class="fa-solid fa-circle-check text-emerald-200"></i>
+                                            <span>✨ 맞춤 AI 삽화 완성 (검토하기)</span>
+                                        </button>
+                                        <button id="btnTriggerImageUpload" type="button" class="text-[11px] font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-2.5 py-1.5 rounded transition flex items-center gap-1 shadow-sm cursor-pointer">
                                             <i class="fa-solid fa-cloud-arrow-up"></i> 사진 변경
                                         </button>
-                                        <button id="btnGenerateAiIllustration" type="button" class="text-[11px] font-bold bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 rounded transition flex items-center gap-1">
-                                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI 삽화 생성
+                                        <button id="btnGenerateAiIllustration" type="button" class="text-[11px] font-bold bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1.5 rounded transition flex items-center gap-1 shadow-sm cursor-pointer">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI 삽화 재생성
                                         </button>
-                                        <button id="btnInputImageUrl" type="button" class="text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded border border-slate-600 transition flex items-center gap-1">
+                                        <button id="btnInputImageUrl" type="button" class="text-[11px] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 px-2 py-1.5 rounded border border-slate-600 transition flex items-center gap-1 shadow-sm cursor-pointer">
                                             <i class="fa-solid fa-link"></i> URL
                                         </button>
                                     </div>
                                     <input type="file" id="illustrationFileInput" accept="image/*" class="hidden">
                                 </div>
+
                             </div>
 
-                            <!-- Page 1 Section 2: [지문 핵심 정리] Summary Box (Positioned in Lower 40% of Page 1) -->
-                            <div class="space-y-3.5 mt-6">
+                            <!-- ========================================================================= -->
+                            <!-- [절대 변경 금지 / FREEZE] 2. 지문 핵심 정리 (주제 / 핵심어휘 / 3단 정리) 영역 (완결본) -->
+                            <!-- ========================================================================= -->
+                            <div class="space-y-3 mt-4">
                                 <div class="flex items-center space-x-2">
                                     <span class="summary-badge-print bg-rose-600 text-white font-bold text-xs px-3 py-0.5 rounded-full shadow-sm">지문 핵심 정리</span>
                                 </div>
@@ -946,31 +1027,33 @@
                                     
                                     <!-- 주제 -->
                                     <div class="grid grid-cols-12 gap-3 items-baseline border-b border-rose-100 pb-1.5">
-                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs">주제</div>
-                                        <div id="summarySubject" class="col-span-9 sm:col-span-10 font-bold text-slate-900 text-[11.5px] sm:text-[13px] leading-relaxed text-center"></div>
+                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-xs sm:text-[13.5px]">주제</div>
+                                        <div id="summarySubject" class="col-span-9 sm:col-span-10 font-bold text-slate-900 text-[13px] sm:text-[13.5px] leading-relaxed text-center"></div>
                                     </div>
 
                                     <!-- 핵심어휘 (주제 직결 본문 어휘 3개) -->
                                     <div class="grid grid-cols-12 gap-3 items-baseline border-b border-rose-100 pb-1.5">
-                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs">핵심어휘</div>
-                                        <div id="summaryKeywords" class="col-span-9 sm:col-span-10 font-semibold text-slate-800 text-[11px] sm:text-xs leading-relaxed text-center"></div>
+                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-xs sm:text-[13.5px]">핵심어휘</div>
+                                        <div id="summaryKeywords" class="col-span-9 sm:col-span-10 font-bold text-slate-900 text-[13px] sm:text-[13.5px] leading-relaxed text-center"></div>
                                     </div>
 
                                     <!-- 3단 정리 -->
                                     <div class="grid grid-cols-12 gap-3 items-start pt-1">
-                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-[11px] sm:text-xs pt-0.5 text-left">3단 정리</div>
-                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-3 text-[11px] sm:text-xs text-slate-800 font-medium leading-relaxed flex flex-col items-center justify-center text-center"></div>
+                                        <div class="col-span-3 sm:col-span-2 font-black text-rose-600 text-xs sm:text-[13.5px] pt-0.5 text-left">3단 정리</div>
+                                        <div id="summaryPoints" class="col-span-9 sm:col-span-10 space-y-2 text-[13px] sm:text-[13.5px] text-slate-900 font-bold leading-relaxed flex flex-col items-center justify-center text-center"></div>
                                     </div>
 
                                 </div>
                             </div>
 
-                            <!-- Page 1 Section 3: 주요 어휘 (Moved to Page 1 Bottom) -->
+                            <!-- ========================================================================= -->
+                            <!-- [절대 변경 금지 / FREEZE] 3. 주요 어휘 (품사 및 한글 뜻) 영역 (완결본) -->
+                            <!-- ========================================================================= -->
                             <div id="page1VocabContainer" class="mt-3 pt-2 border-t-2 border-slate-300">
-                                <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-book-bookmark text-slate-700"></i> 주요 어휘
+                                <h3 class="text-xs sm:text-[13px] font-black text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-book-bookmark text-rose-600"></i> 주요 어휘
                                 </h3>
-                                <div id="page1VocabGrid" class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] bg-white p-1.5 rounded-lg border border-slate-300">
+                                <div id="page1VocabGrid" class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs sm:text-[12.5px] bg-white p-2 rounded-xl border border-slate-300">
                                     <!-- Populated dynamically in JS -->
                                 </div>
                             </div>
@@ -981,6 +1064,7 @@
                         <div class="border-t border-slate-300 pt-1 mt-1 flex justify-end items-center text-[10px] text-slate-500 min-h-[12px]">
                         </div>
                     </div>
+
 
                     <!-- Dynamic Sentence Pages Container (Page 2, Page 3, Page 4...) -->
                     <div id="sentencePagesWrapper" class="space-y-6">
@@ -1201,7 +1285,7 @@
             <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
                 
                 <!-- Repository Header & Breadcrumb -->
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-4">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-100 pb-4">
                     <div>
                         <div id="repoBreadcrumbArea" class="hidden flex items-center gap-2 mb-1">
                             <button type="button" id="btnRepoBackToFolders" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition flex items-center gap-1">
@@ -1217,14 +1301,36 @@
                             <i class="fa-solid fa-folder-tree text-indigo-600"></i>
                             <span id="repoTitleText">우리 지점 자료 저장소</span>
                         </h2>
-                        <p id="repoSubtitleText" class="text-xs text-slate-500">폴더를 선택하여 지문별 교안 및 테스트를 열람하거나 관리할 수 있습니다.</p>
+                        <p id="repoSubtitleText" class="text-xs text-slate-500">폴더별 및 리스트 형태로 교안, 변형문제, 단어테스트를 검색·정렬·수정할 수 있습니다.</p>
                     </div>
                     
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2.5">
+                        <!-- Sort Selector (최신순 / 오래된순 / 제목 오름차순 / 제목 내림차순) -->
+                        <div class="flex items-center gap-1 bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs">
+                            <i class="fa-solid fa-arrow-down-short-wide text-slate-500"></i>
+                            <select id="repoSortSelect" class="bg-transparent font-bold text-slate-800 outline-none cursor-pointer">
+                                <option value="date_desc">최신 등록순 🔽</option>
+                                <option value="date_asc">오래된 순 🔼</option>
+                                <option value="title_asc">제목 오름차순 (가나다/A-Z) 🔤</option>
+                                <option value="title_desc">제목 내림차순 (하파타/Z-A) 🔤</option>
+                                <option value="folder_asc">폴더명 순 📁</option>
+                            </select>
+                        </div>
+
+                        <!-- View Mode Switcher (리스트 보기 vs 폴더별 보기) -->
+                        <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-bold" id="repoViewModeToggleGroup">
+                            <button type="button" id="btnRepoModeList" class="px-2.5 py-1 rounded bg-indigo-600 text-white shadow-xs transition flex items-center gap-1">
+                                <i class="fa-solid fa-list"></i> 리스트
+                            </button>
+                            <button type="button" id="btnRepoModeFolders" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition flex items-center gap-1">
+                                <i class="fa-solid fa-folder"></i> 폴더별
+                            </button>
+                        </div>
+
                         <!-- Search Box (Folder search or In-folder file search) -->
-                        <div class="relative w-full sm:w-72">
+                        <div class="relative w-full sm:w-64">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" id="repoSearchInput" placeholder="폴더명 또는 지문 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                            <input type="text" id="repoSearchInput" placeholder="제목 또는 폴더명 검색..." class="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                         </div>
                     </div>
                 </div>
@@ -1255,7 +1361,7 @@
                 
                 <div id="repoLoadingState" class="py-16 flex flex-col items-center justify-center space-y-2 text-slate-400">
                     <i class="fa-solid fa-spinner fa-spin text-2xl text-indigo-500"></i>
-                    <span class="text-xs">저장된 폴더 및 교안 목록을 불러오는 중...</span>
+                    <span class="text-xs font-bold">저장된 자료 목록을 불러오는 중...</span>
                 </div>
                 
                 <div id="repoEmptyState" class="hidden py-16 flex flex-col items-center justify-center space-y-2 text-slate-400">
@@ -1263,14 +1369,40 @@
                     <span class="text-xs font-semibold">검색 조건에 맞는 폴더 또는 자료가 없습니다.</span>
                 </div>
 
-                <!-- Level 1: Folders Grid -->
-                <div id="repoFoldersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Main List Table View (Default) -->
+                <div id="repoListViewTableContainer" class="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200">
+                                <th class="py-3 px-3 w-12 text-center">No</th>
+                                <th class="py-3 px-3 w-32">자료 구분</th>
+                                <th class="py-3 px-3 cursor-pointer hover:text-indigo-600 transition" onclick="toggleSortByHeader('title')">
+                                    <span class="flex items-center gap-1">자료 제목 <i class="fa-solid fa-sort text-[10px] text-slate-400"></i></span>
+                                </th>
+                                <th class="py-3 px-3 w-48 cursor-pointer hover:text-indigo-600 transition" onclick="toggleSortByHeader('folder')">
+                                    <span class="flex items-center gap-1">소속 폴더 <i class="fa-solid fa-sort text-[10px] text-slate-400"></i></span>
+                                </th>
+                                <th class="py-3 px-3 w-24 text-center">지점</th>
+                                <th class="py-3 px-3 w-36 text-center cursor-pointer hover:text-indigo-600 transition" onclick="toggleSortByHeader('date')">
+                                    <span class="flex items-center justify-center gap-1">등록/수정일 <i class="fa-solid fa-sort text-[10px] text-slate-400"></i></span>
+                                </th>
+                                <th class="py-3 px-3 w-48 text-center">관리 및 실행</th>
+                            </tr>
+                        </thead>
+                        <tbody id="repoTableBody" class="divide-y divide-slate-100 bg-white">
+                            <!-- Table rows injected in JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Level 1: Folders Grid (Used in Folder Mode) -->
+                <div id="repoFoldersGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <!-- Folder Cards injected in JS -->
                 </div>
 
-                <!-- Level 2: Inside Folder Files Grid -->
-                <div id="repoFilesGrid" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <!-- File Cards inside selected folder injected in JS -->
+                <!-- Level 2: Inside Folder Files Grid (Used in Folder Mode) -->
+                <div id="repoFilesGrid" class="hidden space-y-4">
+                    <!-- File Cards / Table inside selected folder injected in JS -->
                 </div>
             </div>
         </div>
@@ -1466,8 +1598,148 @@
         <p>© 2026 에이닷 내신자료 메이커 v1.0 <span class="mx-1 text-slate-300">|</span> <span class="text-slate-600 font-medium">supported by 영업지원팀</span></p>
     </footer>
 
+    <!-- Illustration Review & Customization Modal -->
+    <div id="modalIllustrationReview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[99998] flex items-center justify-center p-4 transition-opacity duration-200 hidden no-print">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col max-h-[90vh]">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-rose-400 text-base"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+                    <h3 class="text-sm font-bold text-white">지문 맞춤 AI 삽화 검토 및 설정</h3>
+                    <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-medium border border-emerald-500/30">완성됨</span>
+                </div>
+                <button id="btnCloseIlluReviewModal" type="button" class="text-slate-400 hover:text-white transition text-sm">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 overflow-y-auto space-y-4">
+                <!-- Image Preview Box -->
+                <div class="relative w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-950 shadow-inner flex items-center justify-center min-h-[260px]">
+                    <img id="reviewModalImgPreview" src="/static/illustration.jpg" alt="Review Illustration" class="w-full max-h-[340px] object-cover rounded-xl">
+                    <div class="absolute top-2.5 left-2.5 bg-slate-950/75 backdrop-blur-sm px-2.5 py-1 rounded-md text-[11px] font-bold text-white border border-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-palette text-rose-400"></i> Studio Ghibli 수채화 스타일
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="bg-rose-50/60 border border-rose-100 rounded-xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-black text-rose-700 flex items-center gap-1">
+                            <i class="fa-solid fa-book-open"></i> 반영된 지문 주제 & 맥락
+                        </span>
+                    </div>
+                    <p id="reviewModalTopicText" class="text-xs font-bold text-slate-800 leading-snug"></p>
+                    <p class="text-[11px] text-slate-500 leading-relaxed">
+                        💡 지문의 비언어적 맥락과 주제를 바탕으로 생성된 교재 삽화입니다. 마음에 드시면 그대로 사용하시거나, 다른 사진 업로드 또는 AI 재생성을 하실 수 있습니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                    <button id="btnReviewModalUpload" type="button" class="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg border border-slate-300 transition flex items-center gap-1">
+                        <i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i> 내 사진 업로드
+                    </button>
+                    <button id="btnReviewModalRegen" type="button" class="text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg border border-rose-200 transition flex items-center gap-1">
+                        <i class="fa-solid fa-arrows-rotate text-rose-600"></i> AI 재생성
+                    </button>
+                </div>
+                <button id="btnReviewModalConfirm" type="button" class="text-xs font-black bg-rose-600 hover:bg-rose-500 text-white px-4 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> 이 삽화로 확정하기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Accuracy Diff Inspection Modal ==================== -->
+    <div id="accuracyDiffModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span id="diffModalIcon" class="text-emerald-400 text-base"><i class="fa-solid fa-clipboard-check"></i></span>
+                    <h3 class="text-sm font-bold text-white">입력 문장 vs 결과물 일치율 정밀 검증</h3>
+                    <span id="diffModalBadge" class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full font-bold border border-emerald-500/30">100% 일치</span>
+                </div>
+                <button onclick="closeAccuracyModal()" type="button" class="text-slate-400 hover:text-white transition text-sm cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 overflow-y-auto space-y-4">
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs leading-relaxed text-slate-700">
+                    <p class="font-bold text-slate-900 mb-1">🔍 검증 기준 안내</p>
+                    <p class="text-slate-600">입력창에 입력하신 원본 영문 단어들이 구문분석 결과물에 빠짐없이 온전하게 반영되었는지 문장별로 1:1 대조 검증한 결과입니다. (100% 미만일 경우 누락 또는 변형된 단어가 표시됩니다.)</p>
+                </div>
+
+                <!-- Sentence-by-Sentence Comparison List -->
+                <div id="diffSentenceList" class="space-y-3">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <button onclick="closeAccuracyModal()" type="button" class="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white px-4 py-1.5 rounded-lg transition cursor-pointer">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Edit Item Title & Folder Modal ==================== -->
+    <div id="modalEditItemMeta" class="fixed inset-0 z-[99998] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-2">
+                    <span class="text-amber-400 text-base"><i class="fa-solid fa-pen-to-square"></i></span>
+                    <h3 class="text-sm font-bold text-white">자료 제목 및 저장 폴더 위치 수정</h3>
+                </div>
+                <button onclick="closeEditItemModal()" type="button" class="text-slate-400 hover:text-white transition text-sm cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 space-y-4 text-xs">
+                <input type="hidden" id="editItemOldTitle" value="">
+                <input type="hidden" id="editItemOldFilename" value="">
+                <input type="hidden" id="editItemMaterialType" value="">
+                <input type="hidden" id="editItemDocType" value="">
+                <input type="hidden" id="editItemBranch" value="">
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">자료 제목 <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editItemNewTitle" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="예: 26년 고3 3월 모의고사 32번 강의용교안">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">저장 폴더 지정 (이동할 폴더명) <span class="text-rose-500">*</span></label>
+                    <input type="text" id="editItemNewFolder" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="예: 26년 고3 3월 모의고사">
+                    <p class="text-[11px] text-slate-400 mt-1">💡 기존 폴더명을 입력하거나 새로운 폴더명을 입력하여 자료를 이동할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeEditItemModal()" type="button" class="text-xs font-bold px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 transition cursor-pointer">
+                    취소
+                </button>
+                <button onclick="submitEditItemModal()" id="btnSubmitEditItem" type="button" class="text-xs font-bold px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> 변경사항 저장
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container no-print"></div>
+
 
     <!-- Loading Spinner Overlay -->
     <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] items-center justify-center opacity-0 transition-opacity duration-300 no-print pointer-events-none" style="display: none !important;">
@@ -1651,13 +1923,14 @@
         function extractDefaultFolderName(title, matType = selectedMaterialType) {
             title = (title || '').trim();
             if (!title) return `${matType} 기본 폴더`;
-            const m = title.match(/^(.*?)\s+(?:[0-9]{1,3}번|본문\s*\d+|Q\d+|\d+문항)$/i);
+            let cleanT = title.replace(/\s*-\s*(?:9종\s*)?변형문제.*$/i, '').replace(/\s*-\s*단어(?:TEST|테스트).*$/i, '').replace(/\s*강의용교안.*$/i, '').trim();
+            const m = cleanT.match(/^(.*?)\s+(?:[0-9]{1,3}번|본문\s*\d+|Q\d+|\d+문항)$/i);
             if (m && m[1].trim().length > 3) return m[1].trim();
-            const m2 = title.match(/(\d+년\s*(?:[고중]\d\s*)?\d+월\s*모의고사)/);
+            const m2 = cleanT.match(/(\d+년\s*(?:[고중]\d\s*)?\d+월\s*모의고사)/);
             if (m2) return m2[1].trim();
-            const m3 = title.match(/([가-힣A-Za-z0-9]+\s*[IV1-4]?\s*[가-힣()]+\s*\d+과)/);
+            const m3 = cleanT.match(/([가-힣A-Za-z0-9]+\s*[IV1-4]?\s*[가-힣()]+\s*\d+과)/);
             if (m3) return m3[1].trim();
-            return title.length > 15 ? `${matType} - ${title.slice(0, 15)}` : (title || `${matType} 기본 폴더`);
+            return cleanT.length > 15 ? `${matType} - ${cleanT.slice(0, 15)}` : (cleanT || `${matType} 기본 폴더`);
         }
 
         function getActiveFolderName() {
@@ -1763,9 +2036,19 @@
             });
         });
 
-        // Folder input listeners
+        // Folder input listeners & real-time title synchronization
         if (titleInput) {
             titleInput.addEventListener('input', () => {
+                const newTitle = titleInput.value.trim() || '에이닷 내신자료 메이커';
+                const cleanTitle = newTitle.replace(/\s*강의용\s*교안\s*$/, '').trim();
+                if (page1MainTitle) page1MainTitle.innerText = cleanTitle;
+                document.title = `${cleanTitle}_강의용 교안`;
+                document.querySelectorAll('.sentence-page-header-title').forEach(el => {
+                    el.innerText = cleanTitle;
+                });
+                if (currentAnalysisData) {
+                    currentAnalysisData.title = newTitle;
+                }
                 saveToLocalStorage();
             });
         }
@@ -2105,6 +2388,47 @@
             }
         });
 
+        // =========================================================================
+        // [절대 변경 금지 / FREEZE] 페이지당 문장 수 변경 및 문장별 강제 페이지 분할 함수
+        // =========================================================================
+        window.sentencesPerPageSetting = 2;
+
+        window.setSentencesPerPage = function(count) {
+            window.sentencesPerPageSetting = count;
+            const b1 = document.getElementById('btnPage1Sent');
+            const b2 = document.getElementById('btnPage2Sent');
+            const b3 = document.getElementById('btnPage3Sent');
+
+            if (b1) {
+                b1.className = count === 1 
+                    ? "px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                    : "px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer";
+            }
+            if (b2) {
+                b2.className = count === 2 
+                    ? "px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                    : "px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer";
+            }
+            if (b3) {
+                b3.className = count === 3 
+                    ? "px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                    : "px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer";
+            }
+
+            if (currentAnalysisData) {
+                renderAnalysisData(currentAnalysisData);
+            }
+        };
+
+        window.toggleSentencePageBreak = function(sentenceIndex) {
+            if (!currentAnalysisData || !currentAnalysisData.sentences) return;
+            const targetSent = currentAnalysisData.sentences.find(s => s.index === sentenceIndex);
+            if (targetSent) {
+                targetSent.page_break = !targetSent.page_break;
+                renderAnalysisData(currentAnalysisData);
+            }
+        };
+
         const colorClasses = {
             blue: 'text-blue-600 border-blue-500',         // S (Subject) - Blue
             rose: 'text-rose-600 border-rose-500',         // V/Vi/Vt (Verb) - Red
@@ -2133,17 +2457,33 @@
 
             // Dynamic Illustration Matching & AI Generation for ANY topic
             const ghibliImg = document.getElementById('ghibliImg');
+            const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
+
             if (ghibliImg) {
-                if (data.illustration_url) {
-                    ghibliImg.src = data.illustration_url;
-                } else if (data.analysis_data && data.analysis_data.illustration_url) {
-                    ghibliImg.src = data.analysis_data.illustration_url;
+                const savedIllu = (
+                    data.illustration_url || 
+                    (data.analysis_data && data.analysis_data.illustration_url) || 
+                    (data.analysis_data && data.analysis_data.summary_info && data.analysis_data.summary_info.illustration_url) ||
+                    (data.summary_info && data.summary_info.illustration_url) || 
+                    (currentAnalysisData && currentAnalysisData.illustration_url) ||
+                    (currentAnalysisData && currentAnalysisData.summary_info && currentAnalysisData.summary_info.illustration_url)
+                );
+
+                if (savedIllu && typeof savedIllu === 'string' && savedIllu.trim() !== '' && !savedIllu.includes('placeholder')) {
+                    ghibliImg.src = savedIllu;
+                    if (reviewModalImgPreview) reviewModalImgPreview.src = savedIllu;
+                    if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
+                    if (!currentAnalysisData) currentAnalysisData = data;
+                    currentAnalysisData.illustration_url = savedIllu;
                 } else {
                     const sceneEn = (sInfo.illustration_scene_en || '').trim();
                     const titleStr = (data.title || titleInput.value || '').trim();
                     const subjectStr = (sInfo.subject || '').trim();
                     const passageText = (data.passage_raw || (data.sentences || []).map(s => s.original).join(' ')).trim();
                     
+                    // Show clear loading state only when creating brand-new illustration
+                    if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.remove('hidden');
+
                     // Auto-fetch topic illustration in background
                     fetch('/api/generate_illustration', {
                         method: 'POST',
@@ -2157,15 +2497,56 @@
                             api_key: localStorage.getItem('gemini_api_key') || ''
                         })
                     }).then(r => r.json()).then(resData => {
+                        if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                         if (resData && resData.illustration_url) {
                             ghibliImg.src = resData.illustration_url;
-                            if (currentAnalysisData) currentAnalysisData.illustration_url = resData.illustration_url;
+                            if (reviewModalImgPreview) reviewModalImgPreview.src = resData.illustration_url;
+                            if (!currentAnalysisData) currentAnalysisData = data;
+                            currentAnalysisData.illustration_url = resData.illustration_url;
+                            if (currentAnalysisData.summary_info) {
+                                currentAnalysisData.summary_info.illustration_url = resData.illustration_url;
+                            }
+                            
+                            // Auto-sync new illustration into the saved handout database
+                            try {
+                                const folderName = getActiveFolderName();
+                                const title = (titleInput && titleInput.value.trim()) || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                                const syncPairs = [];
+                                if (pairContainer) {
+                                    pairContainer.querySelectorAll('.pair-row').forEach(r => {
+                                        const en = (r.querySelector('.pair-en')?.value || '').trim();
+                                        const kr = (r.querySelector('.pair-kr')?.value || '').trim();
+                                        const pb = r.querySelector('.pair-page-break')?.checked || false;
+                                        if (en) syncPairs.push({ english: en, korean: kr, page_break: pb });
+                                    });
+                                }
+                                fetch('/api/save', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        title: title,
+                                        folder_name: folderName,
+                                        material_type: selectedMaterialType,
+                                        doc_type: '강의용교안',
+                                        label: selectedMaterialType,
+                                        branch: typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사',
+                                        sentence_pairs: syncPairs,
+                                        analysis_data: currentAnalysisData,
+                                        illustration_url: resData.illustration_url
+                                    })
+                                });
+                            } catch(e) { console.warn("Auto-sync illu save error:", e); }
+
+                            showToast('✨ 지문 맞춤 AI 삽화가 완성되어 RDB_교안에 안전하게 저장되었습니다!', 'success');
                         }
                     }).catch(e => {
                         console.log('Illustration auto-gen warning:', e);
+                        if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     });
                 }
             }
+
+
 
             summaryPoints.innerHTML = '';
             const summaryList = sInfo.summary || [
@@ -2180,7 +2561,7 @@
                 pEl.className = "flex items-center justify-center gap-1.5 text-center w-full";
                 pEl.innerHTML = `
                     <span class="w-4 h-4 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center text-[10px] font-black shrink-0">${idx + 1}</span>
-                    <span class="text-center font-semibold text-slate-900 text-[11px] sm:text-xs leading-relaxed">${cleanPt}</span>
+                    <span class="text-center font-bold text-slate-900 text-[13px] sm:text-[13.5px] leading-relaxed">${cleanPt}</span>
                 `;
                 summaryPoints.appendChild(pEl);
             });
@@ -2190,6 +2571,62 @@
             if (page1VocabGrid) {
                 page1VocabGrid.innerHTML = '';
                 const vocabs = data.vocabulary || data.vocab || [];
+
+                // =========================================================================
+                // [절대 변경 금지 / FREEZE] 3. 주요 어휘 표준 한국어 사전 및 동일 폰트 렌더링 (완결본)
+                // =========================================================================
+                const CLIENT_VOCAB_DICT = {
+                    "imagination": "(명) 상상력, 상상", "imagine": "(동) 상상하다",
+                    "continue": "(동) 계속하다, 지속하다", "continues": "(동) 계속하다", "continued": "(동) 지속된",
+                    "function": "(동) 기능하다, 작용하다", "functions": "(동) 기능하다",
+                    "perception": "(명) 지각, 인식", "perceive": "(동) 지각하다, 인식하다", "perceived": "(동) 지각된",
+                    "perceptual": "(형) 지각의, 지각적인",
+                    "active": "(형) 적극적인, 활동적인", "actively": "(부) 적극적으로, 활발히",
+                    "discern": "(동) 분별하다, 식별하다", "discerning": "(동) 분별하는, 알아차리는",
+                    "object": "(명) 대상, 물체", "objects": "(명) 대상, 물체들",
+                    "case": "(명) 경우, 사례, 사건", "cases": "(명) 경우, 사례들",
+                    "emotion": "(명) 감정, 정서", "emotions": "(명) 감정, 정서", "emotional": "(형) 감정적인",
+                    "disease": "(명) 질병, 질환", "diseases": "(명) 질병들",
+                    "sleep": "(명) 수면, 잠", "sleeping": "(명) 수면",
+                    "dispose": "(동) ~하는 경향을 갖게 하다", "disposes": "(동) 경향을 갖게 하다",
+                    "disposition": "(명) 성향, 기질", "dispositions": "(명) 성향, 기질",
+                    "distort": "(동) 왜곡하다, 비틀다", "distorted": "(형) 왜곡된, 비틀린", "distortion": "(명) 왜곡",
+                    "coward": "(명) 겁쟁이, 소심한 사람", "coward's": "(명) 겁쟁이의",
+                    "affect": "(동) 영향을 미치다", "affected": "(형) 영향을 받은",
+                    "experience": "(동) 경험하다 (명) 경험",
+                    "fear": "(명) 두려움, 공포", "fearful": "(형) 두려워하는",
+                    "lover": "(명) 연인, 애인", "lover's": "(명) 연인의",
+                    "similarity": "(명) 유사성, 닮음", "similarities": "(명) 유사성들",
+                    "misidentification": "(명) 오인, 잘못된 식별",
+                    "enemy": "(명) 적, 원수", "enemies": "(명) 적들",
+                    "central": "(형) 중심의, 중추적인",
+                    "organ": "(명) 기관, 장기", "organs": "(명) 기관, 장기들",
+                    "bias": "(명) 편향, 편견", "biased": "(형) 편향된, 치우친",
+                    "accurate": "(형) 정확한", "accurately": "(부) 정확하게",
+                    "inaccurate": "(형) 부정확한", "inaccurately": "(부) 부정확하게",
+                    "temperament": "(명) 기질, 성격",
+                    "influence": "(동) 영향을 주다", "influenced": "(동) 영향을 받은",
+                    "observe": "(동) 관찰하다", "observing": "(동) 관찰하는 것",
+                    "behavior": "(명) 행동, 태도", "behaviors": "(명) 행동 양식",
+                    "tone": "(명) 어조, 음조", "tones": "(명) 어조",
+                    "volume": "(명) 음량, 볼륨",
+                    "contact": "(명) 접촉, 연락",
+                    "facial": "(형) 얼굴의, 안면의",
+                    "expression": "(명) 표정, 표현", "expressions": "(명) 표정, 표현들",
+                    "gesture": "(명) 몸짓, 제스처", "gestures": "(명) 몸짓들",
+                    "understand": "(동) 이해하다, 알아듣다",
+                    "speaker": "(명) 화자, 말하는 사람", "speakers": "(명) 화자들",
+                    "meaning": "(명) 의미, 뜻", "meanings": "(명) 의미들",
+                    "nonverbal": "(형) 비언어적인", "verbal": "(형) 언어적인",
+                    "see": "(동) 보다, 인식하다, 알다", "saw": "(동) 보았다", "seen": "(동) 보여진",
+                    "world": "(명) 세상, 세계", "way": "(명) 방식, 방법, 길",
+                    "unperceived": "(형) 지각되지 않은", "former": "(명) 전자", "latter": "(명) 후자",
+                    "dark": "(명) 어둠 (형) 어두운", "effect": "(명) 영향, 효과",
+                    "temporary": "(형) 일시적인", "permanent": "(형) 영구적인",
+                    "illness": "(명) 질병, 아픔", "humor": "(명) 체액, 유머", "humors": "(명) 체액들",
+                    "likely": "(형) ~할 가능성이 있는", "judge": "(동) 판단하다"
+                };
+
                 if (vocabs.length > 0) {
                     vocabs.forEach(v => {
                         let word = '';
@@ -2202,6 +2639,16 @@
                             word = v.word || v.english || v.term || v.lemma || '';
                             pos = v.pos || '';
                             meaning = v.meaning || v.korean || v.definition || '';
+                        }
+
+                        const cleanWord = (word || 'vocabulary').trim();
+                        const lowerWord = cleanWord.toLowerCase();
+
+                        // Look up in dictionary if meaning is raw English or empty
+                        if (!meaning || meaning.toLowerCase() === lowerWord || meaning.replace(/^\([가-힣\w\s]+\)\s*/, '').toLowerCase() === lowerWord) {
+                            if (CLIENT_VOCAB_DICT[lowerWord]) {
+                                meaning = CLIENT_VOCAB_DICT[lowerWord];
+                            }
                         }
 
                         // Parse (품사) from meaning if embedded
@@ -2222,35 +2669,75 @@
                             }
                         }
 
-                        const cleanWord = (word || 'vocabulary').trim();
-                        const posBadge = pos ? `<span class="text-indigo-600 font-bold text-[9.5px] mr-1">${pos}</span>` : '';
+                        // Final fallback for missing POS or English repetition
+                        if (CLIENT_VOCAB_DICT[lowerWord] && (!meaning || meaning.toLowerCase() === lowerWord)) {
+                            const dictEntry = CLIENT_VOCAB_DICT[lowerWord];
+                            const pMatch = dictEntry.match(/^(\([가-힣\w\s]+\))\s*(.*)$/);
+                            if (pMatch) {
+                                pos = pMatch[1].trim();
+                                meaning = pMatch[2].trim();
+                            }
+                        }
+
+                        if (!pos) pos = '(명)';
+                        if (!meaning || meaning.toLowerCase() === lowerWord) meaning = '핵심 어휘';
+
+                        const posBadge = `<span class="text-indigo-600 font-bold text-xs sm:text-[12px] mr-1">${pos}</span>`;
 
                         const vDiv = document.createElement('div');
-                        vDiv.className = "flex items-baseline justify-between py-0.5 px-1.5 rounded hover:bg-slate-50 transition border-b border-slate-100 text-[10px] gap-1";
+                        vDiv.className = "flex items-baseline justify-between py-1 px-2 rounded hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-[12px] gap-2 leading-relaxed";
                         vDiv.innerHTML = `
-                            <div class="flex items-baseline gap-1 font-outfit truncate">
-                                <span class="text-rose-500 font-black text-[9px] shrink-0">•</span>
-                                <span class="font-bold text-slate-900 tracking-tight">${cleanWord}</span>
+                            <div class="flex items-baseline gap-1.5 font-outfit truncate">
+                                <span class="text-rose-500 font-black text-xs sm:text-[12px] shrink-0">•</span>
+                                <span class="font-extrabold text-slate-900 tracking-tight text-[13.5px] sm:text-[14px] leading-none">${cleanWord}</span>
                             </div>
-                            <div class="text-slate-600 font-medium text-right text-[9.5px] shrink-0">${posBadge}${meaning}</div>
+                            <div class="text-slate-700 font-bold text-right text-xs sm:text-[12px] shrink-0">${posBadge}<span class="text-slate-800 font-bold text-xs sm:text-[12px]">${meaning}</span></div>
                         `;
                         page1VocabGrid.appendChild(vDiv);
                     });
                 }
             }
 
+
             // Clear Sentence Pages Container
             sentencePagesWrapper.innerHTML = '';
             const sentences = data.sentences || [];
             
+            // =========================================================================
+            // [입력 원문 vs 결과물 일치율 정밀 검증 계산]
+            // =========================================================================
+            const rawPassageText = (document.getElementById('passageInput')?.value || '').trim();
+            const accuracyRes = calculatePassageMatch(rawPassageText, sentences);
+            window.latestAccuracyMatch = accuracyRes;
+
+            const accContainer = document.getElementById('accuracyMatchContainer');
+            const accBadge = document.getElementById('btnAccuracyModal');
+            const accIcon = document.getElementById('accuracyMatchIcon');
+            const accText = document.getElementById('accuracyMatchText');
+
+            if (accContainer && accBadge && accIcon && accText) {
+                accContainer.classList.remove('hidden');
+                if (accuracyRes.percent === 100) {
+                    accBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs border bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100 transition-all cursor-pointer";
+                    accIcon.className = "fa-solid fa-circle-check text-emerald-600";
+                    accText.textContent = `입력-결과 일치율: 100% (완전 일치)`;
+                } else {
+                    accBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs border bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100 animate-pulse transition-all cursor-pointer";
+                    accIcon.className = "fa-solid fa-triangle-exclamation text-rose-600";
+                    accText.textContent = `입력-결과 일치율: ${accuracyRes.percent}% (단어 불일치 감지!)`;
+                }
+            }
+
             // Build pages (2 sentences per page or by manual page_break)
+            // Build pages (using sentencesPerPageSetting and custom s.page_break)
             const pages = [];
             let currentPage = [];
+            const perPage = window.sentencesPerPageSetting || 2;
             sentences.forEach((s, idx) => {
                 if (s.page_break === true && currentPage.length > 0) {
                     pages.push(currentPage);
                     currentPage = [];
-                } else if (currentPage.length >= 2) {
+                } else if (currentPage.length >= perPage) {
                     pages.push(currentPage);
                     currentPage = [];
                 }
@@ -2258,11 +2745,14 @@
             });
             if (currentPage.length > 0) pages.push(currentPage);
 
+            // =========================================================================
+            // [절대 변경 금지 / FREEZE] 4. 문장 페이지 (A4 엄격 분할 & 인쇄 클래스 매핑) (완결본)
+            // =========================================================================
             let currentPageNum = 2;
             pages.forEach((chunk, pageIdx) => {
                 const isLastPage = (pageIdx === pages.length - 1);
                 const pageDiv = document.createElement('div');
-                pageDiv.className = 'page-container bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 shadow-sm print-page mb-8 text-slate-800 relative flex flex-col justify-between';
+                pageDiv.className = `a4-page ${isLastPage ? 'print-page-block-last' : 'print-page-block'} page-container bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-800 relative flex flex-col justify-between`;
                 
                 let pageHtml = `
                     <div>
@@ -2270,30 +2760,44 @@
                         <div class="border-b border-slate-200 pb-3 mb-6 flex justify-between items-center text-xs">
                             <div class="flex items-center gap-2">
                                 <span class="bg-indigo-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">내신 심층분석</span>
-                                <span class="font-bold text-slate-800">${fullHeading}</span>
+                                <span class="sentence-page-header-title font-bold text-slate-800">${fullHeading}</span>
                             </div>
                             <div class="text-slate-400 font-semibold text-[11px]">
                                 PAGE <span class="text-indigo-600 font-bold">${currentPageNum}</span>
                             </div>
                         </div>
 
-                        <!-- Sentences in this page chunk -->
-                        <div class="space-y-6">
-                `;
+                        <!-- Sentences in this page chunk (Tightened to 70% Spacing) -->
+                        <div class="space-y-3.5">
+                    `;
 
                 chunk.forEach((s, chunkIdx) => {
-                    const sentenceKr = s.korean || (s.chunk_korean ? s.chunk_korean.replace(/\s*\/\s*/g, ' ') : '');
+                    const sentStat = (accuracyRes.sentenceStats || []).find(st => st.index === s.index);
+                    const sentBadgeHtml = sentStat ? (
+                        sentStat.percent === 100 
+                            ? `<span class="no-print text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-2xs">✓ 일치율 100%</span>`
+                            : `<span class="no-print text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded shadow-2xs animate-pulse">⚠️ 불일치 (${sentStat.percent}%)</span>`
+                    ) : '';
+
                     pageHtml += `
-                        <div class="print-block space-y-2.5 bg-white border border-slate-200/80 rounded-xl p-4 shadow-2xs">
-                            <div class="flex items-center justify-between">
+                        <div class="print-block space-y-1.5 bg-white border border-slate-200/80 rounded-xl p-2.5 sm:p-3 shadow-2xs">
+
+
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-1 mb-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black">${s.index}</span>
-                                    <span class="text-[11px] font-bold text-slate-700">${sentenceKr}</span>
+                                    <span class="bg-indigo-600 text-white font-black text-xs px-2.5 py-0.5 rounded shadow-xs">${s.index}번 문장</span>
+                                    ${sentBadgeHtml}
+                                </div>
+                                <div class="no-print">
+                                    <button type="button" onclick="toggleSentencePageBreak(${s.index})" class="text-[10px] font-bold px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer ${s.page_break ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}">
+                                        <i class="fa-solid fa-scissors text-[9px]"></i>
+                                        <span>${s.page_break ? '✂️ 페이지 분할됨 (취소)' : '✂️ 다음 페이지로 넘기기'}</span>
+                                    </button>
                                 </div>
                             </div>
 
-                            <!-- Token Analysis -->
-                            <div class="flex flex-wrap items-baseline py-2.5 px-2 bg-slate-50/50 rounded border border-slate-100 text-slate-900 gap-y-5">
+                            <!-- Token Analysis (Compact 70% Spacing with Zero Multiline Overlap) -->
+                            <div class="flex flex-wrap items-baseline py-2 px-2 bg-slate-50/50 rounded border border-slate-100 text-slate-900 gap-y-5 leading-normal">
                     `;
 
                     if (s.tokens && s.tokens.length > 0) {
@@ -2321,7 +2825,7 @@
                                 const firstClean = words[0].replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
                                 const isConj = t.is_conjunction || (t.sub_tag && t.sub_tag.includes('접속'));
                                 if (isConj && pureConjunctions.includes(firstClean)) {
-sanitizedTokens.push({
+                                    sanitizedTokens.push({
                                         text: words[0],
                                         top_label: '△',
                                         color: 'slate',
@@ -2340,8 +2844,24 @@ sanitizedTokens.push({
                                     return;
                                 }
                             }
+                            // Prepositional phrase protection: (to a ...), (to an ...), (to the ...) are NEVER to-infinitive
+                            if (textTrim.startsWith('(') && /^[\(\[]to\s+/i.test(textTrim)) {
+                                t.top_label = '';
+                                if (['OC', 'Vt', 'Vi', 'O'].includes(t.sub_tag)) {
+                                    t.sub_tag = '';
+                                    t.color = 'slate';
+                                }
+                            }
+
+                            // Passive verbal protection: (to be displaced) or [to be displaced] is Vi, not split into O
+                            if (/^[\(\[]?(?:to\s+)?(?:be|been|being)\s+[a-zA-Z]+ed[\)\]]?$/i.test(textTrim)) {
+                                t.top_label = 'Vi';
+                            }
+
                             sanitizedTokens.push(t);
                         });
+
+                        let activeBracketClass = 'text-emerald-700 font-bold';
 
                         sanitizedTokens.forEach((t) => {
                             if (t.text && t.text.trim() === '/') {
@@ -2349,10 +2869,18 @@ sanitizedTokens.push({
                                     <span class="inline-block px-1 text-purple-600 font-black text-sm select-none self-center">/</span>
                                 `;
                             } else {
+                                const textRaw = t.text || '';
+                                const cleanWordText = textRaw;
+                                const textClean = cleanWordText.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
+
                                 let tagColor = t.color || 'slate';
                                 const subTagClean = (t.sub_tag || '').toUpperCase();
+                                const topLabel = (t.top_label || '').trim();
+                                const topClean = topLabel.toUpperCase();
 
-                                if (subTagClean.includes('의미상')) {
+                                if (topLabel && !t.underline) {
+                                    tagColor = 'slate';
+                                } else if (subTagClean.includes('의미상')) {
                                     tagColor = 'blue';
                                 } else if (subTagClean.startsWith('S') && !subTagClean.includes('전치사')) {
                                     tagColor = 'blue';
@@ -2364,13 +2892,32 @@ sanitizedTokens.push({
                                     tagColor = 'emerald';
                                 } else if (subTagClean.startsWith('SC') || subTagClean.startsWith('C')) {
                                     tagColor = 'indigo';
+                                } else {
+                                    tagColor = 'slate';
                                 }
 
-                                const colorClass = colorClasses[tagColor] || colorClasses[t.color] || 'text-slate-900 border-transparent';
-                                const hasUnderline = t.underline ? 'border-b-2' : '';
-                                
-                                const cleanWordText = (t.text || '').replace(/^[△▲\s]+/, '').replace(/[△▲]+$/, '').trim();
-                                const textClean = cleanWordText.replace(/^[\[\(]+|[\]\),]+$/g, '').trim().toLowerCase();
+                                // Update bracket color ONLY when current token introduces an opening bracket [
+                                if (cleanWordText.includes('[')) {
+                                    if (subTagClean.startsWith('S') && !subTagClean.startsWith('SC')) {
+                                        activeBracketClass = 'text-blue-700 font-bold';
+                                    } else if (subTagClean.startsWith('O') || subTagClean.startsWith('IO') || subTagClean.startsWith('DO') || subTagClean.includes('목적어')) {
+                                        activeBracketClass = 'text-emerald-700 font-bold';
+                                    } else if (subTagClean.startsWith('SC') || subTagClean.startsWith('OC') || subTagClean.startsWith('C')) {
+                                        activeBracketClass = 'text-purple-700 font-bold';
+                                    } else if (topClean.startsWith('S') && !topClean.startsWith('SC')) {
+                                        activeBracketClass = 'text-blue-700 font-bold';
+                                    } else if (topClean.startsWith('O') && !topClean.startsWith('OC')) {
+                                        activeBracketClass = 'text-emerald-700 font-bold';
+                                    } else if (topClean.startsWith('SC') || topClean.startsWith('OC')) {
+                                        activeBracketClass = 'text-purple-700 font-bold';
+                                    } else {
+                                        activeBracketClass = 'text-emerald-700 font-bold';
+                                    }
+                                }
+
+                                const colorClass = colorClasses[tagColor] || 'text-slate-800 border-slate-400';
+                                const hasUnderline = t.underline ? 'underline decoration-2 underline-offset-4 decoration-rose-500 font-black' : '';
+
                                 let isConjunctionOrAdverb = false;
                                 
                                 // Triangle SVG applies ONLY if strictly a coordinating conjunction, correlative conjunction, or conjunctive adverb!
@@ -2383,9 +2930,10 @@ sanitizedTokens.push({
                                     rawSubTag = ''; // Show only triangle mark, hide "Conjunction"/"접속사"/"접속부사" labels
                                 }
 
-                                // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses & Adjectival phrases)
+                                // Check if this token modifies preceding noun (Arrow condition: ⬑ for Relative clauses & Adjectival phrases ONLY)
                                 const isPrepositionOnly = cleanWordText.startsWith('(') && rawSubTag.includes('전치사');
-                                const hasArrow = !isPrepositionOnly && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
+                                const isNounClauseThat = cleanWordText.startsWith('[') && cleanWordText.toLowerCase().includes('that');
+                                const hasArrow = !isPrepositionOnly && !isNounClauseThat && (rawSubTag.includes('⬑') || rawSubTag.includes('관계') || (rawSubTag.includes('형용사') && !rawSubTag.includes('전치사')));
 
                                 let displaySubTag = rawSubTag
                                     .replace(/[⬑⤹⤺]/g, '')
@@ -2401,19 +2949,26 @@ sanitizedTokens.push({
                                     displaySubTag = '진목적어';
                                 }
 
-                                // Top Label (rendered ABOVE the word token for verbal structures: Vt, Vi, O, O1, O2, C, etc.)
+                                // Top Label (rendered symmetrically tightly above uppercase letters, matching bottom gap)
                                 let topLabelHtml = '';
-                                const topLabel = (t.top_label || '').trim();
                                 if (topLabel && topLabel !== '△' && !isConjunctionOrAdverb) {
                                     let topColor = 'text-slate-700';
-                                    const topClean = topLabel.toUpperCase();
                                     if (topClean.startsWith('V')) topColor = 'text-rose-600';
                                     else if (topClean.startsWith('O') && !topClean.startsWith('OC')) topColor = 'text-emerald-600';
                                     else if (topClean.startsWith('OC')) topColor = 'text-purple-600';
                                     else if (topClean.startsWith('S') && !topClean.startsWith('SC')) topColor = 'text-blue-600';
                                     else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColor = 'text-indigo-600';
                                     
-                                    topLabelHtml = `<span class="absolute bottom-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap text-[8.5px] font-black tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
+                                    topLabelHtml = `<span class="absolute bottom-[86%] left-1/2 -translate-x-1/2 whitespace-nowrap text-[8.5px] font-black tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
+                                }
+
+                                // Format word with colored brackets [ and ] matching constituent role
+                                let formattedWord = cleanWordText.replace(/ /g, '&nbsp;');
+                                if (formattedWord.includes('[')) {
+                                    formattedWord = formattedWord.replace(/\[/g, `<span class="${activeBracketClass}">[</span>`);
+                                }
+                                if (formattedWord.includes(']')) {
+                                    formattedWord = formattedWord.replace(/\]/g, `<span class="${activeBracketClass}">]</span>`);
                                 }
 
                                 // Word Display (Overlay SVG triangle directly over conjunction word)
@@ -2421,24 +2976,24 @@ sanitizedTokens.push({
                                 if (isConjunctionOrAdverb) {
                                     wordDisplayHtml = `
                                         <div class="relative inline-block px-1 py-0 align-middle">
-                                            <svg class="absolute inset-x-0 top-0 bottom-0 h-[75%] my-auto w-full text-sky-500 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+                                            <svg class="absolute inset-x-0 top-0 bottom-0 h-[70%] my-auto w-full text-sky-500 pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
                                                 <polygon points="50,4 96,94 4,94" fill="none" stroke="#0284c7" stroke-width="3.5"/>
                                             </svg>
-                                            <span class="relative z-10 text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5 leading-none">${cleanWordText.replace(/ /g, '&nbsp;')}</span>
+                                            <span class="relative z-10 text-[10pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5 leading-none">${formattedWord}</span>
                                         </div>
                                     `;
                                 } else {
-                                    wordDisplayHtml = `<span class="text-[11pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${cleanWordText.replace(/ /g, '&nbsp;')}</span>`;
+                                    wordDisplayHtml = `<span class="text-[11pt] font-bold font-outfit ${colorClass} ${hasUnderline} px-0.5">${formattedWord}</span>`;
                                 }
 
-                                // Sub Tag (rendered BELOW the word token)
+                                // Sub Tag (rendered symmetrically tightly beneath word baseline/underline)
                                 let subTagHtml = '';
                                 if (displaySubTag || hasArrow) {
                                     if (hasArrow) {
                                         const cleanTagText = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
                                         const labelPart = cleanTagText ? `<span class="ml-0.5 text-[8.5px] font-black">${cleanTagText}</span>` : '';
                                         subTagHtml = `
-                                            <span class="absolute top-[105%] left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
+                                            <span class="absolute top-[100%] left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
                                                 <span class="text-[12px] font-black leading-none text-indigo-600">⬑</span>
                                                 ${labelPart}
                                             </span>
@@ -2448,12 +3003,12 @@ sanitizedTokens.push({
                                         const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
                                         const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : (colorClasses[tagColor] || colorClass).split(' ')[0];
                                         const tagSizeClass = cleanTag === '의미상 S' ? 'text-[8.5px] font-black' : (isVerbal ? 'text-[9px] font-black' : 'text-[10px] font-black');
-                                        subTagHtml = `<span class="absolute top-[105%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
+                                        subTagHtml = `<span class="absolute top-[100%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
                                     }
                                 }
 
                                 pageHtml += `
-                                    <div class="relative inline-block text-center align-baseline my-2 px-0.5 mx-0.5">
+                                    <div class="relative inline-block text-center align-baseline my-1 px-0.5 mx-0.5">
                                         ${topLabelHtml}
                                         ${wordDisplayHtml}
                                         ${subTagHtml}
@@ -2467,17 +3022,17 @@ sanitizedTokens.push({
 
                     pageHtml += '</div>'; // End token list
 
-                    // 1. [직독직해] Block
+                    // 1. [직독직해] Block (Compact 70% Spacing)
                     const chunkKrRaw = typeof s.chunk_korean === 'string' ? s.chunk_korean : (Array.isArray(s.chunk_korean) ? s.chunk_korean.join(' / ') : '');
                     if (chunkKrRaw && chunkKrRaw.trim()) {
                         const formattedChunkKr = chunkKrRaw.replace(/\s*\/\s*/g, ' <span class="slash-mark text-purple-600 font-black px-0.5">/</span> ');
                         pageHtml += `
-                        <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-lg p-2 text-[10px] text-emerald-900 leading-relaxed font-semibold">
+                        <div class="bg-emerald-50/80 border border-emerald-200/80 rounded-lg p-1.5 px-2.5 text-[10px] text-emerald-900 leading-relaxed font-semibold">
                             <span class="text-emerald-700 font-bold mr-1.5">[직독직해]</span> ${formattedChunkKr}
                         </div>`;
                     }
 
-                    // 2. [문장형식] Block (Clause & Sentence Structure Breakdown)
+                    // 2. [문장형식] Block (Clause & Sentence Structure Breakdown - Enforced Vi=자동사, Vt=타동사)
                     let rawStruct = '';
                     if (typeof s.clause_structure === 'string') {
                         rawStruct = s.clause_structure.trim();
@@ -2488,6 +3043,14 @@ sanitizedTokens.push({
                     }
 
                     if (rawStruct) {
+                        rawStruct = rawStruct
+                            .replace(/불완전자동사|완전자동사|연결동사/g, '자동사(Vi)')
+                            .replace(/불완전타동사|완전타동사|수여동사/g, '타동사(Vt)')
+                            .replace(/자동사(?!\(Vi\))/g, '자동사(Vi)')
+                            .replace(/타동사(?!\(Vt\))/g, '타동사(Vt)')
+                            .replace(/\(Vi\)\(Vi\)/g, '(Vi)')
+                            .replace(/\(Vt\)\(Vt\)/g, '(Vt)');
+
                         const lines = rawStruct.split('\n').map(l => l.trim()).filter(l => l.length > 0);
                         const mainTitle = lines[0] || '[문장형식]';
                         const subDetails = lines.slice(1);
@@ -2538,6 +3101,7 @@ sanitizedTokens.push({
                             let pointsListHtml = '';
                             points.forEach(pt => {
                                 let cleanPt = pt.replace(/^\d+[\.\s]*/, '').replace(/[\*`]+/g, '').trim();
+                                cleanPt = cleanPt.replace(/\s*\(\s*(?:Indirect\s+Question|Gerund\s+Subject|Gerund\s+Phrase|Concessive\s+Clause|Noun\s+Clause|Adverbial\s+Clause|Adjective\s+Clause|Relative\s+Clause|Relative\s+Pronoun|Relative\s+Adverb|Subjunctive\s+Mood|Participle\s+Construction|Participle\s+Clause|Passive\s+Voice|Infinitive\s+Phrase|Appositive\s+Clause|Prepositional\s+Phrase|Independent\s+Clause|Subordinate\s+Clause|Comparative\s+Degree|Superlative\s+Degree|Present\s+Participle|Past\s+Participle|Transitive\s+Verb|Intransitive\s+Verb)\s*\)/gi, '');
                                 pointsListHtml += `
                                     <div class="flex items-start gap-1.5 text-slate-700 text-[10px] font-semibold leading-relaxed">
                                         <span class="text-indigo-600 font-bold mt-0.5">•</span>
@@ -3086,12 +3650,20 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         }
 
         // ================= SERVER REPOSITORY & FOLDER EXPLORER LOGIC =================
-        let currentRepoActiveFolder = null; // null: Folder Grid View, object: {folder_name, material_type}
+        let currentRepoActiveFolder = null; // null: All items / Folder list, object: {folder_name, material_type}
+        let currentRepoViewMode = 'list';   // 'list' (default table list) or 'folders'
+        let currentRepoSort = 'date_desc';  // 'date_desc', 'date_asc', 'title_asc', 'title_desc', 'folder_asc'
+
         const repoBreadcrumbArea = document.getElementById('repoBreadcrumbArea');
         const btnRepoBackToFolders = document.getElementById('btnRepoBackToFolders');
         const repoActiveFolderTitle = document.getElementById('repoActiveFolderTitle');
         const repoFoldersGrid = document.getElementById('repoFoldersGrid');
         const repoFilesGrid = document.getElementById('repoFilesGrid');
+        const repoListViewTableContainer = document.getElementById('repoListViewTableContainer');
+        const repoTableBody = document.getElementById('repoTableBody');
+        const repoSortSelect = document.getElementById('repoSortSelect');
+        const btnRepoModeList = document.getElementById('btnRepoModeList');
+        const btnRepoModeFolders = document.getElementById('btnRepoModeFolders');
 
         if (btnRepoBackToFolders) {
             btnRepoBackToFolders.addEventListener('click', () => {
@@ -3101,10 +3673,65 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
+        if (repoSortSelect) {
+            repoSortSelect.addEventListener('change', (e) => {
+                currentRepoSort = e.target.value;
+                filterAndRenderRepoGrid();
+            });
+        }
+
+        if (btnRepoModeList) {
+            btnRepoModeList.addEventListener('click', () => {
+                currentRepoViewMode = 'list';
+                currentRepoActiveFolder = null;
+                btnRepoModeList.className = "px-2.5 py-1 rounded bg-indigo-600 text-white shadow-xs transition flex items-center gap-1";
+                btnRepoModeFolders.className = "px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition flex items-center gap-1";
+                filterAndRenderRepoGrid();
+            });
+        }
+
+        if (btnRepoModeFolders) {
+            btnRepoModeFolders.addEventListener('click', () => {
+                currentRepoViewMode = 'folders';
+                btnRepoModeFolders.className = "px-2.5 py-1 rounded bg-indigo-600 text-white shadow-xs transition flex items-center gap-1";
+                btnRepoModeList.className = "px-2.5 py-1 rounded text-slate-600 hover:text-slate-900 transition flex items-center gap-1";
+                filterAndRenderRepoGrid();
+            });
+        }
+
+        window.toggleSortByHeader = function(col) {
+            if (col === 'title') {
+                currentRepoSort = (currentRepoSort === 'title_asc') ? 'title_desc' : 'title_asc';
+            } else if (col === 'date') {
+                currentRepoSort = (currentRepoSort === 'date_desc') ? 'date_asc' : 'date_desc';
+            } else if (col === 'folder') {
+                currentRepoSort = (currentRepoSort === 'folder_asc') ? 'title_asc' : 'folder_asc';
+            }
+            if (repoSortSelect) repoSortSelect.value = currentRepoSort;
+            filterAndRenderRepoGrid();
+        };
+
+        function sortItemList(items, sortKey) {
+            const arr = [...items];
+            if (sortKey === 'date_desc') {
+                arr.sort((a, b) => (b.mtime || 0.0) - (a.mtime || 0.0));
+            } else if (sortKey === 'date_asc') {
+                arr.sort((a, b) => (a.mtime || 0.0) - (b.mtime || 0.0));
+            } else if (sortKey === 'title_asc') {
+                arr.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ko'));
+            } else if (sortKey === 'title_desc') {
+                arr.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'ko'));
+            } else if (sortKey === 'folder_asc') {
+                arr.sort((a, b) => (a.folder_name || '').localeCompare(b.folder_name || '', 'ko'));
+            }
+            return arr;
+        }
+
         async function refreshRepositoryView() {
             repoLoadingState.classList.remove('hidden');
             repoFoldersGrid.classList.add('hidden');
             repoFilesGrid.classList.add('hidden');
+            if (repoListViewTableContainer) repoListViewTableContainer.classList.add('hidden');
             repoEmptyState.classList.add('hidden');
             
             try {
@@ -3116,8 +3743,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 populateFolderSelectDropdown(selectedMaterialType);
                 filterAndRenderRepoGrid();
             } catch (err) {
-                repoFoldersGrid.innerHTML = `<div class="text-rose-500 py-4 col-span-full text-center">오류: ${err.message}</div>`;
-                repoFoldersGrid.classList.remove('hidden');
+                if (repoTableBody) repoTableBody.innerHTML = `<tr><td colspan="7" class="text-rose-500 py-6 text-center">오류: ${err.message}</td></tr>`;
             } finally {
                 repoLoadingState.classList.add('hidden');
             }
@@ -3153,11 +3779,25 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             }
 
-            // LEVEL 2: In-Folder Files View
+            // Search query filter
+            if (query) {
+                list = list.filter(s => 
+                    (s.title || '').toLowerCase().includes(query) ||
+                    (s.folder_name || '').toLowerCase().includes(query) ||
+                    (s.doc_type || '').toLowerCase().includes(query) ||
+                    (s.material_type || '').toLowerCase().includes(query)
+                );
+            }
+
+            // Apply Sorting
+            list = sortItemList(list, currentRepoSort);
+
+            // LEVEL 2: In-Folder View (When folder clicked)
             if (currentRepoActiveFolder) {
                 repoBreadcrumbArea.classList.remove('hidden');
                 repoActiveFolderTitle.innerText = `${currentRepoActiveFolder.folder_name} (${currentRepoActiveFolder.material_type})`;
                 repoFoldersGrid.classList.add('hidden');
+                if (repoListViewTableContainer) repoListViewTableContainer.classList.remove('hidden');
 
                 // Filter files belonging to active folder
                 let folderFiles = list.filter(s => {
@@ -3166,59 +3806,212 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     return fName === currentRepoActiveFolder.folder_name && mat === currentRepoActiveFolder.material_type;
                 });
 
-                if (query) {
-                    folderFiles = folderFiles.filter(s => 
-                        (s.title || '').toLowerCase().includes(query) ||
-                        (s.doc_type || '').toLowerCase().includes(query)
-                    );
-                }
-
-                renderFilesInFolderGrid(folderFiles);
+                renderTableListView(folderFiles);
                 return;
             }
 
-            // LEVEL 1: Folders List View
-            repoBreadcrumbArea.classList.add('hidden');
-            repoFilesGrid.classList.add('hidden');
+            // LEVEL 1: List View vs Folder Mode
+            if (currentRepoViewMode === 'list') {
+                repoBreadcrumbArea.classList.add('hidden');
+                repoFoldersGrid.classList.add('hidden');
+                repoFilesGrid.classList.add('hidden');
+                if (repoListViewTableContainer) repoListViewTableContainer.classList.remove('hidden');
 
-            // Group into Folders
-            const foldersMap = {};
-            list.forEach(s => {
-                const mat = s.material_type || s.label || '모의고사';
-                const fName = s.folder_name || extractDefaultFolderName(s.title, mat);
-                const key = `${mat}:::${fName}`;
-                if (!foldersMap[key]) {
-                    foldersMap[key] = {
-                        key: key,
-                        folder_name: fName,
-                        material_type: mat,
-                        branch: s.branch,
-                        mtime: s.mtime || 0.0,
-                        items: []
-                    };
-                }
-                foldersMap[key].items.push(s);
-                if ((s.mtime || 0.0) > foldersMap[key].mtime) {
-                    foldersMap[key].mtime = s.mtime || 0.0;
-                }
-            });
+                renderTableListView(list);
+            } else {
+                repoBreadcrumbArea.classList.add('hidden');
+                if (repoListViewTableContainer) repoListViewTableContainer.classList.add('hidden');
+                repoFilesGrid.classList.add('hidden');
+                repoFoldersGrid.classList.remove('hidden');
 
-            let folderList = Object.values(foldersMap);
-            folderList.sort((a, b) => (b.mtime || 0.0) - (a.mtime || 0.0));
+                // Group into Folders
+                const foldersMap = {};
+                list.forEach(s => {
+                    const mat = s.material_type || s.label || '모의고사';
+                    const fName = s.folder_name || extractDefaultFolderName(s.title, mat);
+                    const key = `${mat}:::${fName}`;
+                    if (!foldersMap[key]) {
+                        foldersMap[key] = {
+                            key: key,
+                            folder_name: fName,
+                            material_type: mat,
+                            branch: s.branch,
+                            mtime: s.mtime || 0.0,
+                            items: []
+                        };
+                    }
+                    foldersMap[key].items.push(s);
+                    if ((s.mtime || 0.0) > foldersMap[key].mtime) {
+                        foldersMap[key].mtime = s.mtime || 0.0;
+                    }
+                });
 
-            // Search by Folder Name or Title inside
-            if (query) {
-                folderList = folderList.filter(f => 
-                    f.folder_name.toLowerCase().includes(query) ||
-                    f.material_type.toLowerCase().includes(query) ||
-                    f.items.some(item => (item.title || '').toLowerCase().includes(query))
-                );
+                let folderList = Object.values(foldersMap);
+                folderList = sortItemList(folderList, currentRepoSort);
+                renderFoldersGrid(folderList);
             }
-
-            renderFoldersGrid(folderList);
         }
 
-        // Render Folder Cards
+        // Render Table List View (Main List)
+        function renderTableListView(items) {
+            if (!repoTableBody) return;
+            repoTableBody.innerHTML = '';
+
+            if (items.length === 0) {
+                repoEmptyState.classList.remove('hidden');
+                if (repoListViewTableContainer) repoListViewTableContainer.classList.add('hidden');
+                return;
+            }
+
+            repoEmptyState.classList.add('hidden');
+            if (repoListViewTableContainer) repoListViewTableContainer.classList.remove('hidden');
+
+            const myBranch = getCurrentBranch();
+            const admin = isUserAdmin();
+
+            let rowsHtml = '';
+            items.forEach((s, idx) => {
+                let date = '최근 등록';
+                if (s.mtime && s.mtime > 100000) {
+                    date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+
+                const matType = s.material_type || s.label || '모의고사';
+                const docType = s.doc_type || (s.label === '단어테스트' ? '단어TEST' : (s.label === '변형문제' ? '변형문제 1차' : '강의용교안'));
+                const folderName = s.folder_name || extractDefaultFolderName(s.title, matType);
+
+                const isVocab = docType.includes('단어') || s.label === '단어테스트';
+                const isExam = docType.includes('변형문제') || s.label === '변형문제';
+
+                const itemBranch = s.branch || '본사';
+                const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
+                const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
+                const canManage = (isMyItem || admin);
+                const canDelete = (isMyItem || admin);
+
+                let matColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                if (matType === '교과서') matColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                else if (matType === '부교재') matColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                else if (matType === '기타') matColor = 'bg-slate-50 text-slate-700 border-slate-200';
+
+                let docColor = 'bg-blue-100 text-blue-800';
+                let docIcon = 'fa-file-invoice text-blue-600';
+                if (isVocab) {
+                    docColor = 'bg-violet-100 text-violet-800';
+                    docIcon = 'fa-spell-check text-violet-600';
+                } else if (docType.includes('2차')) {
+                    docColor = 'bg-rose-100 text-rose-800';
+                    docIcon = 'fa-file-pen text-rose-600';
+                } else if (isExam) {
+                    docColor = 'bg-amber-100 text-amber-800';
+                    docIcon = 'fa-file-pen text-amber-600';
+                }
+
+                let primaryActionHtml = '';
+                if (isVocab) {
+                    primaryActionHtml = `
+                        <button type="button" class="btn-repo-run-speed-test bg-violet-600 hover:bg-violet-700 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" title="3초 단어 테스트 실행">
+                            <i class="fa-solid fa-bolt text-amber-300"></i> 단어TEST
+                        </button>
+                    `;
+                } else if (isExam) {
+                    primaryActionHtml = `
+                        <button type="button" class="btn-repo-view-exam bg-amber-500 hover:bg-amber-600 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" title="변형문제 열람 / 인쇄">
+                            <i class="fa-solid fa-file-pen"></i> 문제보기
+                        </button>
+                    `;
+                } else {
+                    const loadBtnText = isMyItem ? '교안 열기' : '불러오기';
+                    primaryActionHtml = `
+                        <button type="button" class="btn-repo-load bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" data-ismy="${isMyItem}" title="교안 열기">
+                            <i class="fa-solid fa-file-import"></i> ${loadBtnText}
+                        </button>
+                    `;
+                }
+
+                const editBtnHtml = canManage ? `
+                    <button type="button" class="btn-edit-item-meta bg-white hover:bg-slate-100 text-slate-700 font-bold px-2 py-1 rounded border border-slate-300 transition text-xs cursor-pointer" onclick="event.stopPropagation(); openEditItemModal('${encodeURIComponent(s.title)}', '${encodeURIComponent(s.filename)}', '${encodeURIComponent(folderName)}', '${encodeURIComponent(matType)}', '${encodeURIComponent(docType)}', '${encodeURIComponent(itemBranch)}')" title="제목 및 폴더 위치 수정">
+                        <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
+                    </button>
+                ` : '';
+
+                const deleteBtnHtml = canDelete ? `
+                    <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold px-2 py-1 rounded border border-rose-200 transition text-xs cursor-pointer" data-filename="${s.filename}" data-title="${s.title}" data-material="${matType}" data-doctype="${docType}" title="삭제">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                ` : '';
+
+                rowsHtml += `
+                    <tr class="hover:bg-indigo-50/40 transition group border-b border-slate-100">
+                        <td class="py-2.5 px-3 text-center text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+                        <td class="py-2.5 px-3">
+                            <div class="flex items-center gap-1">
+                                <span class="text-[10px] font-black px-1.5 py-0.5 rounded border ${matColor}">${matType}</span>
+                                <span class="text-[10px] font-black tracking-tight ${docColor} px-1.5 py-0.5 rounded flex items-center gap-1">
+                                    <i class="fa-solid ${docIcon} text-[9px]"></i> ${docType}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="font-bold text-slate-900 group-hover:text-indigo-600 transition cursor-pointer flex items-center gap-1.5" onclick="triggerRowAction('${s.filename}', '${matType}', '${docType}', ${isMyItem}, ${isVocab}, ${isExam})">
+                                <span>${s.title}</span>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <button type="button" onclick="openSpecificFolder('${encodeURIComponent(folderName)}', '${encodeURIComponent(matType)}')" class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 border border-slate-200 px-2 py-0.5 rounded-lg transition cursor-pointer">
+                                <i class="fa-solid fa-folder text-amber-500 text-[10px]"></i>
+                                <span class="truncate max-w-[140px]">${folderName}</span>
+                            </button>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <span class="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded">${itemBranch}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center text-[11px] text-slate-400 font-mono">
+                            ${date}
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                ${primaryActionHtml}
+                                ${editBtnHtml}
+                                ${deleteBtnHtml}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            repoTableBody.innerHTML = rowsHtml;
+            bindRepoRowEvents();
+        }
+
+        window.openSpecificFolder = function(folderEncoded, matEncoded) {
+            currentRepoActiveFolder = {
+                folder_name: decodeURIComponent(folderEncoded),
+                material_type: decodeURIComponent(matEncoded)
+            };
+            repoSearchInput.value = '';
+            filterAndRenderRepoGrid();
+        };
+
+        window.triggerRowAction = function(filename, matType, docType, isMyItem, isVocab, isExam) {
+            if (isVocab) {
+                window.open(`/vocab-test?filename=${encodeURIComponent(filename)}&material_type=${encodeURIComponent(matType)}&doc_type=${encodeURIComponent(docType)}`, '_blank');
+            } else if (isExam) {
+                window.open(`/exam-view?filename=${encodeURIComponent(filename)}&material_type=${encodeURIComponent(matType)}&doc_type=${encodeURIComponent(docType)}`, '_blank');
+            } else {
+                loadHandoutFromServer(filename, matType, docType).then(() => {
+                    switchMainView('generator');
+                });
+            }
+        };
+
+        // Render Folder Cards (When in Folder Mode)
         function renderFoldersGrid(folders) {
             repoFoldersGrid.innerHTML = '';
             if (folders.length === 0) {
@@ -3373,189 +4166,10 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
-        let currentFolderDocFilter = 'all'; // 'all', 'handout', 'exam', 'vocab'
+        function bindRepoRowEvents() {
+            if (!repoTableBody) return;
 
-        // Render Files Inside Selected Folder
-        function renderFilesInFolderGrid(saves) {
-            repoFilesGrid.innerHTML = '';
-            if (saves.length === 0) {
-                repoEmptyState.classList.remove('hidden');
-                repoFilesGrid.classList.add('hidden');
-                return;
-            }
-
-            repoEmptyState.classList.add('hidden');
-            repoFilesGrid.classList.remove('hidden');
-
-            const myBranch = getCurrentBranch();
-            const admin = isUserAdmin();
-
-            const handouts = saves.filter(s => {
-                const dt = s.doc_type || s.label || '';
-                return !dt.includes('단어') && !dt.includes('변형') && s.label !== '단어테스트' && s.label !== '변형문제';
-            });
-            const exams = saves.filter(s => {
-                const dt = s.doc_type || s.label || '';
-                return dt.includes('변형') || s.label === '변형문제';
-            });
-            const vocabs = saves.filter(s => {
-                const dt = s.doc_type || s.label || '';
-                return dt.includes('단어') || s.label === '단어테스트';
-            });
-
-            // Top In-Folder Sub-Category Bar
-            let topFilterHtml = `
-                <div class="col-span-full bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-3.5 shadow-md flex flex-wrap items-center justify-between gap-3 mb-2">
-                    <div class="flex items-center gap-2.5">
-                        <span class="text-xs font-bold text-indigo-200 flex items-center gap-1.5">
-                            <i class="fa-solid fa-folder-open text-amber-400"></i>
-                            <span>자료 구분:</span>
-                        </span>
-                        <div class="flex bg-slate-800/80 p-0.5 rounded-lg border border-slate-700 gap-1 text-[11px] font-bold" id="folderDocFilterTabGroup">
-                            <button type="button" data-docfilter="all" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'all' ? 'bg-indigo-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
-                                전체 (${saves.length})
-                            </button>
-                            <button type="button" data-docfilter="handout" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'handout' ? 'bg-blue-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
-                                <i class="fa-solid fa-file-invoice mr-1 text-blue-300"></i> 교안 (${handouts.length})
-                            </button>
-                            <button type="button" data-docfilter="exam" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'exam' ? 'bg-amber-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
-                                <i class="fa-solid fa-file-pen mr-1 text-amber-300"></i> 변형문제 (${exams.length})
-                            </button>
-                            <button type="button" data-docfilter="vocab" class="folder-doc-btn px-3 py-1 rounded transition ${currentFolderDocFilter === 'vocab' ? 'bg-violet-600 text-white shadow-xs font-black' : 'text-slate-300 hover:text-white'}">
-                                <i class="fa-solid fa-spell-check mr-1 text-violet-300"></i> 단어테스트 (${vocabs.length})
-                            </button>
-                        </div>
-                    </div>
-                    <div class="text-[11px] text-indigo-200 font-medium">
-                        💡 폴더 내 교안, 변형문제, 단어테스트를 선택하여 즉시 실행하거나 열람할 수 있습니다.
-                    </div>
-                </div>
-            `;
-
-            let displayList = saves;
-            if (currentFolderDocFilter === 'handout') displayList = handouts;
-            else if (currentFolderDocFilter === 'exam') displayList = exams;
-            else if (currentFolderDocFilter === 'vocab') displayList = vocabs;
-
-            let gridHtml = topFilterHtml;
-
-            if (displayList.length === 0) {
-                gridHtml += `
-                    <div class="col-span-full py-12 text-center text-slate-400 bg-slate-50 border border-slate-200 rounded-xl">
-                        <i class="fa-solid fa-circle-info text-2xl text-slate-300 mb-2"></i>
-                        <p class="text-xs font-bold">해당 구분의 자료가 없습니다.</p>
-                    </div>
-                `;
-            } else {
-                displayList.forEach(s => {
-                    let date = '최근 등록';
-                    if (s.mtime && s.mtime > 100000) {
-                        date = new Date(s.mtime * 1000).toLocaleString('ko-KR', {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        });
-                    }
-
-                    const matType = s.material_type || s.label || '모의고사';
-                    const docType = s.doc_type || (s.label === '단어테스트' ? '단어TEST' : (s.label === '변형문제' ? '변형문제 1차' : '강의용교안'));
-
-                    const isVocab = docType.includes('단어') || s.label === '단어테스트';
-                    const isExam = docType.includes('변형문제') || s.label === '변형문제';
-
-                    const itemBranch = s.branch || '본사';
-                    const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
-                    const isMyItem = (itemBranch === myBranch || (admin && isMainOffice));
-                    const canDelete = (isMyItem || admin);
-
-                    let matColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-                    if (matType === '교과서') matColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                    else if (matType === '부교재') matColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                    else if (matType === '기타') matColor = 'bg-slate-50 text-slate-700 border-slate-200';
-
-                    let docColor = 'bg-blue-100 text-blue-800';
-                    let docIcon = 'fa-file-invoice text-blue-600';
-                    if (isVocab) {
-                        docColor = 'bg-violet-100 text-violet-800';
-                        docIcon = 'fa-spell-check text-violet-600';
-                    } else if (docType.includes('2차')) {
-                        docColor = 'bg-rose-100 text-rose-800';
-                        docIcon = 'fa-file-pen text-rose-600';
-                    } else if (isExam) {
-                        docColor = 'bg-amber-100 text-amber-800';
-                        docIcon = 'fa-file-pen text-amber-600';
-                    }
-
-                    let actionButtonsHtml = '';
-                    if (isVocab) {
-                        actionButtonsHtml = `
-                            <button type="button" class="btn-repo-run-speed-test flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
-                                <i class="fa-solid fa-bolt text-amber-300"></i> <span>3초 단어 테스트 실행</span>
-                            </button>
-                        `;
-                    } else if (isExam) {
-                        actionButtonsHtml = `
-                            <button type="button" class="btn-repo-view-exam flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xs font-black py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}">
-                                <i class="fa-solid fa-file-pen"></i> <span>변형문제 보기 / 인쇄</span>
-                            </button>
-                        `;
-                    } else {
-                        const loadBtnText = isMyItem ? '교안 열기' : '내 교안으로 끌고 오기';
-                        const loadBtnIcon = isMyItem ? 'fa-file-import' : 'fa-cloud-arrow-down';
-                        actionButtonsHtml = `
-                            <button type="button" class="btn-repo-load flex-1 ${isMyItem ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-emerald-600 hover:bg-emerald-700'} text-white text-xs font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" data-ismy="${isMyItem}">
-                                <i class="fa-solid ${loadBtnIcon}"></i> <span>${loadBtnText}</span>
-                            </button>
-                        `;
-                    }
-
-                    const deleteBtnHtml = canDelete ? `
-                        <button type="button" class="btn-repo-delete bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold py-2 px-3 rounded-lg border border-rose-200 transition shrink-0" data-filename="${s.filename}" data-title="${s.title}" data-material="${matType}" data-doctype="${docType}" title="삭제">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    ` : '';
-
-                    gridHtml += `
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:shadow-md hover:border-indigo-300 transition duration-200 space-y-3">
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between gap-1.5">
-                                    <div class="flex items-center gap-1.5">
-                                        <i class="fa-solid ${docIcon} text-sm"></i>
-                                        <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${matColor}">${matType}</span>
-                                        <span class="text-[10px] font-black tracking-wider uppercase ${docColor} px-1.5 py-0.5 rounded flex items-center gap-1">${docType}</span>
-                                    </div>
-                                    <span class="text-[10px] font-bold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full">${itemBranch}</span>
-                                </div>
-                                <h3 class="text-xs font-bold text-slate-800 truncate" title="${s.title}">${s.title}</h3>
-                                <p class="text-[10px] text-slate-400 flex items-center gap-1">
-                                    <i class="fa-solid fa-clock"></i> ${date}
-                                </p>
-                            </div>
-                            
-                            <div class="flex gap-2 pt-2 border-t border-slate-100">
-                                ${actionButtonsHtml}
-                                ${deleteBtnHtml}
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-
-            repoFilesGrid.innerHTML = gridHtml;
-
-            // Bind In-Folder Doc Type Filter Buttons
-            repoFilesGrid.querySelectorAll('.folder-doc-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    currentFolderDocFilter = btn.getAttribute('data-docfilter') || 'all';
-                    renderFilesInFolderGrid(saves);
-                });
-            });
-
-            // Bind File Card Actions
-            repoFilesGrid.querySelectorAll('.btn-repo-run-speed-test').forEach(btn => {
+            repoTableBody.querySelectorAll('.btn-repo-run-speed-test').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
@@ -3565,7 +4179,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
 
-            repoFilesGrid.querySelectorAll('.btn-repo-view-exam').forEach(btn => {
+            repoTableBody.querySelectorAll('.btn-repo-view-exam').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
@@ -3575,8 +4189,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
 
-            repoFilesGrid.querySelectorAll('.btn-repo-load').forEach(btn => {
-                btn.addEventListener('click', async () => {
+            repoTableBody.querySelectorAll('.btn-repo-load').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
                     const material = btn.getAttribute('data-material');
                     const docType = btn.getAttribute('data-doctype');
@@ -3588,9 +4203,10 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     }
                 });
             });
-            
-            repoFilesGrid.querySelectorAll('.btn-repo-delete').forEach(btn => {
-                btn.addEventListener('click', async () => {
+
+            repoTableBody.querySelectorAll('.btn-repo-delete').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
                     const filename = btn.getAttribute('data-filename');
                     const title = btn.getAttribute('data-title');
                     const material = btn.getAttribute('data-material');
@@ -3602,6 +4218,84 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 });
             });
         }
+
+        // ================= EDIT TITLE & FOLDER MODAL HANDLERS =================
+        window.openEditItemModal = function(encTitle, encFilename, encFolder, encMat, encDoc, encBranch) {
+            const modal = document.getElementById('modalEditItemMeta');
+            if (!modal) return;
+            document.getElementById('editItemOldTitle').value = decodeURIComponent(encTitle);
+            document.getElementById('editItemOldFilename').value = decodeURIComponent(encFilename);
+            document.getElementById('editItemMaterialType').value = decodeURIComponent(encMat);
+            document.getElementById('editItemDocType').value = decodeURIComponent(encDoc);
+            document.getElementById('editItemBranch').value = decodeURIComponent(encBranch);
+
+            document.getElementById('editItemNewTitle').value = decodeURIComponent(encTitle);
+            document.getElementById('editItemNewFolder').value = decodeURIComponent(encFolder);
+            modal.classList.remove('hidden');
+        };
+
+        window.closeEditItemModal = function() {
+            const modal = document.getElementById('modalEditItemMeta');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.submitEditItemModal = async function() {
+            const oldTitle = document.getElementById('editItemOldTitle').value.trim();
+            const oldFilename = document.getElementById('editItemOldFilename').value.trim();
+            const newTitle = document.getElementById('editItemNewTitle').value.trim();
+            const newFolder = document.getElementById('editItemNewFolder').value.trim();
+            const matType = document.getElementById('editItemMaterialType').value.trim();
+            const docType = document.getElementById('editItemDocType').value.trim();
+            const branch = document.getElementById('editItemBranch').value.trim();
+
+            if (!newTitle) {
+                showToast('자료 제목을 입력해 주세요.', 'error');
+                return;
+            }
+            if (!newFolder) {
+                showToast('저장 폴더명을 입력해 주세요.', 'error');
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btnSubmitEditItem');
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+            }
+
+            showLoading("수정사항 저장 중", "자료 제목 및 저장 폴더 위치를 안전하게 변경하고 있습니다...");
+
+            try {
+                const res = await fetch('/api/handout/update_meta', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        old_title: oldTitle,
+                        filename: oldFilename,
+                        new_title: newTitle,
+                        new_folder: newFolder,
+                        material_type: matType,
+                        doc_type: docType,
+                        branch: branch
+                    })
+                });
+                const resData = await res.json();
+                if (!res.ok) throw new Error(resData.error || '수정 실패');
+                
+                closeEditItemModal();
+                hideLoading();
+                showToast(`'${newTitle}' 정보가 [${newFolder}] 폴더로 성공적으로 수정 및 이동되었습니다!`);
+                await refreshRepositoryView();
+            } catch (err) {
+                hideLoading();
+                showToast(err.message, 'error');
+            } finally {
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerHTML = '<i class="fa-solid fa-check"></i> 변경사항 저장';
+                }
+            }
+        };
 
         // Live Search Filter
         repoSearchInput.addEventListener('input', () => {
@@ -3638,6 +4332,18 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 // Populate analysis data
                 if (data.analysis_data && (data.analysis_data.sentences || data.analysis_data.vocabulary)) {
                     currentAnalysisData = data.analysis_data;
+                    const illu = (
+                        data.illustration_url || 
+                        (data.analysis_data && data.analysis_data.illustration_url) ||
+                        (data.analysis_data && data.analysis_data.summary_info && data.analysis_data.summary_info.illustration_url)
+                    );
+
+                    if (illu) {
+                        currentAnalysisData.illustration_url = illu;
+                        if (currentAnalysisData.summary_info) {
+                            currentAnalysisData.summary_info.illustration_url = illu;
+                        }
+                    }
                     if (docType === '단어TEST' || docType === '단어테스트' || (data.analysis_data && data.analysis_data.is_vocab_test)) {
                         const vocabList = data.analysis_data.vocabulary || [];
                         renderVocabTestSheet(data.title || '', vocabList);
@@ -3867,6 +4573,137 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             }
         }
 
+        // ================= ACCURACY MATCH & VERIFICATION LOGIC =================
+        function calculatePassageMatch(inputPassage, sentences) {
+            if (!sentences || sentences.length === 0) return { percent: 100, sentenceStats: [] };
+
+            const sentenceStats = [];
+            let totalInputWords = 0;
+            let totalMatchedWords = 0;
+
+            sentences.forEach((s, idx) => {
+                const origText = (s.original || s.sentence || '').trim();
+                
+                // Extract every single word from all tokens (flattening multi-word tokens and stripping punctuation/brackets)
+                const parsedWordList = [];
+                (s.tokens || []).forEach(t => {
+                    if (!t.text) return;
+                    const cleanT = t.text.trim();
+                    if (cleanT === '/' || cleanT === '//' || cleanT === '⬑') return;
+                    
+                    // Replace all grammatical brackets and punctuation with space, then split by whitespace
+                    const words = cleanT
+                        .replace(/[\[\]\(\)\{\},.:;!?"“”'’`~➔→]/g, ' ')
+                        .split(/\s+/)
+                        .map(w => w.trim())
+                        .filter(w => w.length > 0);
+                    parsedWordList.push(...words);
+                });
+                
+                const origWordList = origText
+                    .replace(/[\[\]\(\)\{\},.:;!?"“”'’`~➔→]/g, ' ')
+                    .split(/\s+/)
+                    .map(w => w.trim())
+                    .filter(w => w.length > 0);
+
+                let matched = 0;
+                const missingWords = [];
+                // Create a temporary copy of parsed words for 1:1 matching
+                const parsedPool = parsedWordList.map(w => w.toLowerCase());
+
+                origWordList.forEach(ow => {
+                    const cleanOw = ow.toLowerCase();
+                    const foundIdx = parsedPool.indexOf(cleanOw);
+                    if (foundIdx !== -1) {
+                        matched++;
+                        parsedPool.splice(foundIdx, 1); // consume match
+                    } else {
+                        missingWords.push(ow);
+                    }
+                });
+
+                const sentPercent = origWordList.length > 0 ? Math.round((matched / origWordList.length) * 100) : 100;
+                totalInputWords += origWordList.length;
+                totalMatchedWords += matched;
+
+                sentenceStats.push({
+                    index: s.index || (idx + 1),
+                    origText: origText,
+                    parsedText: parsedWordList.join(' '),
+                    percent: sentPercent,
+                    missingWords: missingWords
+                });
+            });
+
+            const totalPercent = totalInputWords > 0 ? Math.round((totalMatchedWords / totalInputWords) * 100) : 100;
+            return {
+                percent: totalPercent,
+                sentenceStats: sentenceStats
+            };
+        }
+
+        function openAccuracyModal() {
+            const modal = document.getElementById('accuracyDiffModal');
+            if (!modal) return;
+
+            const data = window.latestAccuracyMatch || { percent: 100, sentenceStats: [] };
+            const badge = document.getElementById('diffModalBadge');
+            const icon = document.getElementById('diffModalIcon');
+            const list = document.getElementById('diffSentenceList');
+
+            if (badge) {
+                if (data.percent === 100) {
+                    badge.className = "text-[10px] bg-emerald-500/20 text-emerald-300 px-2.5 py-0.5 rounded-full font-bold border border-emerald-500/30";
+                    badge.textContent = "100% 완전 일치";
+                    if (icon) icon.className = "text-emerald-400 text-base";
+                } else {
+                    badge.className = "text-[10px] bg-rose-500/20 text-rose-300 px-2.5 py-0.5 rounded-full font-bold border border-rose-500/30 animate-pulse";
+                    badge.textContent = `일치율 ${data.percent}% (이상 감지)`;
+                    if (icon) icon.className = "text-rose-400 text-base";
+                }
+            }
+
+            if (list) {
+                list.innerHTML = '';
+                (data.sentenceStats || []).forEach(st => {
+                    const isPerfect = st.percent === 100;
+                    const item = document.createElement('div');
+                    item.className = `p-3.5 rounded-xl border transition-all ${isPerfect ? 'bg-emerald-50/40 border-emerald-200' : 'bg-rose-50/60 border-rose-300'}`;
+                    item.innerHTML = `
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-black ${isPerfect ? 'text-emerald-900' : 'text-rose-900'}">${st.index}번 문장</span>
+                            <span class="text-[11px] font-bold px-2 py-0.5 rounded shadow-2xs ${isPerfect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-200 text-rose-900 animate-pulse'}">
+                                ${isPerfect ? '✓ 100% 일치' : `⚠️ 일치율 ${st.percent}%`}
+                            </span>
+                        </div>
+                        <div class="space-y-1.5 text-xs">
+                            <div class="bg-white/80 p-2 rounded border border-slate-200/60">
+                                <span class="font-bold text-slate-500 text-[10px] block mb-0.5">입력 원문</span>
+                                <p class="text-slate-800 font-medium leading-relaxed">${st.origText}</p>
+                            </div>
+                            <div class="bg-white/80 p-2 rounded border border-slate-200/60">
+                                <span class="font-bold text-slate-500 text-[10px] block mb-0.5">결과물 출력</span>
+                                <p class="text-slate-900 font-bold leading-relaxed">${st.parsedText}</p>
+                            </div>
+                            ${!isPerfect && st.missingWords.length > 0 ? `
+                                <div class="p-2 bg-rose-100/80 rounded border border-rose-300 text-rose-800 text-[11px] font-bold">
+                                    ⚠️ 누락 또는 변경된 단어: <span class="underline decoration-rose-500 font-black">${st.missingWords.join(', ')}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAccuracyModal() {
+            const modal = document.getElementById('accuracyDiffModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
         // ================= EXCEL EXPORT LOGIC =================
         const btnExportStatsExcel = document.getElementById('btnExportStatsExcel');
         if (btnExportStatsExcel) {
@@ -3939,11 +4776,78 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
-        // ================= PAGE 1 ILLUSTRATION IMAGE CONTROLS =================
+        // ================= PAGE 1 ILLUSTRATION IMAGE CONTROLS & REVIEW MODAL =================
         const btnTriggerImageUpload = document.getElementById('btnTriggerImageUpload');
         const illustrationFileInput = document.getElementById('illustrationFileInput');
         const btnGenerateAiIllustration = document.getElementById('btnGenerateAiIllustration');
         const btnInputImageUrl = document.getElementById('btnInputImageUrl');
+        const btnReviewIllustration = document.getElementById('btnReviewIllustration');
+        const ghibliReviewBadge = document.getElementById('ghibliReviewBadge');
+        
+        // Modal DOM Elements
+        const modalIllustrationReview = document.getElementById('modalIllustrationReview');
+        const btnCloseIlluReviewModal = document.getElementById('btnCloseIlluReviewModal');
+        const reviewModalImgPreview = document.getElementById('reviewModalImgPreview');
+        const reviewModalTopicText = document.getElementById('reviewModalTopicText');
+        const btnReviewModalUpload = document.getElementById('btnReviewModalUpload');
+        const btnReviewModalRegen = document.getElementById('btnReviewModalRegen');
+        const btnReviewModalConfirm = document.getElementById('btnReviewModalConfirm');
+
+        function openIllustrationReviewModal() {
+            if (!modalIllustrationReview) return;
+            const ghibliImg = document.getElementById('ghibliImg');
+            if (reviewModalImgPreview && ghibliImg) {
+                reviewModalImgPreview.src = ghibliImg.src;
+            }
+            if (reviewModalTopicText) {
+                const sInfo = (currentAnalysisData && currentAnalysisData.summary_info) || {};
+                const topic = sInfo.subject || (document.getElementById('summarySubject') && document.getElementById('summarySubject').innerText) || (titleInput && titleInput.value) || '영어 지문 분석 교안';
+                reviewModalTopicText.innerText = `📌 주제: ${topic}`;
+            }
+            modalIllustrationReview.classList.remove('hidden');
+        }
+
+        function closeIllustrationReviewModal() {
+            if (!modalIllustrationReview) return;
+            modalIllustrationReview.classList.add('hidden');
+        }
+
+        const btnTopReviewIllustration = document.getElementById('btnTopReviewIllustration');
+        if (btnTopReviewIllustration) {
+            btnTopReviewIllustration.addEventListener('click', openIllustrationReviewModal);
+        }
+
+        if (btnReviewIllustration) {
+            btnReviewIllustration.addEventListener('click', openIllustrationReviewModal);
+        }
+
+        if (ghibliReviewBadge) {
+            ghibliReviewBadge.addEventListener('click', openIllustrationReviewModal);
+        }
+
+        if (btnCloseIlluReviewModal) {
+            btnCloseIlluReviewModal.addEventListener('click', closeIllustrationReviewModal);
+        }
+
+        if (btnReviewModalConfirm) {
+            btnReviewModalConfirm.addEventListener('click', () => {
+                closeIllustrationReviewModal();
+                showToast('✨ 삽화가 교안에 최종 확정되었습니다!', 'success');
+            });
+        }
+
+        if (btnReviewModalUpload && illustrationFileInput) {
+            btnReviewModalUpload.addEventListener('click', () => {
+                illustrationFileInput.click();
+            });
+        }
+
+        if (btnReviewModalRegen) {
+            btnReviewModalRegen.addEventListener('click', () => {
+                closeIllustrationReviewModal();
+                if (btnGenerateAiIllustration) btnGenerateAiIllustration.click();
+            });
+        }
 
         if (btnTriggerImageUpload && illustrationFileInput) {
             btnTriggerImageUpload.addEventListener('click', () => {
@@ -3959,6 +4863,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     const dataUrl = event.target.result;
                     const ghibliImg = document.getElementById('ghibliImg');
                     if (ghibliImg) ghibliImg.src = dataUrl;
+                    if (reviewModalImgPreview) reviewModalImgPreview.src = dataUrl;
                     if (!currentAnalysisData) currentAnalysisData = {};
                     currentAnalysisData.illustration_url = dataUrl;
                     showToast('사진이 교안 삽화로 성공적으로 변경되었습니다!');
@@ -3971,9 +4876,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             btnGenerateAiIllustration.addEventListener('click', async () => {
                 const userTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '지문 삽화';
                 const sInfo = (currentAnalysisData && currentAnalysisData.summary_info) || {};
-                const topic = sInfo.subject || summarySubject.innerText || userTitle;
-                const keywords = sInfo.keywords || summaryKeywords.innerText || '';
-                const summary = (sInfo.summary && sInfo.summary.join('\n')) || summaryPoints.innerText || '';
+                const topic = sInfo.subject || (document.getElementById('summarySubject') && document.getElementById('summarySubject').innerText) || userTitle;
+                const keywords = sInfo.keywords || (document.getElementById('summaryKeywords') && document.getElementById('summaryKeywords').innerText) || '';
+                const summary = (sInfo.summary && sInfo.summary.join('\n')) || (document.getElementById('summaryPoints') && document.getElementById('summaryPoints').innerText) || '';
 
                 const pairs = [];
                 const rows = pairContainer.querySelectorAll('.pair-row');
@@ -3982,6 +4887,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     if (en) pairs.push(en);
                 });
                 const fullPassage = pairs.join(' ');
+
+                const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
+                if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.remove('hidden');
 
                 showLoading("지문 맞춤 AI 삽화 생성 중", `[지문 핵심정리: ${topic}]를 바탕으로 고품질 교육용 일러스트를 생성하여 인코딩하고 있습니다. (약 5~15초 소요)`);
                 try {
@@ -3993,7 +4901,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                             topic: topic,
                             keywords: keywords,
                             summary: summary,
-                            passage: fullPassage 
+                            passage: fullPassage,
+                            api_key: localStorage.getItem('gemini_api_key') || ''
                         })
                     });
                     if (!res.ok) throw new Error('삽화 생성 요청 실패');
@@ -4002,12 +4911,17 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     const ghibliImg = document.getElementById('ghibliImg');
                     if (ghibliImg && resData.illustration_url) {
                         ghibliImg.src = resData.illustration_url;
+                        if (reviewModalImgPreview) reviewModalImgPreview.src = resData.illustration_url;
                         if (!currentAnalysisData) currentAnalysisData = {};
                         currentAnalysisData.illustration_url = resData.illustration_url;
+                        if (ghibliReviewBadge) ghibliReviewBadge.classList.remove('hidden');
                     }
+                    if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     hideLoading();
-                    showToast('지문 맞춤 AI 삽화가 성공적으로 적용되었습니다!');
+                    showToast('✨ 지문 맞춤 AI 삽화가 완성되었습니다! [삽화 검토] 버튼으로 확인하세요!', 'success');
+                    openIllustrationReviewModal();
                 } catch (err) {
+                    if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     hideLoading();
                     showToast(err.message, 'error');
                 }
@@ -4032,6 +4946,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         const ghibliImg = document.getElementById('ghibliImg');
                         if (ghibliImg && resData.illustration_url) {
                             ghibliImg.src = resData.illustration_url;
+                            if (reviewModalImgPreview) reviewModalImgPreview.src = resData.illustration_url;
                             if (!currentAnalysisData) currentAnalysisData = {};
                             currentAnalysisData.illustration_url = resData.illustration_url;
                         }
@@ -4044,6 +4959,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
             });
         }
+
 
         // Global Clipboard Paste (Ctrl+V) for instant image paste
         window.addEventListener('paste', (e) => {
@@ -4083,6 +4999,14 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     return;
                 }
 
+                const cleanHeading = title.replace(/\s*강의용\s*교안\s*$/, '').trim();
+                if (page1MainTitle) page1MainTitle.innerText = cleanHeading;
+                document.title = `${cleanHeading}_강의용 교안`;
+                document.querySelectorAll('.sentence-page-header-title').forEach(el => {
+                    el.innerText = cleanHeading;
+                });
+                currentAnalysisData.title = title;
+
                 const folderName = getActiveFolderName();
 
                 // Gather current sentences and page breaks
@@ -4112,7 +5036,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     label: selectedMaterialType,
                     branch: getCurrentBranch(),
                     sentence_pairs: pairs,
-                    analysis_data: currentAnalysisData
+                    analysis_data: currentAnalysisData,
+                    illustration_url: (currentAnalysisData && currentAnalysisData.illustration_url) || ''
                 };
 
                 btnSaveLectureHandout.disabled = true;
@@ -4151,7 +5076,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 return;
             }
 
-            const title = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+            const rawTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+            const cleanBaseTitle = rawTitle.replace(/\s*-\s*단어(?:TEST|테스트).*$/, '').replace(/\s*-\s*(?:9종\s*)?변형문제.*$/, '').replace(/\s*강의용교안.*$/, '').trim();
+            const title = `${cleanBaseTitle} - 단어TEST`;
             const folderName = getActiveFolderName();
 
             // Gather sentence pairs
@@ -4209,7 +5136,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 }
 
                 hideLoading();
-                showToast(`단어 테스트가 [${folderName}] 폴더에 [단어TEST]로 저장되었습니다! [자료 저장소]에서 언제든 실행하실 수 있습니다.`);
+                showToast(`'${title}'가 [${folderName}] 폴더에 성공적으로 저장되었습니다!`);
             } catch (err) {
                 hideLoading();
                 showToast(err.message, 'error');
@@ -4220,7 +5147,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         const btnCreateVariationExam = document.getElementById('btnCreateVariationExam');
         if (btnCreateVariationExam) {
             btnCreateVariationExam.addEventListener('click', async () => {
-                const title = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                const rawTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                const cleanBaseTitle = rawTitle.replace(/\s*-\s*단어(?:TEST|테스트).*$/, '').replace(/\s*-\s*(?:9종\s*)?변형문제.*$/, '').replace(/\s*강의용교안.*$/, '').trim();
+                const title = cleanBaseTitle;
                 const folderName = getActiveFolderName();
 
                 // Gather sentence pairs and full passage

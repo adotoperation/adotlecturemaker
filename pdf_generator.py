@@ -126,15 +126,15 @@ def create_token_tables_for_sentence(tokens, style_word, style_sub, max_width=51
             else:
                 sub_clean = sub.upper()
                 top_clean = (top or '').upper()
-                if (sub_clean.startswith('S') and not '전치사' in sub_clean) or top_clean.startswith('S'):
+                if sub_clean.startswith('S') and not '전치사' in sub_clean:
                     c_hex = '#2563eb'
-                elif sub_clean.startswith('VI') or sub_clean.startswith('VT') or (sub_clean.startswith('V') and not '부사' in sub_clean) or top_clean.startswith('V'):
+                elif sub_clean.startswith('VI') or sub_clean.startswith('VT') or (sub_clean.startswith('V') and not '부사' in sub_clean):
                     c_hex = '#e11d48'
-                elif sub_clean.startswith('OC') or sub_clean == '목적격보어' or top_clean.startswith('OC') or top_clean == '목적격보어':
+                elif sub_clean.startswith('OC') or sub_clean == '목적격보어':
                     c_hex = '#9333ea' # OC gets distinct purple!
-                elif sub_clean.startswith('O') or sub_clean.startswith('IO') or sub_clean.startswith('DO') or '가목적어' in sub_clean or '진목적어' in sub_clean or top_clean.startswith('O'):
+                elif sub_clean.startswith('O') or sub_clean.startswith('IO') or sub_clean.startswith('DO') or '가목적어' in sub_clean or '진목적어' in sub_clean:
                     c_hex = '#059669'
-                elif sub_clean.startswith('SC') or sub_clean.startswith('C') or top_clean.startswith('SC') or top_clean.startswith('C'):
+                elif sub_clean.startswith('SC') or sub_clean.startswith('C'):
                     c_hex = '#4f46e5'
                 else:
                     c_hex = color_map.get(t.get('color'), '#0f172a')

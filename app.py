@@ -97,9 +97,12 @@ def generate_exam():
         topic = title
 
     try:
-        title_clean = re.sub(r'\s*-\s*9종\s*변형문제.*$', '', title).strip()
-        title_1 = f"{title_clean} - 9종 변형문제 1차"
-        title_2 = f"{title_clean} - 9종 변형문제 2차"
+        title_clean = re.sub(r'\s*-\s*(?:9종\s*)?변형문제.*$', '', title).strip()
+        title_clean = re.sub(r'\s*-\s*단어(?:TEST|테스트).*$', '', title_clean).strip()
+        title_clean = re.sub(r'\s*강의용교안.*$', '', title_clean).strip()
+        title_1 = f"{title_clean} - 변형문제 1차"
+        title_2 = f"{title_clean} - 변형문제 2차"
+        folder_name = data.get('folder_name') or extract_default_folder_name(title_clean, material_type)
 
         all_keys = [
             "topic_korean", "sentence_ordering", "grammar_syntax", "vocabulary",
@@ -116,6 +119,7 @@ def generate_exam():
             doc_type_val = f"변형문제 {idx}차"
             p_load = {
                 "title": t_name,
+                "folder_name": folder_name,
                 "material_type": material_type,
                 "doc_type": doc_type_val,
                 "label": material_type,
@@ -123,6 +127,7 @@ def generate_exam():
                 "sentence_pairs": sentence_pairs,
                 "analysis_data": {
                     "title": t_name,
+                    "folder_name": folder_name,
                     "material_type": material_type,
                     "doc_type": doc_type_val,
                     "passage": passage,
@@ -135,7 +140,7 @@ def generate_exam():
                     "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
                 }
             }
-            f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch)
+            f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch, folder_name=folder_name)
             try:
                 actual_tokens = q_data.get('_total_tokens', 0) or estimate_tokens_for_item(doc_type_val)
                 append_usage_log(branch, material_type, doc_type_val, t_name, actual_tokens)
@@ -344,14 +349,18 @@ def generate_illustration_sync(title, topic, keywords, summary, passage, branch=
     if not english_scene and api_key:
         try:
             prompt_trans = f"""[System Role]
-You are an expert AI prompt engineer specialized in Studio Ghibli illustration styles for educational textbooks.
-When given a Lesson Topic and a 3-Step Summary, analyze them to extract the core historical/scientific context, and generate a single descriptive English image prompt.
+You are an expert AI prompt engineer specialized in translating English educational reading passages into single, highly descriptive English image generation prompts for Studio Ghibli-style textbook illustrations.
 
-[Strict Constraints for Output]
-1. Front Style Tokens: 2D traditional animation cel, anime background art, hand-drawn digital painting, visible watercolor paper texture, delicate ink outlines, cel-shaded, Studio Ghibli background aesthetic, Hayao Miyazaki style painting, soft pastel wash.
-2. Explicit Negative Exclusions: Strictly NO photorealism, NO photo, NO 3D render, NO CGI, NO live-action photography, NO glossy gradients, NO hyper-realism.
-3. Absolutely NO text, NO speech bubbles, NO words, NO letters, NO labels inside the image.
-4. Express the core concept visually through character emotions, setting, and lighting (dappled light through trees, warm golden hour).
+[Core Objectives]
+1. Read and analyze the input English text passage to extract its core historical, scientific, or psychological context and communicative message.
+2. Translate abstract ideas or non-verbal concepts from the text into concrete, visual metaphors (e.g., body language, subtle lighting, atmospheric details, symbolic elements).
+3. Output ONLY a final, single English image generation prompt optimized for AI image models. Do not include conversational filler, headings, or markdown blocks.
+
+[Strict Constraints for Image Generation Prompt]
+1. Style Requirements: Studio Ghibli watercolor and colored pencil illustration, hand-drawn textures, soft pastel tones, cozy and warm atmosphere, cinematic lighting, detailed background.
+2. Intellectual Property (IP) Restrictions: Absolutely NO copyrighted characters, creatures, or specific items (e.g., Totoro, No-Face, recognizable branded objects, or proprietary fictional characters). Use original, generic background characters and safe symbolic elements only.
+3. Text & Layout Restrictions: Absolutely NO text, NO letters, NO words, NO typography, NO speech bubbles, and NO watermarks in the generated image.
+4. Scene Composition: Focus on original characters, actions, or visual analogies that directly reflect the core theme of the input passage without violating any copyright.
 
 [Input Data]
 Lesson Topic: {topic}
@@ -360,10 +369,11 @@ Keywords: {keywords}
 3-Step Summary:
 {summary}
 Reading Passage:
-{passage[:400]}
+{passage[:500]}
 
 [Task]
-Generate a single descriptive English image prompt that follows all constraints. Output ONLY the English prompt string starting with 2D traditional animation cel without any introductory or conversational text."""
+Output ONLY the final English image generation prompt string without any introductory or conversational text."""
+
 
             for model_cand in ["gemini-3.7-flash", "gemini-2.5-flash"]:
                 try:
@@ -593,19 +603,22 @@ def extract_default_folder_name(title, material_type="모의고사"):
     title = (title or '').strip()
     if not title:
         return f"{material_type} 기본 폴더"
-    # Match patterns like: "26년 3월 고3 모의고사 36번" -> "26년 고3 3월 모의고사"
-    m = re.match(r'^(.*?)\s+(?:[0-9]{1,3}번|본문\s*\d+|Q\d+|\d+문항)$', title, re.IGNORECASE)
+    # Clean sub-material suffixes (변형문제, 단어TEST, 강의용교안)
+    clean_t = re.sub(r'\s*-\s*(?:9종\s*)?변형문제.*$', '', title).strip()
+    clean_t = re.sub(r'\s*-\s*단어(?:TEST|테스트).*$', '', clean_t).strip()
+    clean_t = re.sub(r'\s*강의용교안.*$', '', clean_t).strip()
+    
+    # Match patterns like: "26년 고3 3월 모의고사 32번" -> "26년 고3 3월 모의고사"
+    m = re.match(r'^(.*?)\s+(?:[0-9]{1,3}번|본문\s*\d+|Q\d+|\d+문항)$', clean_t, re.IGNORECASE)
     if m and len(m.group(1).strip()) > 3:
         return m.group(1).strip()
-    # Match patterns like: "26년 고3 3월 모의고사"
-    m2 = re.search(r'(\d+년\s*(?:[고중]\d\s*)?\d+월\s*모의고사)', title)
+    m2 = re.search(r'(\d+년\s*(?:[고중]\d\s*)?\d+월\s*모의고사)', clean_t)
     if m2:
         return m2.group(1).strip()
-    # Match textbook: "영어I 비상(홍) 1과"
-    m3 = re.search(r'([가-힣A-Za-z0-9]+\s*[IV1-4]?\s*[가-힣()]+\s*\d+과)', title)
+    m3 = re.search(r'([가-힣A-Za-z0-9]+\s*[IV1-4]?\s*[가-힣()]+\s*\d+과)', clean_t)
     if m3:
         return m3.group(1).strip()
-    return f"{material_type} - {title[:15]}" if len(title) > 15 else (title or f"{material_type} 기본 폴더")
+    return f"{material_type} - {clean_t[:15]}" if len(clean_t) > 15 else (clean_t or f"{material_type} 기본 폴더")
 
 if os.environ.get('VERCEL') or not os.access(os.path.dirname(os.path.abspath(__file__)), os.W_OK):
     SAVES_DIR = '/tmp/saves'
@@ -743,6 +756,25 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
     data['label'] = mat_type
     data['branch'] = branch
     
+    # Ensure illustration_url is preserved and persisted as file if base64
+    illu_url = data.get('illustration_url') or (data.get('analysis_data') and data['analysis_data'].get('illustration_url')) or (data.get('analysis_data') and isinstance(data['analysis_data'].get('summary_info'), dict) and data['analysis_data']['summary_info'].get('illustration_url'))
+    if illu_url:
+        if str(illu_url).startswith('data:image/'):
+            illu_url = persist_base64_image(illu_url, title)
+        data['illustration_url'] = illu_url
+        if 'analysis_data' in data and isinstance(data['analysis_data'], dict):
+            data['analysis_data']['illustration_url'] = illu_url
+            if 'summary_info' in data['analysis_data'] and isinstance(data['analysis_data']['summary_info'], dict):
+                data['analysis_data']['summary_info']['illustration_url'] = illu_url
+
+    # Always persist local cache copy so illustration is instantly retrievable
+    try:
+        path = os.path.join(SAVES_DIR, filename)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("[save_db_handout] Local cache write error:", e)
+
     if GAS_URL:
         payload = {
             "action": "save",
@@ -753,7 +785,8 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "title": title,
             "branch": branch,
             "sentence_pairs": data.get("sentence_pairs", []),
-            "analysis_data": data.get("analysis_data", {})
+            "analysis_data": data.get("analysis_data", {}),
+            "illustration_url": illu_url or ''
         }
         try:
             res = requests.post(GAS_URL, json=payload, timeout=10)
@@ -773,9 +806,6 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             raise Exception(f"Vercel KV SET failed: {res.text}")
         return filename
     else:
-        path = os.path.join(SAVES_DIR, filename)
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
         return filename
 
 from urllib.parse import unquote
@@ -784,6 +814,7 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
     filename = unquote(filename)
     title = filename.replace(".json", "").strip()
     safe_fn = safe_korean_filename(title) + '.json'
+    doc_res = None
         
     if GAS_URL:
         payload = {
@@ -798,47 +829,96 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             if res.status_code == 200:
                 res_data = res.json()
                 if "error" not in res_data:
-                    return res_data
+                    doc_res = res_data
             
-            # Fallback: Query list to find matching item regardless of label
-            list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
-            if list_res.status_code == 200:
-                all_saves = list_res.json().get("saves", [])
-                for item in all_saves:
-                    item_title = item.get("title", "")
-                    if item_title == title or item.get("filename") == safe_fn or item_title.replace(" ", "") == title.replace(" ", ""):
-                        fallback_payload = {
-                            "action": "load",
-                            "title": item_title,
-                            "material_type": item.get("material_type", item.get("label", "")),
-                            "doc_type": item.get("doc_type", "")
-                        }
-                        f_res = requests.post(GAS_URL, json=fallback_payload, timeout=10)
-                        if f_res.status_code == 200 and "error" not in f_res.json():
-                            return f_res.json()
+            if not doc_res:
+                # Fallback: Query list to find matching item regardless of label
+                list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+                if list_res.status_code == 200:
+                    all_saves = list_res.json().get("saves", [])
+                    for item in all_saves:
+                        item_title = item.get("title", "")
+                        if item_title == title or item.get("filename") == safe_fn or item_title.replace(" ", "") == title.replace(" ", ""):
+                            fallback_payload = {
+                                "action": "load",
+                                "title": item_title,
+                                "material_type": item.get("material_type", item.get("label", "")),
+                                "doc_type": item.get("doc_type", "")
+                            }
+                            f_res = requests.post(GAS_URL, json=fallback_payload, timeout=10)
+                            if f_res.status_code == 200 and "error" not in f_res.json():
+                                doc_res = f_res.json()
+                                break
 
-            raise Exception("저장된 파일을 찾을 수 없습니다.")
-        except Exception as e:
-            raise Exception(f"Google Sheet Load error: {str(e)}")
-            
-    elif IS_VERCEL_KV:
-        headers = {"Authorization": f"Bearer {KV_TOKEN}"}
-        key = f"handout:{filename}"
-        # Command: GET key
-        res = requests.post(KV_URL, headers=headers, json=["GET", key], timeout=5)
-        if res.status_code == 200:
-            raw_data = res.json().get("result")
-            if not raw_data:
+            if not doc_res:
                 raise Exception("저장된 파일을 찾을 수 없습니다.")
-            return json.loads(raw_data)
+        except Exception as e:
+            print(f"[load_db_handout] Google Sheet load error, checking local cache: {str(e)}")
+            
+    if not doc_res:
+        if IS_VERCEL_KV:
+            headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+            key = f"handout:{filename}"
+            res = requests.post(KV_URL, headers=headers, json=["GET", key], timeout=5)
+            if res.status_code == 200:
+                raw_data = res.json().get("result")
+                if raw_data:
+                    doc_res = json.loads(raw_data)
         else:
-            raise Exception("Vercel KV GET failed")
-    else:
-        path = os.path.join(SAVES_DIR, filename)
-        if not os.path.exists(path):
-            raise Exception("저장된 파일을 찾을 수 없습니다.")
-        with open(path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            path = os.path.join(SAVES_DIR, filename)
+            if not (path and os.path.exists(path)):
+                if not filename.endswith('.json'):
+                    path = os.path.join(SAVES_DIR, safe_fn)
+            if path and os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    doc_res = json.load(f)
+            else:
+                for fname in os.listdir(SAVES_DIR):
+                    if fname.endswith('.json') and not fname.startswith('usage_audit'):
+                        try:
+                            fpath = os.path.join(SAVES_DIR, fname)
+                            with open(fpath, 'r', encoding='utf-8') as jf:
+                                cdoc = json.load(jf)
+                            if cdoc.get('title') == title or cdoc.get('title') == filename or fname == filename or fname == safe_fn:
+                                doc_res = cdoc
+                                break
+                        except Exception:
+                            pass
+
+    if doc_res and isinstance(doc_res, dict):
+        analysis_data = doc_res.get('analysis_data') or {}
+        if isinstance(analysis_data, str):
+            try:
+                analysis_data = json.loads(analysis_data)
+                doc_res['analysis_data'] = analysis_data
+            except Exception:
+                pass
+        
+        illu = (
+            doc_res.get('illustration_url') or 
+            (isinstance(analysis_data, dict) and analysis_data.get('illustration_url')) or 
+            (isinstance(analysis_data, dict) and isinstance(analysis_data.get('summary_info'), dict) and analysis_data['summary_info'].get('illustration_url'))
+        )
+        
+        # Fallback to local cache file if GAS cell didn't store illustration
+        if not illu:
+            local_path = os.path.join(SAVES_DIR, safe_fn)
+            if os.path.exists(local_path):
+                try:
+                    with open(local_path, 'r', encoding='utf-8') as lf:
+                        local_doc = json.load(lf)
+                        illu = local_doc.get('illustration_url') or (local_doc.get('analysis_data') and local_doc['analysis_data'].get('illustration_url'))
+                except Exception:
+                    pass
+
+        if illu:
+            doc_res['illustration_url'] = illu
+            if isinstance(analysis_data, dict):
+                analysis_data['illustration_url'] = illu
+                if isinstance(analysis_data.get('summary_info'), dict):
+                    analysis_data['summary_info']['illustration_url'] = illu
+                doc_res['analysis_data'] = analysis_data
+    return doc_res
 
 def delete_db_handout(filename, label="모의고사", material_type=None, doc_type=None):
     filename = unquote(filename)
@@ -1287,14 +1367,49 @@ def load_handout(filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/save/<filename>', methods=['DELETE'])
-def delete_handout(filename):
-    material_type = request.args.get('material_type') or request.args.get('label') or '모의고사'
-    doc_type = request.args.get('doc_type', '')
+@app.route('/api/handout/update_meta', methods=['POST'])
+def update_handout_meta():
+    data = request.json or {}
+    old_title = data.get('old_title', '').strip()
+    old_filename = data.get('filename', '').strip()
+    new_title = data.get('new_title', '').strip()
+    new_folder = data.get('new_folder', '').strip()
+    material_type = data.get('material_type', '모의고사').strip()
+    doc_type = data.get('doc_type', '강의용교안').strip()
+    branch = data.get('branch', '본사').strip()
+    
+    if not new_title:
+        return jsonify({'error': '새로운 자료 제목을 입력해 주세요.'}), 400
+        
     try:
-        delete_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type)
-        return jsonify({'success': True})
+        fn_to_load = old_filename or old_title
+        doc = load_db_handout(fn_to_load, label=material_type, material_type=material_type, doc_type=doc_type)
+        
+        # If title changed, delete old record
+        if old_title and old_title != new_title:
+            try:
+                delete_db_handout(fn_to_load, label=material_type, material_type=material_type, doc_type=doc_type)
+            except Exception as del_e:
+                print(f"[update_handout_meta] Old item delete note: {del_e}")
+                
+        doc['title'] = new_title
+        doc['folder_name'] = new_folder or extract_default_folder_name(new_title, material_type)
+        if doc.get('analysis_data') and isinstance(doc['analysis_data'], dict):
+            doc['analysis_data']['title'] = new_title
+            doc['analysis_data']['folder_name'] = doc['folder_name']
+            
+        saved_fn = save_db_handout(
+            title=new_title,
+            data=doc,
+            label=material_type,
+            material_type=material_type,
+            doc_type=doc_type,
+            branch=doc.get('branch', branch),
+            folder_name=doc['folder_name']
+        )
+        return jsonify({'success': True, 'filename': saved_fn, 'title': new_title, 'folder_name': doc['folder_name']})
     except Exception as e:
+        print(f"[update_handout_meta] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
