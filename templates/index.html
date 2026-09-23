@@ -2739,7 +2739,8 @@
                     korean_raw: rawPassageKor,
                     sentence_pairs: sentence_pairs,
                     analysis_data: teacherAnalysis,
-                    illustration_url: curIllu
+                    illustration_url: curIllu,
+                    skip_log: true
                 };
                 await fetch('/api/save', {
                     method: 'POST',
@@ -6812,7 +6813,8 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         korean_raw: rawPassageKor,
                         sentence_pairs: pairs,
                         analysis_data: teacherAnalysis,
-                        illustration_url: curIllu
+                        illustration_url: curIllu,
+                        skip_log: true
                     };
                     const resTeacher = await fetch('/api/save', {
                         method: 'POST',

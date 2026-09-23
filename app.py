@@ -1404,11 +1404,12 @@ TOKEN_PRICE_PER_TOKEN_KRW = 0.0005
 
 def get_fixed_pricing(doc_type):
     """
-    고정 단가 정액제 계산 함수 (토큰수와 무관하게 고정 단가 적용):
-    1. 강의용 교안: 63원 (약 16,000T / 학생용+강사용 합산 8원 + 기본 삽화 1장 55원)
-    2. 삽화 생성: 55원 (삽화 단독 생성 또는 추가/재생성 시 1장당 55원)
-    3. 단어 TEST: 1원 (약 2,000T)
-    4. 변형문제 (1회/회차당): 6원 (약 12,000T)
+    고정 단가 정액제 계산 함수:
+    1. 강의용 교안(학생용+강사용 합산): 63원 (약 16,000T / 교안 8원 + 기본 삽화 1장 55원)
+    2. 강사용 교안: 0원 (학생용과 1회 실행으로 동시 번들 생성되므로 추가 과금 없음, 합산 63원)
+    3. 삽화 생성: 55원 (삽화 단독 생성 또는 추가/재생성 시 1장당 55원)
+    4. 단어 TEST: 1원 (약 2,000T)
+    5. 변형문제 (1회/회차당): 6원 (약 12,000T)
     """
     dt = (doc_type or '강의용교안').strip()
     if '삽화' in dt:
@@ -1417,7 +1418,10 @@ def get_fixed_pricing(doc_type):
         return 1.0, 2000
     elif '변형문제' in dt:
         return 6.0, 12000
-    else:  # 강의용 교안 / 강사용 교안 등
+    elif '강사용' in dt:
+        # 학생용과 함께 1회 실행으로 동시 생성되는 강사용 교안은 중복 청구하지 않음 (합산 63원)
+        return 0.0, 0
+    else:  # 강의용 교안 / 강의용 교안(학생용)
         return 63.0, 16000
 
 def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
@@ -1517,12 +1521,16 @@ def get_all_usage_logs():
                     for l in gas_logs:
                         dt = l.get('doc_type', '')
                         fixed_cost, default_tokens = get_fixed_pricing(dt)
-                        c_val = l.get('cost_krw')
-                        if c_val is None or c_val == 0:
-                            l['cost_krw'] = fixed_cost
-                        t_val = l.get('tokens')
-                        if not t_val or t_val == 0:
-                            l['tokens'] = default_tokens
+                        if '강사용' in dt:
+                            l['cost_krw'] = 0.0
+                            l['tokens'] = 0
+                        else:
+                            c_val = l.get('cost_krw')
+                            if c_val is None or c_val == 0:
+                                l['cost_krw'] = fixed_cost
+                            t_val = l.get('tokens')
+                            if not t_val or t_val == 0:
+                                l['tokens'] = default_tokens
                         normalized_logs.append(l)
 
                     # 로컬 감사 로그 파일도 구글 시트 내용과 동기화
@@ -1547,11 +1555,16 @@ def get_all_usage_logs():
                     unique_id = l.get('id') or f"log_{l.get('branch')}_{l.get('title')}_{l.get('timestamp')}_{idx}"
                     l['id'] = unique_id
                     dt = l.get('doc_type', '')
+                    dt = l.get('doc_type', '')
                     fixed_cost, default_tokens = get_fixed_pricing(dt)
-                    if l.get('cost_krw') is None:
-                        l['cost_krw'] = fixed_cost
-                    if not l.get('tokens'):
-                        l['tokens'] = default_tokens
+                    if '강사용' in dt:
+                        l['cost_krw'] = 0.0
+                        l['tokens'] = 0
+                    else:
+                        if l.get('cost_krw') is None:
+                            l['cost_krw'] = fixed_cost
+                        if not l.get('tokens'):
+                            l['tokens'] = default_tokens
                     logs_map[unique_id] = l
         except Exception:
             pass
@@ -1595,10 +1608,12 @@ def get_stats():
                 period_logs.append(l)
 
         def _calc_log_cost(lg):
+            dt = lg.get('doc_type', '')
+            if '강사용' in dt:
+                return 0.0
             c = lg.get('cost_krw')
             if c is not None and float(c) > 0:
                 return float(c)
-            dt = lg.get('doc_type', '')
             fixed_cost, _ = get_fixed_pricing(dt)
             return fixed_cost
 
@@ -1729,15 +1744,17 @@ def save_handout():
                 data['analysis_data'] = analysis_d
 
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch, folder_name=folder_name)
-        try:
-            raw_tokens = analysis_d.get('used_tokens') or (analysis_d.get('usage_metadata') or {}).get('total_tokens', 0)
-            if raw_tokens and int(raw_tokens) > 0:
-                tokens = int(raw_tokens)
-            else:
-                tokens = estimate_tokens_for_item(doc_type, analysis_d, data.get('sentence_pairs'))
-            append_usage_log(branch, material_type, doc_type, title, tokens)
-        except Exception as e:
-            print("[save_handout] log error:", e)
+        # 강의용 교안(학생용)에 세트 요금(63원)이 적용되므로, 강사용 교안이나 skip_log 요청 시 중복 과금 로그 생성을 건너뜁니다
+        if not data.get('skip_log') and '강사용' not in str(doc_type):
+            try:
+                raw_tokens = analysis_d.get('used_tokens') or (analysis_d.get('usage_metadata') or {}).get('total_tokens', 0)
+                if raw_tokens and int(raw_tokens) > 0:
+                    tokens = int(raw_tokens)
+                else:
+                    tokens = estimate_tokens_for_item(doc_type, analysis_d, data.get('sentence_pairs'))
+                append_usage_log(branch, material_type, doc_type, title, tokens)
+            except Exception as e:
+                print("[save_handout] log error:", e)
         return jsonify({'success': True, 'filename': filename, 'folder_name': data.get('folder_name'), 'illustration_url': analysis_d.get('illustration_url')})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
