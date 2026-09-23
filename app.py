@@ -1449,8 +1449,12 @@ USAGE_LOGS_FILE = os.path.join(SAVES_DIR, 'usage_audit_logs.json')
 def append_usage_log(branch, material_type, doc_type, title, tokens=None):
     if tokens is None:
         tokens = estimate_tokens_for_item(doc_type)
-    if '삽화' in (doc_type or ''):
-        cost = 55.0  # 삽화 생성은 장당 55원
+    dt_str = doc_type or ''
+    if '삽화' in dt_str:
+        cost = 55.0  # 삽화 단독 생성: 장당 55원
+    elif '강의용' in dt_str or '강사용' in dt_str:
+        # 강의용 교안은 기본적으로 삽화 1장(55원)이 추가되므로 55원을 합산
+        cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
     else:
         cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
     
@@ -1530,8 +1534,12 @@ def get_all_usage_logs():
         doc = s.get('doc_type', '강의용교안')
         mt = s.get('mtime', 0.0)
         tokens = estimate_tokens_for_item(doc)
-        if '삽화' in (doc or ''):
+        dt_str = doc or ''
+        if '삽화' in dt_str:
             cost = 55.0
+        elif '강의용' in dt_str or '강사용' in dt_str:
+            # 강의용 교안은 기본적으로 삽화 1장(55원)이 추가되므로 55원 합산
+            cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
         else:
             cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
         
@@ -1589,10 +1597,22 @@ def get_stats():
             if start_ts <= mt <= end_ts:
                 period_logs.append(l)
 
+        def _calc_log_cost(lg):
+            c = lg.get('cost_krw')
+            if c is not None:
+                return float(c)
+            dt = lg.get('doc_type', '')
+            if '삽화' in dt:
+                return 55.0
+            elif '강의용' in dt or '강사용' in dt:
+                return round(lg.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
+            else:
+                return round(lg.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+
         # 4. Aggregations for the Selected Period
         total_count = len(period_logs)
         total_tokens = sum(l.get('tokens', 0) for l in period_logs)
-        total_cost_krw = round(sum(l.get('cost_krw', round(l.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW, 1)) for l in period_logs), 1)
+        total_cost_krw = round(sum(_calc_log_cost(l) for l in period_logs), 1)
 
         exam_count = sum(1 for l in period_logs if '변형문제' in l.get('doc_type', ''))
         vocab_count = sum(1 for l in period_logs if '단어' in l.get('doc_type', ''))
@@ -1622,9 +1642,7 @@ def get_stats():
                 }
             branch_stats[br]['count'] += 1
             branch_stats[br]['tokens'] += l.get('tokens', 0)
-            item_cost = l.get('cost_krw')
-            if item_cost is None:
-                item_cost = 55.0 if '삽화' in l.get('doc_type', '') else round(l.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+            item_cost = _calc_log_cost(l)
             branch_stats[br]['cost_krw'] = round(branch_stats[br]['cost_krw'] + item_cost, 1)
             if l.get('mtime', 0.0) > branch_stats[br]['last_active']:
                 branch_stats[br]['last_active'] = l.get('mtime', 0.0)
@@ -1640,7 +1658,7 @@ def get_stats():
             my_logs = [l for l in period_logs if l.get('branch') == effective_branch]
             my_count = len(my_logs)
             my_tokens = sum(l.get('tokens', 0) for l in my_logs)
-            my_cost_krw = round(sum(l.get('cost_krw', 55.0 if '삽화' in l.get('doc_type', '') else round(l.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW, 1)) for l in my_logs), 1)
+            my_cost_krw = round(sum(_calc_log_cost(l) for l in my_logs), 1)
             visible_ranking = [item for item in full_ranking if item['branch'] == effective_branch]
         else:
             my_logs = period_logs
@@ -1665,7 +1683,7 @@ def get_stats():
                 "exchange_rate": 1380,
                 "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.5원)",
                 "items": [
-                    {"name": "강의용 교안", "tokens": 16000, "cost_krw": 8.0, "badge": "~16,000T (약 8원)", "color": "text-amber-300"},
+                    {"name": "강의용 교안", "tokens": 16000, "cost_krw": 63.0, "badge": "~16,000T (약 63원 / 삽화 55원 포함)", "color": "text-amber-300"},
                     {"name": "삽화생성", "tokens": 0, "cost_krw": 55.0, "badge": "장당 55원", "color": "text-emerald-300"},
                     {"name": "단어TEST", "tokens": 2000, "cost_krw": 1.0, "badge": "~2,000T (약 1원)", "color": "text-violet-300"},
                     {"name": "변형문제 1회", "tokens": 12000, "cost_krw": 6.0, "badge": "~12,000T (약 6원)", "color": "text-rose-300"}
