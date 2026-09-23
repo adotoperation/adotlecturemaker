@@ -80,19 +80,24 @@ function doGet(e) {
 }
 
 /**
- * RDB_교안 (또는 RDB_ 교안) 전용 워크시트 반환 함수
+ * RDB_ 교안 (또는 RDB_교안) 전용 워크시트 반환 함수
+ * 사용자 지정 워크시트 외 타 시트 절대 참조 금지
  */
 function getHandoutSheet(ss) {
-  var sheet = ss.getSheetByName("RDB_교안") || ss.getSheetByName("RDB_ 교안");
-  if (!sheet) {
-    sheet = ss.insertSheet("RDB_교안");
-    sheet.appendRow(["분류", "유형", "제목", "문장데이터", "분석데이터", "삽화데이터", "저장일시", "아이디"]);
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName();
+    if (name.replace(/\s+/g, '') === "RDB_교안") {
+      return sheets[i];
+    }
   }
-  return sheet;
+  var newSheet = ss.insertSheet("RDB_ 교안");
+  newSheet.appendRow(["분류", "유형", "제목", "문장데이터", "분석데이터", "삽화데이터", "저장일시", "아이디"]);
+  return newSheet;
 }
 
 // -------------------------------------------------------------------------
-// 1. SAVE (자료 저장 - RDB_교안 8열 표준 데이터셋)
+// 1. SAVE (자료 저장 - RDB_ 교안 8열 표준 데이터셋)
 // -------------------------------------------------------------------------
 function handleSave(ss, data) {
   var sheet = getHandoutSheet(ss);
@@ -107,34 +112,43 @@ function handleSave(ss, data) {
   var materialType = (data.material_type || data.label || "모의고사").trim();
   var sentencePairsStr = JSON.stringify(data.sentence_pairs || []);
   
-  // E열 분석데이터: 삽화 데이터는 F열로 분리하므로 analysis_data 내부의 illustration_url은 제거
+  // E열 분석데이터: 삽화 데이터는 F열로 분리하므로 analysis_data 내부의 illustration_url은 제거하여 순수 텍스트 유지
   var analysisDataObj = data.analysis_data || {};
   if (typeof analysisDataObj === "string") {
     try { analysisDataObj = JSON.parse(analysisDataObj); } catch(e) {}
   }
-  delete analysisDataObj.illustration_url;
-  if (analysisDataObj.summary_info && typeof analysisDataObj.summary_info === "object") {
-    analysisDataObj.summary_info.illustration_url = "";
+  var cleanAnalysisData = JSON.parse(JSON.stringify(analysisDataObj));
+  delete cleanAnalysisData.illustration_url;
+  if (cleanAnalysisData.summary_info && typeof cleanAnalysisData.summary_info === "object") {
+    cleanAnalysisData.summary_info.illustration_url = "";
   }
-  var analysisDataStr = JSON.stringify(analysisDataObj);
+  var analysisDataStr = JSON.stringify(cleanAnalysisData);
 
-  // F열: 삽화데이터 (Base64 또는 URL)
+  // F열: 삽화데이터 (Base64 또는 URL 단독 저장)
   var illustrationUrl = (data.illustration_url || "").trim();
   if (!illustrationUrl && data.branch && (String(data.branch).startsWith("data:image/") || String(data.branch).startsWith("http"))) {
     illustrationUrl = String(data.branch).trim();
   }
+  if (!illustrationUrl && analysisDataObj.illustration_url) {
+    illustrationUrl = String(analysisDataObj.illustration_url).trim();
+  }
+  if (!illustrationUrl && analysisDataObj.summary_info && analysisDataObj.summary_info.illustration_url) {
+    illustrationUrl = String(analysisDataObj.summary_info.illustration_url).trim();
+  }
+  if (illustrationUrl && !illustrationUrl.startsWith("data:image/") && !illustrationUrl.startsWith("http")) {
+    illustrationUrl = "";
+  }
   
   // G열: 저장일시
-  var nowIso = new Date().toISOString();
-  var timestampStr = data.timestamp || nowIso;
+  var timestampStr = data.timestamp || Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
 
   // H열: 아이디 (지점 또는 사용자 ID)
   var userId = (data.username || data.branch || "본사").trim();
-  if (userId.startsWith("data:image/") || userId.startsWith("http")) {
+  if (userId.startsWith("data:image/") || userId.startsWith("http") || !userId) {
     userId = "본사";
   }
 
-  // 기존 행 탐색 (제목과 유형이 일치하는 행 갱신)
+  // 기존 행 탐색 (B열 유형과 C열 제목이 일치하는 행 갱신)
   var lastRow = sheet.getLastRow();
   var targetRow = -1;
 
@@ -142,8 +156,8 @@ function handleSave(ss, data) {
     var range = sheet.getRange(2, 2, lastRow - 1, 2); // B열(유형), C열(제목)
     var values = range.getValues();
     for (var i = 0; i < values.length; i++) {
-      var rowDocType = String(values[i][0]).trim();
-      var rowTitle = String(values[i][1]).trim();
+      var rowDocType = String(values[i][0] || "").trim();
+      var rowTitle = String(values[i][1] || "").trim();
       if (rowTitle === title && (!docType || rowDocType === docType)) {
         targetRow = i + 2;
         break;
@@ -152,14 +166,14 @@ function handleSave(ss, data) {
   }
 
   var rowValues = [
-    materialType,        // 1. 분류
-    docType,             // 2. 유형
-    title,               // 3. 제목
-    sentencePairsStr,    // 4. 문장데이터
-    analysisDataStr,     // 5. 분석데이터
-    illustrationUrl,     // 6. 삽화데이터
-    timestampStr,        // 7. 저장일시
-    userId               // 8. 아이디
+    materialType,        // 1. 분류 (A열)
+    docType,             // 2. 유형 (B열)
+    title,               // 3. 제목 (C열)
+    sentencePairsStr,    // 4. 문장데이터 (D열)
+    analysisDataStr,     // 5. 분석데이터 (E열)
+    illustrationUrl,     // 6. 삽화데이터 (F열)
+    timestampStr,        // 7. 저장일시 (G열)
+    userId               // 8. 아이디 (H열)
   ];
 
   if (targetRow > 0) {
@@ -180,223 +194,160 @@ function handleSave(ss, data) {
 }
 
 // -------------------------------------------------------------------------
-// 2. LOAD (자료 불러오기 - RDB_교안 우선 조회 및 하위 호환)
+// 2. LOAD (자료 불러오기 - RDB_ 교안 단독 조회)
 // -------------------------------------------------------------------------
 function handleLoad(ss, data) {
   var title = (data.title || "").trim();
   var docType = (data.doc_type || "").trim();
-  var sheetName = data.material_type || data.label || "";
-
-  // 1순위: RDB_교안 (또는 RDB_ 교안)
-  var targetSheet = ss.getSheetByName("RDB_교안") || ss.getSheetByName("RDB_ 교안");
-  var sheetsToSearch = [];
-  if (targetSheet) {
-    sheetsToSearch.push(targetSheet);
+  var sheet = getHandoutSheet(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ success: false, error: "저장된 교안이 없습니다: " + title });
   }
 
-  // 2순위: 지정 시트 또는 전체 시트 하위 호환 탐색
-  if (sheetName && ss.getSheetByName(sheetName) && ss.getSheetByName(sheetName) !== targetSheet) {
-    sheetsToSearch.push(ss.getSheetByName(sheetName));
-  }
-  var allSheets = ss.getSheets();
-  for (var k = 0; k < allSheets.length; k++) {
-    var sObj = allSheets[k];
-    var sName = sObj.getName();
-    if (sObj !== targetSheet && !sName.startsWith("RDB_로그") && !sName.startsWith("RDB_아이디") && sheetsToSearch.indexOf(sObj) === -1) {
-      sheetsToSearch.push(sObj);
-    }
-  }
+  var numCols = Math.min(sheet.getLastColumn(), 8);
+  var values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
 
-  for (var s = 0; s < sheetsToSearch.length; s++) {
-    var sheet = sheetsToSearch[s];
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 2) continue;
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var rowMatType = String(row[0] || "").trim();
+    var rowDocType = String(row[1] || "").trim();
+    var rowTitle = String(row[2] || "").trim();
 
-    var numCols = Math.min(sheet.getLastColumn(), 8);
-    var values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+    if (rowTitle === title && (!docType || rowDocType === docType)) {
+      var sentencePairs = [];
+      try { sentencePairs = JSON.parse(row[3]); } catch(e) {}
 
-    for (var i = 0; i < values.length; i++) {
-      var row = values[i];
-      var rowMatType = String(row[0]).trim();
-      var rowDocType = String(row[1]).trim();
-      var rowTitle = String(row[2]).trim();
+      var analysisData = {};
+      try { analysisData = JSON.parse(row[4]); } catch(e) {}
 
-      if (rowTitle === title && (!docType || rowDocType === docType)) {
-        var sentencePairs = [];
-        try { sentencePairs = JSON.parse(row[3]); } catch(e) {}
-
-        var analysisData = {};
-        try { analysisData = JSON.parse(row[4]); } catch(e) {}
-
-        // F열(6번째 열)에서 삽화 데이터 추출
-        var illustrationUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
-        if (illustrationUrl && !illustrationUrl.startsWith("data:image/") && !illustrationUrl.startsWith("http")) {
-          illustrationUrl = "";
-        }
-        
-        // 과거 데이터 하위 호환성 (과거에는 E열에 저장되었던 경우)
-        if (!illustrationUrl && analysisData.illustration_url) {
-          illustrationUrl = analysisData.illustration_url;
-        }
-
-        // analysisData에도 illustration_url 동기화
-        analysisData.illustration_url = illustrationUrl;
-        if (analysisData.summary_info && typeof analysisData.summary_info === "object") {
-          analysisData.summary_info.illustration_url = illustrationUrl;
-        }
-
-        // H열(8번째 열: 아이디) 또는 G열(7번째 열: 지점/일시) 추출
-        var userId = "본사";
-        if (numCols >= 8 && row[7]) {
-          userId = String(row[7]).trim();
-        } else if (numCols >= 7 && row[6]) {
-          var gCol = String(row[6]).trim();
-          if (gCol.includes("|")) {
-            userId = gCol.split("|")[0].trim();
-          } else if (!gCol.startsWith("data:image/")) {
-            userId = gCol;
-          }
-        }
-        if (userId.startsWith("data:image/") || userId.startsWith("http")) {
-          userId = "본사";
-        }
-
-        return createJsonResponse({
-          success: true,
-          title: rowTitle,
-          material_type: rowMatType || "모의고사",
-          doc_type: rowDocType || "강의용교안",
-          label: rowMatType || "모의고사",
-          sentence_pairs: sentencePairs,
-          analysis_data: analysisData,
-          illustration_url: illustrationUrl,
-          branch: userId,
-          username: userId
-        });
+      // F열(6번째 열): 삽화 데이터 추출
+      var illustrationUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
+      if (illustrationUrl && !illustrationUrl.startsWith("data:image/") && !illustrationUrl.startsWith("http")) {
+        illustrationUrl = "";
       }
-    }
-  }
-
-  return createJsonResponse({ success: false, error: "저장된 자료를 찾을 수 없습니다: " + title });
-}
-
-// -------------------------------------------------------------------------
-// 3. LIST (목록 조회 - RDB_교안 및 전체 워크시트 조회)
-// -------------------------------------------------------------------------
-function handleList(ss, data) {
-  var saves = [];
-  var seenKeys = {};
-
-  // 1순위: RDB_교안 (또는 RDB_ 교안)
-  var targetSheet = ss.getSheetByName("RDB_교안") || ss.getSheetByName("RDB_ 교안");
-  var sheetsToSearch = [];
-  if (targetSheet) {
-    sheetsToSearch.push(targetSheet);
-  }
-
-  // 2순위: 기타 분류별 시트 하위 호환 탐색
-  var allSheets = ss.getSheets();
-  for (var k = 0; k < allSheets.length; k++) {
-    var sObj = allSheets[k];
-    var sName = sObj.getName();
-    if (sObj !== targetSheet && !sName.startsWith("RDB_로그") && !sName.startsWith("RDB_아이디") && sheetsToSearch.indexOf(sObj) === -1) {
-      sheetsToSearch.push(sObj);
-    }
-  }
-
-  for (var s = 0; s < sheetsToSearch.length; s++) {
-    var sheet = sheetsToSearch[s];
-    var sName = sheet.getName();
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 2) continue;
-
-    var numCols = Math.min(sheet.getLastColumn(), 8);
-    var values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
-
-    for (var i = 0; i < values.length; i++) {
-      var row = values[i];
-      var matType = String(row[0]).trim() || (sName.startsWith("RDB_") ? "모의고사" : sName);
-      var docType = String(row[1]).trim() || "강의용교안";
-      var title = String(row[2]).trim();
-      if (!title || title === "제목" || title === "Title") continue;
-
-      var dedupeKey = title + "|" + docType;
-      if (seenKeys[dedupeKey]) continue;
-      seenKeys[dedupeKey] = true;
-
-      var illuUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
-      if (illuUrl && !illuUrl.startsWith("data:image/") && !illuUrl.startsWith("http")) {
-        illuUrl = "";
+      
+      // 하위 호환
+      if (!illustrationUrl && analysisData.illustration_url) {
+        illustrationUrl = analysisData.illustration_url;
       }
 
-      var userId = "본사";
-      if (numCols >= 8 && row[7]) {
-        userId = String(row[7]).trim();
-      } else if (numCols >= 7 && row[6]) {
-        var gMeta = String(row[6]).trim();
-        if (gMeta.includes("|")) {
-          userId = gMeta.split("|")[0].trim();
-        } else if (!gMeta.startsWith("data:image/")) {
-          userId = gMeta;
-        }
+      analysisData.illustration_url = illustrationUrl;
+      if (analysisData.summary_info && typeof analysisData.summary_info === "object") {
+        analysisData.summary_info.illustration_url = illustrationUrl;
       }
-      if (userId.startsWith("data:image/") || userId.startsWith("http")) {
+
+      // H열(8번째 열): 아이디
+      var userId = (numCols >= 8 && row[7]) ? String(row[7]).trim() : "본사";
+      if (userId.startsWith("data:image/") || userId.startsWith("http") || !userId) {
         userId = "본사";
       }
 
-      saves.push({
-        filename: title + ".json",
-        title: title,
-        material_type: matType,
-        doc_type: docType,
-        label: matType,
+      return createJsonResponse({
+        success: true,
+        title: rowTitle,
+        material_type: rowMatType || "모의고사",
+        doc_type: rowDocType || "강의용교안",
+        label: rowMatType || "모의고사",
+        sentence_pairs: sentencePairs,
+        analysis_data: analysisData,
+        illustration_url: illustrationUrl,
         branch: userId,
-        username: userId,
-        illustration_url: illuUrl,
-        has_illu: Boolean(illuUrl && !illuUrl.includes("placeholder")),
-        mtime: new Date().getTime() / 1000
+        username: userId
       });
     }
+  }
+
+  return createJsonResponse({ success: false, error: "저장된 교안을 찾을 수 없습니다: " + title });
+}
+
+// -------------------------------------------------------------------------
+// 3. LIST (목록 조회 - RDB_ 교안 단독 조회, 타 시트 검색 완전 배제)
+// -------------------------------------------------------------------------
+function handleList(ss, data) {
+  var sheet = getHandoutSheet(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ success: true, saves: [] });
+  }
+
+  var numCols = Math.min(sheet.getLastColumn(), 8);
+  var values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+  var saves = [];
+  var seenKeys = {};
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var matType = String(row[0] || "").trim() || "모의고사";
+    var docType = String(row[1] || "").trim() || "강의용교안";
+    var title = String(row[2] || "").trim();
+    if (!title || title === "제목" || title === "Title") continue;
+
+    var dedupeKey = title + "|" + docType;
+    if (seenKeys[dedupeKey]) continue;
+    seenKeys[dedupeKey] = true;
+
+    // F열(6번째 열): 삽화 데이터
+    var illuUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
+    if (illuUrl && !illuUrl.startsWith("data:image/") && !illuUrl.startsWith("http")) {
+      illuUrl = "";
+    }
+
+    // G열(7번째 열): 저장일시
+    var timestampStr = (numCols >= 7 && row[6]) ? String(row[6]).trim() : "";
+    var mtime = new Date().getTime() / 1000;
+    if (timestampStr) {
+      var parsedTime = new Date(timestampStr).getTime();
+      if (!isNaN(parsedTime) && parsedTime > 0) {
+        mtime = parsedTime / 1000;
+      }
+    }
+
+    // H열(8번째 열): 아이디
+    var userId = (numCols >= 8 && row[7]) ? String(row[7]).trim() : "본사";
+    if (userId.startsWith("data:image/") || userId.startsWith("http") || !userId) {
+      userId = "본사";
+    }
+
+    saves.push({
+      filename: title + ".json",
+      title: title,
+      material_type: matType,
+      doc_type: docType,
+      label: matType,
+      branch: userId,
+      username: userId,
+      illustration_url: illuUrl,
+      has_illu: Boolean(illuUrl && !illuUrl.includes("placeholder")),
+      timestamp: timestampStr,
+      mtime: mtime
+    });
   }
 
   return createJsonResponse({ success: true, saves: saves });
 }
 
 // -------------------------------------------------------------------------
-// 4. DELETE (자료 삭제)
+// 4. DELETE (자료 삭제 - RDB_ 교안 단독 삭제)
 // -------------------------------------------------------------------------
 function handleDelete(ss, data) {
   var title = (data.title || "").trim();
   var docType = (data.doc_type || "").trim();
-
-  var targetSheet = ss.getSheetByName("RDB_교안") || ss.getSheetByName("RDB_ 교안");
-  var sheetsToSearch = [];
-  if (targetSheet) {
-    sheetsToSearch.push(targetSheet);
-  }
-  var allSheets = ss.getSheets();
-  for (var k = 0; k < allSheets.length; k++) {
-    var name = allSheets[k].getName();
-    if (allSheets[k] !== targetSheet && !name.startsWith("RDB_로그") && !name.startsWith("RDB_아이디")) {
-      sheetsToSearch.push(allSheets[k]);
-    }
+  var sheet = getHandoutSheet(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ success: false });
   }
 
+  var values = sheet.getRange(2, 2, lastRow - 1, 2).getValues(); // B열(유형), C열(제목)
   var deleted = false;
-  for (var s = 0; s < sheetsToSearch.length; s++) {
-    var sheet = sheetsToSearch[s];
-    var lastRow = sheet.getLastRow();
-    if (lastRow < 2) continue;
+  for (var i = values.length - 1; i >= 0; i--) {
+    var rowDocType = String(values[i][0] || "").trim();
+    var rowTitle = String(values[i][1] || "").trim();
 
-    var values = sheet.getRange(2, 2, lastRow - 1, 2).getValues(); // B열(유형), C열(제목)
-    for (var i = values.length - 1; i >= 0; i--) {
-      var rowDocType = String(values[i][0]).trim();
-      var rowTitle = String(values[i][1]).trim();
-
-      if (rowTitle === title && (!docType || rowDocType === docType)) {
-        sheet.deleteRow(i + 2);
-        deleted = true;
-      }
+    if (rowTitle === title && (!docType || rowDocType === docType)) {
+      sheet.deleteRow(i + 2);
+      deleted = true;
     }
   }
 

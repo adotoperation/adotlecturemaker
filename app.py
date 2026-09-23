@@ -668,16 +668,20 @@ def safe_korean_filename(name):
 
 def get_db_saves():
     raw_saves = []
+    gas_responded = False
     if GAS_URL:
         try:
             res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=25)
             if res.status_code == 200:
-                raw_saves = res.json().get("saves", [])
+                res_data = res.json()
+                if "saves" in res_data:
+                    raw_saves = res_data.get("saves", [])
+                    gas_responded = True
         except Exception as e:
             print("GAS list error, fallback to local SAVES_DIR:", e)
             raw_saves = []
             
-    if not raw_saves:
+    if not gas_responded:
         if IS_VERCEL_KV:
             headers = {"Authorization": f"Bearer {KV_TOKEN}"}
             try:
