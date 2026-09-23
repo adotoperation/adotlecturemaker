@@ -321,7 +321,48 @@ try:
 except Exception:
     pass
 
-def compress_base64_image(image_data_url, max_width=420, max_chars=14000):
+def compress_image_bytes_for_sheet(img_bytes, max_chars=45000):
+    """
+    Compresses image bytes into a base64 string that fits strictly within Google Sheets cell limit (50,000 chars).
+    Used solely when preparing Column F payload for Google Sheets sync.
+    """
+    from PIL import Image
+    import io
+    
+    img = Image.open(io.BytesIO(img_bytes))
+    if img.mode in ('RGBA', 'P'):
+        img = img.convert('RGB')
+    
+    orig_w, orig_h = img.size
+    aspect = orig_h / max(orig_w, 1)
+
+    # 1. Try WebP first (highest compression ratio and visual fidelity)
+    for w in (680, 600, 540, 480, 420):
+        h = max(int(w * aspect), 1)
+        c_img = img.resize((w, h), Image.Resampling.LANCZOS)
+        for q in (65, 58, 50, 42, 35):
+            buf = io.BytesIO()
+            c_img.save(buf, format='WEBP', quality=q, method=4)
+            encoded = base64.b64encode(buf.getvalue()).decode('utf-8')
+            candidate = f"data:image/webp;base64,{encoded}"
+            if len(candidate) <= max_chars:
+                return candidate
+
+    # 2. Fallback to JPEG
+    for w in (600, 540, 480, 420, 360):
+        h = max(int(w * aspect), 1)
+        c_img = img.resize((w, h), Image.Resampling.LANCZOS)
+        for q in (60, 50, 40, 30, 22):
+            buf = io.BytesIO()
+            c_img.save(buf, format='JPEG', quality=q, optimize=True)
+            encoded = base64.b64encode(buf.getvalue()).decode('utf-8')
+            candidate = f"data:image/jpeg;base64,{encoded}"
+            if len(candidate) <= max_chars:
+                return candidate
+
+    return ""
+
+def compress_base64_image(image_data_url, max_chars=45000):
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
@@ -329,60 +370,56 @@ def compress_base64_image(image_data_url, max_width=420, max_chars=14000):
     if len(image_data_url) <= max_chars:
         return image_data_url
     try:
-        from PIL import Image
-        import io
         header, b64_str = image_data_url.split(',', 1)
         img_bytes = base64.b64decode(b64_str)
-        img = Image.open(io.BytesIO(img_bytes))
-        if img.mode in ('RGBA', 'P'):
-            img = img.convert('RGB')
-        
-        result_url = image_data_url
-        for w in (max_width, 360, 300, 240):
-            for q in (45, 38, 30, 22, 16):
-                c_img = img.copy()
-                c_img.thumbnail((w, int(w * 9 / 16)), Image.Resampling.LANCZOS)
-                buf = io.BytesIO()
-                c_img.save(buf, format='JPEG', quality=q, optimize=True)
-                b = buf.getvalue()
-                encoded = base64.b64encode(b).decode('utf-8')
-                candidate = f"data:image/jpeg;base64,{encoded}"
-                if len(candidate) <= max_chars:
-                    return candidate
-                result_url = candidate
-        return result_url
+        compressed = compress_image_bytes_for_sheet(img_bytes, max_chars=max_chars)
+        return compressed or image_data_url
     except Exception as e:
         print("[compress_base64_image] Compression error:", e)
         return image_data_url
 
 def persist_base64_image(image_data_url, title=""):
     """
-    Compresses base64 image data URL to strictly fit within Google Sheets cell limit (50,000 chars)
-    and caches locally where possible.
+    Saves a base64 image data URL to a local file in static/uploads at crystal-clear high resolution
+    (up to 1280px width, quality 92) and returns the local static URL (/static/uploads/illu_....jpg).
+    This ensures uncompressed, razor-sharp rendering on screen and in print without pixelation.
     """
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
         return image_data_url
     
-    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~14,000 chars max)
-    compressed_url = compress_base64_image(image_data_url, max_width=420, max_chars=14000)
-
-    # 2. Try saving to static/uploads locally for caching if valid bytes exist
     try:
-        header, b64_str = compressed_url.split(',', 1)
+        from PIL import Image
+        import io
+        import hashlib
+
+        header, b64_str = image_data_url.split(',', 1)
         decoded_bytes = base64.b64decode(b64_str)
-        if decoded_bytes and len(decoded_bytes) > 100:
-            import hashlib
-            h = hashlib.md5(b64_str.encode('utf-8')).hexdigest()[:12]
-            filename = f"illu_{int(time.time())}_{h}.jpg"
-            filepath = os.path.join(UPLOADS_DIR, filename)
-            with open(filepath, 'wb') as f:
-                f.write(decoded_bytes)
+        if not decoded_bytes or len(decoded_bytes) < 100:
+            return image_data_url
+
+        img = Image.open(io.BytesIO(decoded_bytes))
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        # Keep crystal-clear high definition: max 1280px width, preserving aspect ratio
+        orig_w, orig_h = img.size
+        max_w = 1280
+        if orig_w > max_w:
+            new_h = int(orig_h * (max_w / orig_w))
+            img = img.resize((max_w, new_h), Image.Resampling.LANCZOS)
+
+        h = hashlib.md5(b64_str[:500].encode('utf-8')).hexdigest()[:12]
+        filename = f"illu_{int(time.time())}_{h}.jpg"
+        filepath = os.path.join(UPLOADS_DIR, filename)
+        
+        # Save as high-quality JPEG
+        img.save(filepath, format='JPEG', quality=92, optimize=True)
+        return f"/static/uploads/{filename}"
     except Exception as e:
-        pass
-    
-    return compressed_url
+        print("[persist_base64_image] Error saving high-res image:", e)
+        return image_data_url
 
 def create_themed_svg_illustration(topic_text, title=""):
     """Generates an aesthetic SVG illustration matching the exact topic when external AI APIs are unreachable."""
@@ -568,8 +605,19 @@ Output ONLY the final English image generation prompt string without any introdu
             import hashlib
             clean_seed = abs(int(hashlib.md5(f"{english_scene}_{title}".encode()).hexdigest()[:8], 16)) % 999999
             enc_prompt = urllib.parse.quote(ghibli_prompt)
-            poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=800&height=480&nologo=true&seed={clean_seed}"
-            saved_path = poll_url
+            poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=1024&height=576&nologo=true&seed={clean_seed}"
+            try:
+                p_res = requests.get(poll_url, timeout=12)
+                if p_res.status_code == 200 and len(p_res.content) > 1000:
+                    filename = f"illu_{int(time.time())}_{clean_seed}.jpg"
+                    filepath = os.path.join(UPLOADS_DIR, filename)
+                    with open(filepath, 'wb') as f:
+                        f.write(p_res.content)
+                    saved_path = f"/static/uploads/{filename}"
+                else:
+                    saved_path = poll_url
+            except Exception:
+                saved_path = poll_url
         except Exception as poll_e:
             print("[generate_illustration_sync] Pollinations AI warning:", poll_e)
 
@@ -908,6 +956,22 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
         if str(user_id).startswith(('data:image/', 'http')):
             user_id = '본사'
 
+        # Ensure illustration_url in Google Sheets Column F stays strictly within cell limits (50,000 chars)
+        sheet_illu = illu_url or ''
+        if sheet_illu.startswith('/static/uploads/'):
+            local_img_path = os.path.join(UPLOADS_DIR, os.path.basename(sheet_illu))
+            if os.path.exists(local_img_path):
+                try:
+                    with open(local_img_path, 'rb') as f:
+                        raw_bytes = f.read()
+                    compressed_for_sheet = compress_image_bytes_for_sheet(raw_bytes, max_chars=45000)
+                    if compressed_for_sheet:
+                        sheet_illu = compressed_for_sheet
+                except Exception as ce:
+                    print("[save_db_handout] Sheet image compression warning:", ce)
+        elif sheet_illu.startswith('data:image/'):
+            sheet_illu = compress_base64_image(sheet_illu, max_chars=45000)
+
         payload = {
             "action": "save",
             "material_type": mat_type,
@@ -917,7 +981,7 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "title": title,
             "sentence_pairs": data.get("sentence_pairs", []),
             "analysis_data": clean_ad,
-            "illustration_url": illu_url or '',
+            "illustration_url": sheet_illu or '',
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
             "username": user_id,
             "branch": user_id
@@ -1049,6 +1113,11 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             (isinstance(analysis_data, dict) and isinstance(analysis_data.get('summary_info'), dict) and analysis_data['summary_info'].get('illustration_url'))
         ) or ''
         
+        if illu and str(illu).startswith('data:image/'):
+            saved_local = persist_base64_image(illu, doc_res.get('title', ''))
+            if saved_local and saved_local.startswith('/static/uploads/'):
+                illu = saved_local
+
         doc_res['illustration_url'] = illu
         if isinstance(analysis_data, dict):
             analysis_data['illustration_url'] = illu

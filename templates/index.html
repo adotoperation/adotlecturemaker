@@ -6174,7 +6174,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         const canvas = document.createElement('canvas');
                         let w = img.width;
                         let h = img.height;
-                        const maxW = 420;
+                        const maxW = 1280;
                         if (w > maxW) {
                             h = Math.round(h * (maxW / w));
                             w = maxW;
@@ -6183,7 +6183,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, w, h);
-                        const compressed = canvas.toDataURL('image/jpeg', 0.45);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.88);
                         applyUrl(compressed);
                     } catch(e) {
                         applyUrl(dataUrl);
