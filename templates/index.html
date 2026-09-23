@@ -2357,10 +2357,32 @@
             });
         }
 
-        function populateFolderSelectDropdown(matType = selectedMaterialType) {
+        async function populateFolderSelectDropdown(matType = selectedMaterialType) {
             if (!folderSelectDropdown) return;
+            const myBranch = (typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사').trim();
+            const admin = (myBranch === 'admin');
+
+            // If saves have not been loaded yet, fetch them from server
+            if (!savedHandoutsList || savedHandoutsList.length === 0) {
+                try {
+                    const response = await fetch('/api/saves');
+                    if (response.ok) {
+                        const data = await response.json();
+                        savedHandoutsList = data.saves || [];
+                    }
+                } catch(e) {
+                    console.warn("Folder dropdown fetch error:", e);
+                }
+            }
+
+            // 자료를 만든 계정의 폴더를 불러옴 (자신의 지점/계정 자료 + admin인 경우 전체/본사)
             const folders = (savedHandoutsList || [])
-                .filter(s => !matType || matType === 'all' || (s.material_type || s.label) === matType)
+                .filter(s => {
+                    const itemBranch = (s.branch || '본사').trim();
+                    const isMyItem = (itemBranch === myBranch || admin || itemBranch === '본사');
+                    const matchMat = (!matType || matType === 'all' || (s.material_type || s.label) === matType);
+                    return isMyItem && matchMat;
+                })
                 .map(s => s.folder_name || extractDefaultFolderName(s.title, s.material_type))
                 .filter((v, i, a) => v && a.indexOf(v) === i);
 
@@ -2539,6 +2561,7 @@
 
         // Initialize from localStorage on Page Load
         restoreFromLocalStorage();
+        populateFolderSelectDropdown();
 
         btnAnalyze.addEventListener('click', async () => {
             const title = titleInput.value.trim();
@@ -2857,6 +2880,7 @@
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.remove('hidden');
 
                     // Auto-fetch topic illustration in background
+                    const curBranch = typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사';
                     fetch('/api/generate_illustration', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -2866,6 +2890,9 @@
                             keywords: sInfo.keywords || '',
                             summary: (sInfo.summary || []).join('\n'),
                             passage: passageText,
+                            branch: curBranch,
+                            username: curBranch,
+                            material_type: selectedMaterialType,
                             api_key: localStorage.getItem('gemini_api_key') || ''
                         })
                     }).then(r => r.json()).then(resData => {
@@ -6561,6 +6588,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 showLoading("지문 맞춤 AI 삽화 생성 중", `[지문 핵심정리: ${topic}]를 바탕으로 고품질 교육용 일러스트를 생성하여 인코딩하고 있습니다. (약 5~15초 소요)`);
                 try {
+                    const curBranch = typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사';
                     const res = await fetch('/api/generate_illustration', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -6570,6 +6598,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                             keywords: keywords,
                             summary: summary,
                             passage: fullPassage,
+                            branch: curBranch,
+                            username: curBranch,
+                            material_type: selectedMaterialType,
                             api_key: localStorage.getItem('gemini_api_key') || ''
                         })
                     });

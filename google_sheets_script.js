@@ -247,9 +247,15 @@ function handleLoad(ss, data) {
         userId = "본사";
       }
 
+      var folderName = "";
+      if (analysisData && analysisData.folder_name) {
+        folderName = String(analysisData.folder_name).trim();
+      }
+
       return createJsonResponse({
         success: true,
         title: rowTitle,
+        folder_name: folderName,
         material_type: rowMatType || "모의고사",
         doc_type: rowDocType || "강의용교안",
         label: rowMatType || "모의고사",
@@ -291,6 +297,17 @@ function handleList(ss, data) {
     if (seenKeys[dedupeKey]) continue;
     seenKeys[dedupeKey] = true;
 
+    // E열(5번째 열): 분석데이터에서 folder_name 추출
+    var folderName = "";
+    if (numCols >= 5 && row[4]) {
+      try {
+        var adObj = typeof row[4] === "string" ? JSON.parse(row[4]) : row[4];
+        if (adObj && adObj.folder_name) {
+          folderName = String(adObj.folder_name).trim();
+        }
+      } catch(e) {}
+    }
+
     // F열(6번째 열): 삽화 데이터
     var illuUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
     if (illuUrl && !illuUrl.startsWith("data:image/") && !illuUrl.startsWith("http")) {
@@ -316,6 +333,7 @@ function handleList(ss, data) {
     saves.push({
       filename: title + ".json",
       title: title,
+      folder_name: folderName,
       material_type: matType,
       doc_type: docType,
       label: matType,
