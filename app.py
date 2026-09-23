@@ -749,14 +749,7 @@ Output ONLY the final English image generation prompt string without any introdu
         # Fallback to authentic hand-drawn Ghibli watercolor illustration
         saved_path = '/static/illustration.jpg'
 
-    if saved_path:
-        try:
-            append_usage_log(branch, material_type, 'AI삽화생성', f"{title} (삽화생성)", 2500)
-        except Exception:
-            pass
-        return saved_path, ghibli_prompt
-
-    return '/static/illustration.jpg', ghibli_prompt
+    return saved_path, ghibli_prompt
 
 @app.route('/api/modify', methods=['POST'])
 def modify():
@@ -1409,21 +1402,27 @@ def get_saves():
 # Prompt & Output Blended: 0.5 KRW / 1,000 tokens (1 token = 0.0005 KRW)
 TOKEN_PRICE_PER_TOKEN_KRW = 0.0005
 
-def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
+def get_fixed_pricing(doc_type):
+    """
+    고정 단가 정액제 계산 함수 (토큰수와 무관하게 고정 단가 적용):
+    1. 강의용 교안: 63원 (약 16,000T / 학생용+강사용 합산 8원 + 기본 삽화 1장 55원)
+    2. 삽화 생성: 55원 (삽화 단독 생성 또는 추가/재생성 시 1장당 55원)
+    3. 단어 TEST: 1원 (약 2,000T)
+    4. 변형문제 (1회/회차당): 6원 (약 12,000T)
+    """
     dt = (doc_type or '강의용교안').strip()
-    if '변형문제' in dt:
-        return 12000  # 9종 변형문제 1회분당 약 12,000 토큰
-    elif '강사용' in dt:
-        return 8000   # 강사용 교안 (교안 + 1:1 구두TEST 결합)
-    elif '구두' in dt or 'oral' in dt.lower():
-        return 2500   # 1:1 구두 TEST지 약 2,500 토큰
+    if '삽화' in dt:
+        return 55.0, 1500
     elif '단어' in dt:
-        return 2000   # 15개 어휘 추출 및 단어 테스트 약 2,000 토큰
-    elif '삽화' in dt:
-        return 1500   # 삽화 프롬프트 및 이미지 생성 약 1,500 토큰
-    else:
-        # 강의용 교안: 학생용과 강사용이 동시 생성되므로 합산 약 16,000 토큰
-        return 16000
+        return 1.0, 2000
+    elif '변형문제' in dt:
+        return 6.0, 12000
+    else:  # 강의용 교안 / 강사용 교안 등
+        return 63.0, 16000
+
+def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
+    cost, tokens = get_fixed_pricing(doc_type)
+    return tokens
 
 def get_billing_period_bounds(year, month):
     """
@@ -1447,16 +1446,10 @@ def get_billing_period_bounds(year, month):
 USAGE_LOGS_FILE = os.path.join(SAVES_DIR, 'usage_audit_logs.json')
 
 def append_usage_log(branch, material_type, doc_type, title, tokens=None):
-    if tokens is None:
-        tokens = estimate_tokens_for_item(doc_type)
-    dt_str = doc_type or ''
-    if '삽화' in dt_str:
-        cost = 55.0  # 삽화 단독 생성: 장당 55원
-    elif '강의용' in dt_str or '강사용' in dt_str:
-        # 강의용 교안은 기본적으로 삽화 1장(55원)이 추가되므로 55원을 합산
-        cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
-    else:
-        cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
+    fixed_cost, default_tokens = get_fixed_pricing(doc_type)
+    if tokens is None or tokens <= 0:
+        tokens = default_tokens
+    cost = fixed_cost
     
     import datetime
     kst_tz = datetime.timezone(datetime.timedelta(hours=9))
@@ -1466,7 +1459,7 @@ def append_usage_log(branch, material_type, doc_type, title, tokens=None):
     clean_br = 'admin' if str(branch).lower() == 'admin' else (branch or '본사')
     log_entry = {
         'id': f"log_{int(now_ts * 1000)}",
-        'timestamp': now_kst.strftime('%Y-%m-%dT%H:%M:%S'),
+        'timestamp': now_kst.strftime('%Y-%m-%d %H:%M:%S'),
         'mtime': now_ts,
         'branch': clean_br,
         'material_type': material_type or '모의고사',
@@ -1500,7 +1493,7 @@ def append_usage_log(branch, material_type, doc_type, title, tokens=None):
                 "tokens": log_entry['tokens'],
                 "cost_krw": log_entry['cost_krw'],
                 "timestamp": log_entry['timestamp']
-            }, timeout=5)
+            }, timeout=8)
         except Exception:
             pass
 
@@ -1508,12 +1501,44 @@ def append_usage_log(branch, material_type, doc_type, title, tokens=None):
 
 def get_all_usage_logs():
     """
-    Returns all usage logs (from GAS log sheet, local file, and existing saves).
-    Logs are permanent and never deleted even if document is deleted.
+    Returns all usage logs synchronized directly with Google Sheets RDB_로그.
+    구글 시트의 RDB_로그 시트가 비워지면 앱에서도 즉시 0건으로 반영됩니다.
     """
+    # 1. Google Sheets RDB_로그 시트 직접 조회 (단일 진실 공급원 - Single Source of Truth)
+    if GAS_URL:
+        try:
+            res = requests.post(GAS_URL, json={"action": "get_logs"}, timeout=12)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get('success'):
+                    gas_logs = data.get('logs', [])
+                    # 구글 시트 데이터 정규화 및 고정 단가 보정
+                    normalized_logs = []
+                    for l in gas_logs:
+                        dt = l.get('doc_type', '')
+                        fixed_cost, default_tokens = get_fixed_pricing(dt)
+                        c_val = l.get('cost_krw')
+                        if c_val is None or c_val == 0:
+                            l['cost_krw'] = fixed_cost
+                        t_val = l.get('tokens')
+                        if not t_val or t_val == 0:
+                            l['tokens'] = default_tokens
+                        normalized_logs.append(l)
+
+                    # 로컬 감사 로그 파일도 구글 시트 내용과 동기화
+                    try:
+                        with open(USAGE_LOGS_FILE, 'w', encoding='utf-8') as f:
+                            json.dump(normalized_logs, f, ensure_ascii=False, indent=2)
+                    except Exception:
+                        pass
+
+                    normalized_logs.sort(key=lambda x: x.get('mtime', 0.0), reverse=True)
+                    return normalized_logs
+        except Exception as e:
+            print("[get_all_usage_logs] Google Sheets fetch error, falling back to local cache:", e)
+
+    # 2. 로컬 캐시 파일 (GAS 연동 실패 시 또는 오프라인 환경 백업)
     logs_map = {}
-    
-    # 1. From local persistent audit log file
     if os.path.exists(USAGE_LOGS_FILE):
         try:
             with open(USAGE_LOGS_FILE, 'r', encoding='utf-8') as f:
@@ -1521,43 +1546,15 @@ def get_all_usage_logs():
                 for idx, l in enumerate(saved_logs):
                     unique_id = l.get('id') or f"log_{l.get('branch')}_{l.get('title')}_{l.get('timestamp')}_{idx}"
                     l['id'] = unique_id
+                    dt = l.get('doc_type', '')
+                    fixed_cost, default_tokens = get_fixed_pricing(dt)
+                    if l.get('cost_krw') is None:
+                        l['cost_krw'] = fixed_cost
+                    if not l.get('tokens'):
+                        l['tokens'] = default_tokens
                     logs_map[unique_id] = l
         except Exception:
             pass
-
-    # 2. From current saves (ensures existing items without prior audit log are accounted for)
-    current_saves = get_db_saves()
-    for s in current_saves:
-        t = s.get('title', '')
-        br = s.get('branch', '본사')
-        mat = s.get('material_type', '모의고사')
-        doc = s.get('doc_type', '강의용교안')
-        mt = s.get('mtime', 0.0)
-        tokens = estimate_tokens_for_item(doc)
-        dt_str = doc or ''
-        if '삽화' in dt_str:
-            cost = 55.0
-        elif '강의용' in dt_str or '강사용' in dt_str:
-            # 강의용 교안은 기본적으로 삽화 1장(55원)이 추가되므로 55원 합산
-            cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
-        else:
-            cost = round(tokens * TOKEN_PRICE_PER_TOKEN_KRW, 2)
-        
-        iso_time = time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(mt)) if mt > 100000 else time.strftime('%Y-%m-%dT%H:%M:%S')
-        save_key = f"save_{br}_{t}_{doc}"
-        already_logged = any(l.get('title') == t and l.get('doc_type') == doc and l.get('branch') == br for l in logs_map.values())
-        if not already_logged and save_key not in logs_map:
-            logs_map[save_key] = {
-                'id': save_key,
-                'timestamp': iso_time,
-                'mtime': mt if mt > 100000 else time.time(),
-                'branch': br,
-                'material_type': mat,
-                'doc_type': doc,
-                'title': t,
-                'tokens': tokens,
-                'cost_krw': cost
-            }
 
     all_logs = list(logs_map.values())
     all_logs.sort(key=lambda x: x.get('mtime', 0.0), reverse=True)
@@ -1599,15 +1596,11 @@ def get_stats():
 
         def _calc_log_cost(lg):
             c = lg.get('cost_krw')
-            if c is not None:
+            if c is not None and float(c) > 0:
                 return float(c)
             dt = lg.get('doc_type', '')
-            if '삽화' in dt:
-                return 55.0
-            elif '강의용' in dt or '강사용' in dt:
-                return round(lg.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW + 55.0, 1)
-            else:
-                return round(lg.get('tokens', 0) * TOKEN_PRICE_PER_TOKEN_KRW, 1)
+            fixed_cost, _ = get_fixed_pricing(dt)
+            return fixed_cost
 
         # 4. Aggregations for the Selected Period
         total_count = len(period_logs)

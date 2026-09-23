@@ -57,6 +57,10 @@ function doPost(e) {
       return handleDelete(ss, data);
     } else if (action === "log") {
       return handleLog(ss, data);
+    } else if (action === "get_logs") {
+      return handleGetLogs(ss, data);
+    } else if (action === "clear_logs") {
+      return handleClearLogs(ss, data);
     } else if (action === "login") {
       return handleLogin(ss, data);
     } else {
@@ -355,28 +359,104 @@ function handleDelete(ss, data) {
   return createJsonResponse({ success: deleted });
 }
 
+// Helper: RDB_로그 전용 시트 검색
+function getLogSheet(ss) {
+  var sheets = ss.getSheets();
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName();
+    if (name.replace(/\s+/g, '') === "RDB_로그") {
+      return sheets[i];
+    }
+  }
+  var newSheet = ss.insertSheet("RDB_로그");
+  newSheet.appendRow(["기록일시", "지점명", "분류", "유형", "제목", "토큰수", "금액(원)"]);
+  return newSheet;
+}
+
 // -------------------------------------------------------------------------
 // 5. LOG (토큰 사용량 기록 - RDB_로그)
 // -------------------------------------------------------------------------
 function handleLog(ss, data) {
-  var sheet = ss.getSheetByName("RDB_로그");
-  if (!sheet) {
-    sheet = ss.insertSheet("RDB_로그");
-    sheet.appendRow(["기록일시", "지점", "분류", "유형", "제목", "토큰수", "금액(원)"]);
+  var sheet = getLogSheet(ss);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["기록일시", "지점명", "분류", "유형", "제목", "토큰수", "금액(원)"]);
   }
 
   sheet.appendRow([
-    data.timestamp || new Date().toISOString(),
+    data.timestamp || Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss"),
     data.branch || data.username || "본사",
     data.material_type || "모의고사",
     data.doc_type || "강의용교안",
     data.title || "",
-    data.tokens || 0,
-    data.cost_krw || 0
+    Number(data.tokens) || 0,
+    Number(data.cost_krw) || 0
   ]);
 
   SpreadsheetApp.flush();
   return createJsonResponse({ success: true });
+}
+
+// -------------------------------------------------------------------------
+// 5-1. GET_LOGS (토큰 사용량 감사 로그 전체 조회 - RDB_로그)
+// -------------------------------------------------------------------------
+function handleGetLogs(ss, data) {
+  var sheet = getLogSheet(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return createJsonResponse({ success: true, logs: [] });
+  }
+
+  var numCols = Math.min(sheet.getLastColumn(), 7);
+  var values = sheet.getRange(2, 1, lastRow - 1, numCols).getValues();
+  var logs = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var timestampStr = row[0] ? String(row[0]).trim() : "";
+    var branch = row[1] ? String(row[1]).trim() : "본사";
+    var matType = row[2] ? String(row[2]).trim() : "모의고사";
+    var docType = row[3] ? String(row[3]).trim() : "강의용교안";
+    var title = row[4] ? String(row[4]).trim() : "";
+    var tokens = row[5] !== "" && !isNaN(Number(row[5])) ? Number(row[5]) : 0;
+    var costKrw = row[6] !== "" && !isNaN(Number(row[6])) ? Number(row[6]) : 0;
+
+    if (!title && !branch && tokens === 0) continue;
+
+    var mtime = new Date().getTime() / 1000;
+    if (timestampStr) {
+      var parsed = new Date(timestampStr).getTime();
+      if (!isNaN(parsed) && parsed > 0) {
+        mtime = parsed / 1000;
+      }
+    }
+
+    logs.push({
+      id: "gas_log_" + i + "_" + mtime,
+      timestamp: timestampStr,
+      mtime: mtime,
+      branch: branch,
+      material_type: matType,
+      doc_type: docType,
+      title: title,
+      tokens: tokens,
+      cost_krw: costKrw
+    });
+  }
+
+  return createJsonResponse({ success: true, logs: logs });
+}
+
+// -------------------------------------------------------------------------
+// 5-2. CLEAR_LOGS (토큰 사용량 로그 비우기 - RDB_로그)
+// -------------------------------------------------------------------------
+function handleClearLogs(ss, data) {
+  var sheet = getLogSheet(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    sheet.deleteRows(2, lastRow - 1);
+  }
+  SpreadsheetApp.flush();
+  return createJsonResponse({ success: true, logs: [] });
 }
 
 // -------------------------------------------------------------------------
