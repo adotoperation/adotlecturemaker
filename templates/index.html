@@ -3391,22 +3391,21 @@
                                         const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
                                         const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : (colorClasses[tagColor] || colorClass).split(' ')[0];
                                         
-                                        // 1.2배 크기 규칙: 주절의 모든 문장기호(S, V, Vi, Vt, O, C, SC, OC, M 등)는 종속절 대비 1.2배 크게 확대
+                                        // 1.2배 크기 규칙: 주절의 주어, 동사 뿐만 아니라 주격보어, 목적어, 간접목적어, 직접목적어, 목적격보어, 수식어 등 모든 주절 문장기호는 동일하게 최고 크기로 일치
+                                        const lowerTag = cleanTag.toLowerCase();
                                         const isSubject = (cleanTag === 'S' || (cleanTag.startsWith('S') && !cleanTag.startsWith('SC'))) && cleanTag !== '의미상 S' && !cleanTag.includes('전치사');
-                                        const isVerb = cleanTag.toLowerCase() === 'v' || cleanTag.toLowerCase().startsWith('vi') || cleanTag.toLowerCase().startsWith('vt') || (cleanTag.toLowerCase().startsWith('v') && !cleanTag.toLowerCase().includes('부사'));
+                                        const isVerb = lowerTag === 'v' || lowerTag.startsWith('vi') || lowerTag.startsWith('vt') || (lowerTag.startsWith('v') && !lowerTag.includes('부사'));
+                                        const isCoreConstituent = isSubject || isVerb || ['o', 'io', 'do', 'c', 'sc', 'oc', 'm'].includes(lowerTag) ||
+                                            lowerTag.includes('목적어') || lowerTag.includes('보어') || lowerTag.startsWith('o') || lowerTag.startsWith('c');
 
                                         let tagSizeClass;
                                         if (isMainClause) {
-                                            if (isSubject) {
-                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 10px 대비 1.2배 확대
-                                            } else if (isVerb) {
-                                                tagSizeClass = 'text-[11.5px] font-black tracking-tight'; // 표준 9.5px 대비 1.2배 확대
-                                            } else if (cleanTag === '의미상 S') {
-                                                tagSizeClass = 'text-[10px] font-black tracking-tight'; // 표준 8.5px 대비 1.2배 확대
-                                            } else if (isVerbal) {
-                                                tagSizeClass = 'text-[11px] font-black tracking-tight'; // 표준 O, C, SC, OC (9px) 대비 1.2배 확대
+                                            if (cleanTag === '의미상 S') {
+                                                tagSizeClass = 'text-[10px] font-black tracking-tight'; // 의미상 S
+                                            } else if (isCoreConstituent) {
+                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 주어, 동사, 목적어(O, IO, DO), 보어(C, SC, OC) 모두 동일한 크기(12px font-black)로 통일
                                             } else {
-                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 M/수식어 등 (10px) 대비 1.2배 확대
+                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 M/수식어 등도 주절은 12px 확대
                                             }
                                         } else {
                                             if (cleanTag === '의미상 S') {
@@ -3476,6 +3475,76 @@
                                     <div class="flex flex-wrap gap-1.5 pt-0.5">
                                         ${ptsHtml}
                                     </div>
+                                </div>
+                            `;
+                        }
+
+                        // [강사용 교안 전용] [TEST 출제 포인트] 바로 아래에 [TEST지 질문 및 답안 (강사 1:1 지도 코멘트)] 블록 배치
+                        const matchQuestions = (oralData?.oral_questions || []).filter(q => Number(q.sentence_num) === Number(sNum));
+                        const testPoints = matchSent?.test_points || [];
+
+                        if (oralData) {
+                            if (matchQuestions.length > 0 || testPoints.length > 0) {
+                                let oralContentHtml = '';
+
+                                if (matchQuestions.length > 0) {
+                                    matchQuestions.forEach(q => {
+                                        oralContentHtml += `
+                                            <div class="bg-indigo-950/90 text-white rounded p-2 text-[10px] space-y-1 border border-indigo-800">
+                                                <div class="flex items-center gap-1.5 font-bold text-amber-300">
+                                                    <span class="bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded text-[9px]">${q.q_id || '구두질문'}</span>
+                                                    <span>[${q.type || '1:1 구두 질문'}]</span>
+                                                </div>
+                                                <div class="text-slate-100 font-semibold pl-1 leading-snug">
+                                                    <span class="text-sky-300 font-bold">Q.</span> ${q.question}
+                                                </div>
+                                                <div class="text-emerald-300 font-medium pl-1 leading-snug">
+                                                    <span class="text-emerald-400 font-bold">A. 모범답안:</span> ${q.model_answer}
+                                                </div>
+                                                <div class="text-slate-300 text-[9px] pl-1 pt-0.5 border-t border-indigo-800/80">
+                                                    <span class="text-amber-400 font-bold">중요 포인트:</span> ${q.rubric}
+                                                </div>
+                                            </div>
+                                        `;
+                                    });
+                                }
+
+                                if (testPoints.length > 0) {
+                                    oralContentHtml += `
+                                        <div class="bg-white border border-amber-200 rounded p-1.5 text-[9.5px] text-slate-700 space-y-0.5">
+                                            <div class="font-bold text-slate-900 text-[10px] flex items-center gap-1 mb-0.5">
+                                                <i class="fa-solid fa-list-check text-amber-600"></i> 문항별 출제 포인트 및 정답 근거
+                                            </div>
+                                            ${testPoints.map(pt => `
+                                                <div class="leading-relaxed">
+                                                    • <span class="${pt.category === '어휘' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'} text-[8.5px] font-black px-1 py-0.2 rounded border">[${pt.category || '어법'}]</span>
+                                                    <b class="text-indigo-700 font-outfit">${pt.choices || pt.target}</b> ➔ 정답: <b class="text-rose-600">${pt.correct_answer}</b>
+                                                    <span class="text-slate-500">(${pt.explanation})</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `;
+                                }
+
+                                pageHtml += `
+                                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-2 space-y-1.5 my-1.5">
+                                        <div class="flex items-center justify-between border-b border-amber-200 pb-1">
+                                            <span class="text-amber-900 font-black text-[11px] flex items-center gap-1.5">
+                                                <i class="fa-solid fa-chalkboard-user text-amber-600"></i> [TEST지 질문 및 답안 (강사 1:1 지도 코멘트)]
+                                            </span>
+                                            <span class="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded">1:1 질문 가이드</span>
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            ${oralContentHtml}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            pageHtml += `
+                                <div class="bg-amber-50/70 border border-dashed border-amber-300 rounded-lg p-2 my-1.5 flex items-center justify-between text-[10px] text-amber-800">
+                                    <span>💡 [1:1 구두 TEST지 출제 & 저장]을 실행하면 이 자리에 문장별 구두 질문과 모범답안 코멘트가 자동으로 표시됩니다.</span>
+                                    <button type="button" onclick="triggerCreateOralTest()" class="bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 rounded font-bold text-[9px] cursor-pointer shrink-0 ml-2">지금 출제</button>
                                 </div>
                             `;
                         }
@@ -3578,85 +3647,6 @@
                                     ${pointsListHtml}
                                 </div>
                             </div>
-                            `;
-                        }
-                    }
-
-                    // [강사용 교안 전용] [중요 어법 포인트] 아래에 [TEST지 질문 및 답안] 블록 추가
-                    if (window.isTeacherMode) {
-                        const rawO2 = currentAnalysisData?.oral_test || window.currentOralTestData;
-                        const oralData = (rawO2 && rawO2.oral_test) ? rawO2.oral_test : rawO2;
-                        const sNum = s.index || (chunkIdx + 1);
-
-                        if (oralData) {
-                            const matchQuestions = (oralData.oral_questions || []).filter(q => Number(q.sentence_num) === Number(sNum));
-                            const matchSent = oralData?.student_sheet?.sentences?.find(st => Number(st.sentence_num) === Number(sNum));
-                            const testPoints = matchSent?.test_points || [];
-
-                            if (matchQuestions.length > 0 || testPoints.length > 0) {
-                                let oralContentHtml = '';
-
-                                if (matchQuestions.length > 0) {
-                                    matchQuestions.forEach(q => {
-                                        oralContentHtml += `
-                                            <div class="bg-indigo-950/90 text-white rounded p-2 text-[10px] space-y-1 border border-indigo-800">
-                                                <div class="flex items-center gap-1.5 font-bold text-amber-300">
-                                                    <span class="bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded text-[9px]">${q.q_id || '구두질문'}</span>
-                                                    <span>[${q.type || '1:1 구두 질문'}]</span>
-                                                </div>
-                                                <div class="text-slate-100 font-semibold pl-1 leading-snug">
-                                                    <span class="text-sky-300 font-bold">Q.</span> ${q.question}
-                                                </div>
-                                                <div class="text-emerald-300 font-medium pl-1 leading-snug">
-                                                    <span class="text-emerald-400 font-bold">A. 모범답안:</span> ${q.model_answer}
-                                                </div>
-                                                <div class="text-slate-300 text-[9px] pl-1 pt-0.5 border-t border-indigo-800/80">
-                                                    <span class="text-amber-400 font-bold">채점 기준:</span> ${q.rubric}
-                                                </div>
-                                            </div>
-                                        `;
-                                    });
-                                }
-
-                                if (testPoints.length > 0) {
-                                    oralContentHtml += `
-                                        <div class="bg-white border border-amber-200 rounded p-1.5 text-[9.5px] text-slate-700 space-y-0.5">
-                                            <div class="font-bold text-slate-900 text-[10px] flex items-center gap-1 mb-0.5">
-                                                <i class="fa-solid fa-list-check text-amber-600"></i> 문항별 출제 포인트 및 정답 근거
-                                            </div>
-                                            ${testPoints.map(pt => `
-                                                <div class="leading-relaxed">
-                                                    • <span class="${pt.category === '어휘' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-blue-100 text-blue-800 border-blue-300'} text-[8.5px] font-black px-1 py-0.2 rounded border">[${pt.category || '어법'}]</span>
-                                                    <b class="text-indigo-700 font-outfit">${pt.choices || pt.target}</b> ➔ 정답: <b class="text-rose-600">${pt.correct_answer}</b>
-                                                    <span class="text-slate-500">(${pt.explanation})</span>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    `;
-                                }
-
-                                pageHtml += `
-                                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-2 space-y-1.5 mt-1.5">
-                                        <div class="flex items-center justify-between border-b border-amber-200 pb-1">
-                                            <span class="text-amber-900 font-black text-[11px] flex items-center gap-1.5">
-                                                <i class="fa-solid fa-chalkboard-user text-amber-600"></i> [TEST지 질문 및 답안 (강사 1:1 지도 코멘트)]
-                                            </span>
-                                            <span class="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded">1:1 질문 가이드</span>
-                                        </div>
-                                        <div class="space-y-1.5">
-                                            ${oralContentHtml}
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            pageHtml += `
-                                <div class="bg-amber-50/70 border border-dashed border-amber-300 rounded-lg p-2 mt-1.5 flex items-center justify-between text-[10px] text-amber-800">
-                                    <span>💡 [1:1 구두 TEST지 출제 & 저장]을 실행하면 이 자리에 문장별 구두 질문과 모범답안 코멘트가 자동으로 표시됩니다.</span>
-                                    <button type="button" onclick="triggerCreateOralTest()" class="bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 rounded font-bold text-[9px] cursor-pointer shrink-0 ml-2">지금 출제</button>
-                                </div>
-                            `;
-                        }
                     }
 
                     pageHtml += '</div>'; // End print-block div
@@ -3798,7 +3788,7 @@
                     sepOral.innerHTML = `<span class="bg-indigo-100 text-indigo-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-microphone-lines text-indigo-600"></i> [강사용 교안 부록] 1:1 구두 TEST지 (학생용)</span>`;
                     sentencePagesWrapper.appendChild(sepOral);
 
-                    // Dedicated Student Oral Test Page
+                    // ================= 1:1 학생용 TEST지 1페이지 (Part 1. 어법·어휘 선택형 & 빈칸) =================
                     const oralStudentDiv = document.createElement('div');
                     oralStudentDiv.className = 'a4-page p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between relative shadow-lg mx-auto mb-6 print:m-0 print:border-none print:shadow-none min-h-[1050px]';
                     oralStudentDiv.style.pageBreakAfter = 'always';
@@ -3829,18 +3819,18 @@
                             <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
                                 <div>
                                     <div class="flex items-center gap-2 mb-1">
-                                        <span class="bg-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST</span>
-                                        <span class="text-[11px] font-bold text-slate-500">에이닷 영어 1:1 구두 테스트지 (학생용)</span>
+                                        <span class="bg-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST · PART 1</span>
+                                        <span class="text-[11px] font-bold text-slate-500">에이닷 영어 1:1 구두 테스트지 (어법·어휘 선택형)</span>
                                     </div>
                                     <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
                                 </div>
                                 <div class="text-right">
-                                    <span class="bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">STUDENT SHEET</span>
+                                    <span class="bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black px-2 py-0.5 rounded">STUDENT SHEET (1)</span>
                                 </div>
                             </div>
 
                             <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-lg p-2.5 mb-4 text-[11px] text-indigo-950 font-medium leading-relaxed">
-                                ※ 각 문장의 <b>[A / B]</b> 어법(40%)·어휘(60%) 선택지를 올바르게 고르고, <b>[ &nbsp; ]</b> 빈칸에 알맞은 연결사나 핵심어를 채우시오. (<b>★</b> 표시는 핵심 서술형 영작 대비 문장입니다.)
+                                ※ 각 문장의 <b>[A / B]</b> 어법(40%)·어휘(60%) 선택지를 올바르게 고르고, <b>[ &nbsp; ]</b> 빈칸에 알맞은 연결사나 핵심어를 채우시오. (<b>★</b> 표시는 다음 페이지 서술형 영작 대비 문장입니다.)
                             </div>
 
                             <!-- Sentences List -->
@@ -3854,7 +3844,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-slate-600">A.DOT ENGLISH ACADEMY</span>
                                 <span>·</span>
-                                <span>1:1 Oral Test Sheet (Student Edition)</span>
+                                <span>1:1 Oral Test Sheet (Student Edition - Part 1)</span>
                             </div>
                             <div class="font-bold">Page ${currentPageNum}</div>
                         </div>
@@ -3862,11 +3852,134 @@
                     sentencePagesWrapper.appendChild(oralStudentDiv);
                     currentPageNum++;
 
+                    // ================= 1:1 학생용 TEST지 2페이지 (Part 2. ★ 핵심 빈출 서술형 조건 영작 전용 페이지) =================
+                    let starredList = stSents.filter(st => st.is_starred);
+                    if (starredList.length === 0 && stSents.length > 0) {
+                        starredList = [stSents[0]];
+                        if (stSents.length > 1) starredList.push(stSents[Math.floor(stSents.length / 2)]);
+                    }
+
+                    const sepOral2 = document.createElement('div');
+                    sepOral2.className = 'page-separator my-6 border-b-2 border-dashed border-rose-400 no-print flex justify-center';
+                    sepOral2.innerHTML = `<span class="bg-rose-100 text-rose-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-rose-600"></i> [강사용 교안 부록] 1:1 구두 TEST지 2페이지 (★ 핵심 빈출 서술형 조건 영작)</span>`;
+                    sentencePagesWrapper.appendChild(sepOral2);
+
+                    const oralStudentDiv2 = document.createElement('div');
+                    oralStudentDiv2.className = 'a4-page p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between relative shadow-lg mx-auto mb-6 print:m-0 print:border-none print:shadow-none min-h-[1050px]';
+                    oralStudentDiv2.style.pageBreakAfter = 'always';
+
+                    let starredDescriptiveHtml = '';
+                    starredList.forEach((st, idx) => {
+                        const targetSentenceObj = currentAnalysisData?.sentences?.find(s => Number(s.index) === Number(st.sentence_num)) || {};
+                        const koreanMeaning = targetSentenceObj.korean || targetSentenceObj.chunk_korean || '(우리말 해석을 참조하여 영작하시오.)';
+                        
+                        // Extract cleaned words/chunks for the word bank
+                        let cleanEng = (targetSentenceObj.original || st.text_with_questions || '')
+                            .replace(/\[\s*([^\]\/]+)\s*\/\s*([^\]\/]+)\s*\]/g, '$1')
+                            .replace(/\[\s{2,}\]/g, '')
+                            .replace(/[(),.?!;:"'"]/g, ' ')
+                            .trim();
+                        let wordsArr = cleanEng.split(/\s+/).filter(w => w.length > 0);
+                        
+                        // Shuffle word list
+                        let shuffledWords = [...wordsArr];
+                        for (let i = shuffledWords.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+                        }
+                        const wordBankDisplay = shuffledWords.join(' / ');
+
+                        starredDescriptiveHtml += `
+                            <div class="bg-white border-2 border-slate-300 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs">
+                                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-rose-600 text-white font-black text-xs px-2.5 py-0.5 rounded uppercase font-outfit">문항 ${idx + 1}</span>
+                                        <span class="font-black text-slate-900 text-sm">문장 (${st.sentence_num})</span>
+                                        <span class="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded">★ 핵심 서술형 빈출</span>
+                                    </div>
+                                    <span class="text-xs text-slate-400 font-bold">[조건 제시형 영작]</span>
+                                </div>
+
+                                <!-- 우리말 뜻 -->
+                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs leading-relaxed text-slate-800">
+                                    <span class="font-black text-indigo-700 mr-1.5">[우리말 뜻]</span>
+                                    <span class="font-bold">${koreanMeaning}</span>
+                                </div>
+
+                                <!-- 조건 -->
+                                <div class="bg-amber-50/80 border border-amber-200 rounded-lg p-3 text-[11px] leading-relaxed text-amber-950 space-y-1">
+                                    <div class="font-black text-amber-900 flex items-center gap-1">
+                                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> &lt;작성 조건&gt;
+                                    </div>
+                                    <ul class="list-disc list-inside space-y-0.5 pl-1 font-medium">
+                                        <li>제시된 단어(구)를 반드시 모두 활용하여 완전한 영어 문장으로 완성할 것.</li>
+                                        <li>어법 및 문맥에 맞게 필요한 단어의 형태(시제, 수일치, 품사 등)를 적절히 변형할 것.</li>
+                                        <li>어순에 유의하여 문법적으로 완벽한 문장으로 작성할 것.</li>
+                                    </ul>
+                                </div>
+
+                                <!-- 주어진 단어 / 어구 -->
+                                <div class="p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-xs leading-relaxed font-outfit">
+                                    <div class="font-black text-indigo-800 mb-1 text-[11px]">[주어진 단어 / 어구]</div>
+                                    <div class="text-slate-800 font-semibold tracking-wide">${wordBankDisplay}</div>
+                                </div>
+
+                                <!-- 학생 작성란 -->
+                                <div class="pt-2 space-y-3">
+                                    <div class="flex items-center gap-2 text-xs font-black text-slate-900">
+                                        <span class="text-rose-600 font-black font-outfit">Answer:</span>
+                                    </div>
+                                    <div class="w-full border-b border-slate-400 h-6"></div>
+                                    <div class="w-full border-b border-slate-400 h-6"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    oralStudentDiv2.innerHTML = `
+                        <div>
+                            <!-- Header -->
+                            <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST · PART 2</span>
+                                        <span class="text-[11px] font-bold text-slate-500">에이닷 영어 1:1 구두 테스트지 (★ 핵심 서술형 조건 영작)</span>
+                                    </div>
+                                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
+                                </div>
+                                <div class="text-right">
+                                    <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded">STUDENT SHEET (2)</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-rose-50/70 border border-rose-200 rounded-lg p-2.5 mb-4 text-[11px] text-rose-950 font-medium leading-relaxed">
+                                ※ 본 지문에서 학교 시험에 가장 많이 출제되는 <b>★ 서술형 빈출 문장</b>입니다. 주어진 조건과 단어를 활용하여 완전한 영어 문장을 서술형으로 작성하시오.
+                            </div>
+
+                            <!-- Starred Descriptive Questions List -->
+                            <div class="space-y-4">
+                                ${starredDescriptiveHtml}
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-600">A.DOT ENGLISH ACADEMY</span>
+                                <span>·</span>
+                                <span>1:1 Oral Test Sheet (Student Edition - Part 2 서술형)</span>
+                            </div>
+                            <div class="font-bold">Page ${currentPageNum}</div>
+                        </div>
+                    `;
+                    sentencePagesWrapper.appendChild(oralStudentDiv2);
+                    currentPageNum++;
+
                     // Dedicated Teacher Oral Guide & Rubric Page
                     if (oralData.oral_questions && oralData.oral_questions.length > 0) {
                         const sepTch = document.createElement('div');
                         sepTch.className = 'page-separator my-6 border-b-2 border-dashed border-amber-400 no-print flex justify-center';
-                        sepTch.innerHTML = `<span class="bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-chalkboard-user text-amber-600"></i> [강사용 부록] 1:1 구두 질문 채점 기준표 & 논리 흐름도</span>`;
+                        sepTch.innerHTML = `<span class="bg-amber-100 text-amber-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-chalkboard-user text-amber-600"></i> [강사용 부록] 1:1 구두 질문 중요 포인트 & 논리 흐름도</span>`;
                         sentencePagesWrapper.appendChild(sepTch);
 
                         const oralTeacherDiv = document.createElement('div');
@@ -3890,14 +4003,8 @@
                                     <div class="p-2 bg-emerald-50/70 border border-emerald-200/80 rounded text-xs text-emerald-950 leading-relaxed">
                                         <span class="text-emerald-700 font-extrabold mr-1">A. 모범답안:</span> ${q.model_answer}
                                     </div>
-                                    <div class="p-2 bg-amber-50/70 border border-amber-200/80 rounded text-[11px] text-amber-950 leading-relaxed flex items-center justify-between">
-                                        <div><b class="text-amber-800">채점 루브릭:</b> ${q.rubric}</div>
-                                        <div class="flex items-center gap-1 text-[10px] font-bold text-slate-500">
-                                            <span>채점:</span>
-                                            <span class="border border-slate-300 px-1.5 rounded bg-white">우수</span>
-                                            <span class="border border-slate-300 px-1.5 rounded bg-white">보통</span>
-                                            <span class="border border-slate-300 px-1.5 rounded bg-white">미흡</span>
-                                        </div>
+                                    <div class="p-2 bg-amber-50/70 border border-amber-200/80 rounded text-[11px] text-amber-950 leading-relaxed">
+                                        <div><b class="text-amber-800">중요 포인트:</b> ${q.rubric}</div>
                                     </div>
                                 </div>
                             `;
@@ -3913,7 +4020,7 @@
                                     <div>
                                         <div class="flex items-center gap-2 mb-1">
                                             <span class="bg-amber-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">TEACHER'S GUIDE</span>
-                                            <span class="text-[11px] font-bold text-slate-500">1:1 구두 질문 채점 기준표 & 논리 흐름도</span>
+                                            <span class="text-[11px] font-bold text-slate-500">1:1 구두 질문 중요 포인트 & 논리 흐름도</span>
                                         </div>
                                         <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
                                     </div>
@@ -4239,7 +4346,7 @@
                             <span class="text-emerald-700 font-bold mr-1">[모범 답변]</span> ${q.model_answer}
                         </div>
                         <div class="text-[11px] text-slate-600 leading-snug">
-                            <span class="font-bold text-amber-700 mr-1">[채점 기준 (Rubric)]</span> ${q.rubric}
+                            <span class="font-bold text-amber-700 mr-1">[중요 포인트]</span> ${q.rubric}
                         </div>
                     </div>
                 `;
@@ -4323,12 +4430,12 @@
             });
             fullTxt += `\n=========================================\n`;
 
-            fullTxt += `[2. 1:1 구두 질문 및 교사용 채점 기준]\n`;
+            fullTxt += `[2. 1:1 구두 질문 및 중요 포인트]\n`;
             (oralData.oral_questions || []).forEach(q => {
                 fullTxt += `[${q.q_id}] ${q.type} (문장 ${q.sentence_num}번)\n`;
                 fullTxt += `질문: ${q.question}\n`;
                 fullTxt += `모범답안: ${q.model_answer}\n`;
-                fullTxt += `채점기준: ${q.rubric}\n\n`;
+                fullTxt += `중요 포인트: ${q.rubric}\n\n`;
             });
             fullTxt += `=========================================\n`;
 
