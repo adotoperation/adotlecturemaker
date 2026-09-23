@@ -753,7 +753,11 @@ def get_db_saves():
         if len(t) < 2 and not t.isalnum():
             continue
 
-        if not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin', '본사제작']:
+        if str(br).startswith(('data:image/', 'http')):
+            s['illustration_url'] = br
+            s['has_illu'] = True
+            s['branch'] = '본사'
+        elif not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin', '본사제작']:
             s['branch'] = '본사'
         else:
             s['branch'] = br
@@ -803,6 +807,13 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
         print("[save_db_handout] Local cache write error:", e)
 
     if GAS_URL:
+        # Prepare clean analysis_data without illustration_url to keep Column E purely text
+        clean_ad = dict(data.get("analysis_data", {})) if isinstance(data.get("analysis_data"), dict) else {}
+        clean_ad.pop('illustration_url', None)
+        if isinstance(clean_ad.get('summary_info'), dict):
+            clean_ad['summary_info'] = dict(clean_ad['summary_info'])
+            clean_ad['summary_info']['illustration_url'] = ''
+
         payload = {
             "action": "save",
             "material_type": mat_type,
@@ -810,10 +821,10 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "label": mat_type,
             "folder_name": folder,
             "title": title,
-            "branch": branch,
+            "branch": illu_url or branch or '',
+            "illustration_url": illu_url or '',
             "sentence_pairs": data.get("sentence_pairs", []),
-            "analysis_data": data.get("analysis_data", {}),
-            "illustration_url": illu_url or ''
+            "analysis_data": clean_ad
         }
         try:
             res = requests.post(GAS_URL, json=payload, timeout=35)
@@ -933,8 +944,11 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             except Exception:
                 pass
         
+        raw_branch = str(doc_res.get('branch', ''))
+        branch_illu = raw_branch if raw_branch.startswith(('data:image/', 'http')) else ''
         illu = (
             doc_res.get('illustration_url') or 
+            branch_illu or
             (isinstance(analysis_data, dict) and analysis_data.get('illustration_url')) or 
             (isinstance(analysis_data, dict) and isinstance(analysis_data.get('summary_info'), dict) and analysis_data['summary_info'].get('illustration_url'))
         ) or ''
