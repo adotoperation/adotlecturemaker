@@ -814,6 +814,10 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             clean_ad['summary_info'] = dict(clean_ad['summary_info'])
             clean_ad['summary_info']['illustration_url'] = ''
 
+        user_id = data.get('username') or branch or '본사'
+        if str(user_id).startswith(('data:image/', 'http')):
+            user_id = '본사'
+
         payload = {
             "action": "save",
             "material_type": mat_type,
@@ -821,10 +825,12 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "label": mat_type,
             "folder_name": folder,
             "title": title,
-            "branch": branch or '본사',
-            "illustration_url": illu_url or '',
             "sentence_pairs": data.get("sentence_pairs", []),
-            "analysis_data": clean_ad
+            "analysis_data": clean_ad,
+            "illustration_url": illu_url or '',
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            "username": user_id,
+            "branch": user_id
         }
         try:
             res = requests.post(GAS_URL, json=payload, timeout=35)
