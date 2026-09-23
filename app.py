@@ -934,58 +934,91 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             doc_res['analysis_data'] = analysis_data
     return doc_res
 
-def delete_db_handout(filename, label="모의고사", material_type=None, doc_type=None):
-    filename = unquote(filename)
-    title = filename.replace(".json", "").strip()
-    safe_fn = safe_korean_filename(title) + '.json'
+def delete_db_handout(filename, label="모의고사", material_type=None, doc_type=None, title=None):
+    filename = unquote(filename or '')
+    clean_title = (title or '').strip()
+    if not clean_title:
+        clean_title = filename.replace(".json", "").strip()
+    else:
+        clean_title = unquote(clean_title).replace(".json", "").strip()
+        
+    safe_fn = safe_korean_filename(clean_title) + '.json'
     mat_type = material_type or label or '모의고사'
+    d_type = (doc_type or '').strip()
+
+    def _cleanup_local_cache():
+        # Remove from local SAVES_DIR cache
+        candidates = [filename, safe_fn, f"{clean_title}.json", clean_title]
+        for cand in candidates:
+            if cand:
+                p = os.path.join(SAVES_DIR, cand)
+                if os.path.exists(p):
+                    try:
+                        os.remove(p)
+                    except Exception:
+                        pass
+        # Remove from Vercel KV if active
+        if IS_VERCEL_KV:
+            try:
+                headers = {"Authorization": f"Bearer {KV_TOKEN}"}
+                for cand in [filename, safe_fn]:
+                    if cand:
+                        requests.post(KV_URL, headers=headers, json=["DEL", f"handout:{cand}"], timeout=3)
+            except Exception:
+                pass
         
     if GAS_URL:
+        # First attempt: direct delete with given metadata
         payload = {
             "action": "delete",
             "material_type": mat_type,
-            "doc_type": doc_type or '',
+            "doc_type": d_type,
             "label": mat_type,
-            "title": title
+            "title": clean_title
         }
         try:
-            res = requests.post(GAS_URL, json=payload, timeout=10)
+            res = requests.post(GAS_URL, json=payload, timeout=25)
             if res.status_code == 200 and res.json().get("success"):
+                _cleanup_local_cache()
                 return True
             
-            # Fallback delete search
-            list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+            # Second attempt: fallback query list to find exact title & document type in Google Sheet
+            list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=20)
             if list_res.status_code == 200:
                 all_saves = list_res.json().get("saves", [])
                 for item in all_saves:
-                    item_title = item.get("title", "")
-                    if item_title == title or item.get("filename") == safe_fn:
+                    item_title = (item.get("title") or "").strip()
+                    item_fn = (item.get("filename") or "").strip()
+                    # Flexible match: exact title, safe filename, or whitespace-stripped title
+                    if (item_title == clean_title or 
+                        item_fn == safe_fn or 
+                        item_fn == filename or 
+                        (item_title and clean_title and item_title.replace(" ", "") == clean_title.replace(" ", ""))):
+                        
                         f_del = requests.post(GAS_URL, json={
                             "action": "delete", 
-                            "material_type": item.get("material_type", item.get("label", "")), 
-                            "doc_type": item.get("doc_type", ""),
+                            "material_type": item.get("material_type", item.get("label", mat_type)), 
+                            "doc_type": item.get("doc_type", d_type),
                             "title": item_title
-                        }, timeout=10)
+                        }, timeout=25)
                         if f_del.status_code == 200 and f_del.json().get("success"):
+                            _cleanup_local_cache()
                             return True
 
-            raise Exception("Google Sheet Delete failed")
+            raise Exception("Google Sheet에서 삭제 대상을 찾을 수 없거나 삭제에 실패했습니다.")
         except Exception as e:
             raise Exception(f"Google Sheet Delete error: {str(e)}")
             
     elif IS_VERCEL_KV:
         headers = {"Authorization": f"Bearer {KV_TOKEN}"}
         key = f"handout:{filename}"
-        # Command: DEL key
         res = requests.post(KV_URL, headers=headers, json=["DEL", key], timeout=5)
         if res.status_code != 200:
             raise Exception("Vercel KV DEL failed")
+        _cleanup_local_cache()
         return True
     else:
-        path = os.path.join(SAVES_DIR, filename)
-        if not os.path.exists(path):
-            raise Exception("저장된 파일을 찾을 수 없습니다.")
-        os.remove(path)
+        _cleanup_local_cache()
         return True
 
 @app.route('/api/saves', methods=['GET'])
@@ -1366,25 +1399,72 @@ def delete_folder():
 
     try:
         saves = get_db_saves()
-        deleted = 0
+        targets = []
         for s in saves:
             cur_folder = s.get('folder_name')
             cur_mat = s.get('material_type')
             if cur_folder == folder_name and (not material_type or cur_mat == material_type):
-                delete_db_handout(s.get('filename'), label=cur_mat, material_type=cur_mat, doc_type=s.get('doc_type'))
-                deleted += 1
+                targets.append(s)
+
+        def _delete_target(item):
+            try:
+                delete_db_handout(
+                    item.get('filename'),
+                    label=item.get('material_type', '모의고사'),
+                    material_type=item.get('material_type'),
+                    doc_type=item.get('doc_type'),
+                    title=item.get('title')
+                )
+                return 1
+            except Exception as e:
+                print(f"[delete_folder] Warning deleting {item.get('title')}: {e}")
+                return 0
+
+        deleted = 0
+        if targets:
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                results = list(executor.map(_delete_target, targets))
+                deleted = sum(results)
+
         return jsonify({'success': True, 'deleted_count': deleted})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/save/<filename>', methods=['GET'])
-def load_handout(filename):
+@app.route('/api/save/<path:filename>', methods=['GET', 'DELETE'])
+def handle_handout(filename):
+    if request.method == 'DELETE':
+        title = request.args.get('title', '').strip()
+        material_type = request.args.get('material_type') or request.args.get('label') or '모의고사'
+        doc_type = request.args.get('doc_type', '').strip()
+        try:
+            delete_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type, title=title)
+            return jsonify({'success': True, 'message': '자료가 구글 서버에서 안전하게 삭제되었습니다.'})
+        except Exception as e:
+            print(f"[delete_handout] Error: {e}")
+            return jsonify({'error': str(e)}), 500
+
     material_type = request.args.get('material_type') or request.args.get('label') or '모의고사'
     doc_type = request.args.get('doc_type', '')
     try:
         saved_data = load_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type)
         return jsonify(saved_data)
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save/delete', methods=['POST'])
+def api_delete_handout():
+    data = request.json or {}
+    filename = data.get('filename', '').strip()
+    title = data.get('title', '').strip()
+    material_type = data.get('material_type') or data.get('label') or '모의고사'
+    doc_type = data.get('doc_type', '').strip()
+    if not filename and not title:
+        return jsonify({'error': '삭제할 파일명 또는 제목이 필요합니다.'}), 400
+    try:
+        delete_db_handout(filename, label=material_type, material_type=material_type, doc_type=doc_type, title=title)
+        return jsonify({'success': True, 'message': '자료가 구글 서버에서 안전하게 삭제되었습니다.'})
+    except Exception as e:
+        print(f"[api_delete_handout] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/handout/update_meta', methods=['POST'])

@@ -4240,12 +4240,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             repoTableBody.querySelectorAll('.btn-repo-delete').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    const filename = btn.getAttribute('data-filename');
-                    const title = btn.getAttribute('data-title');
-                    const material = btn.getAttribute('data-material');
-                    const docType = btn.getAttribute('data-doctype');
-                    if (confirm(`'${title}' 교안을 구글 서버에서 영구히 삭제하시겠습니까?`)) {
-                        await deleteHandoutFromServer(filename, material, docType);
+                    const filename = btn.getAttribute('data-filename') || '';
+                    const title = btn.getAttribute('data-title') || '';
+                    const material = btn.getAttribute('data-material') || '모의고사';
+                    const docType = btn.getAttribute('data-doctype') || '강의용교안';
+                    if (confirm(`'${title || filename}' 교안을 구글 서버에서 영구히 삭제하시겠습니까?`)) {
+                        await deleteHandoutFromServer(filename, material, docType, title);
                         await refreshRepositoryView();
                     }
                 });
@@ -4418,12 +4418,25 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             }
         }
 
-        async function deleteHandoutFromServer(filename, material = '모의고사', docType = '강의용교안') {
+        async function deleteHandoutFromServer(filename, material = '모의고사', docType = '강의용교안', title = '') {
             showLoading("삭제 중", "구글 서버에서 해당 자료를 영구히 삭제하고 있습니다...");
             try {
-                const response = await fetch(`/api/save/${encodeURIComponent(filename)}?material_type=${encodeURIComponent(material)}&doc_type=${encodeURIComponent(docType)}&label=${encodeURIComponent(material)}`, {
+                let response = await fetch(`/api/save/${encodeURIComponent(filename)}?title=${encodeURIComponent(title || '')}&material_type=${encodeURIComponent(material)}&doc_type=${encodeURIComponent(docType)}&label=${encodeURIComponent(material)}`, {
                     method: 'DELETE'
                 });
+                if (!response.ok) {
+                    // Fallback to POST /api/save/delete
+                    response = await fetch('/api/save/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            filename: filename,
+                            title: title,
+                            material_type: material,
+                            doc_type: docType
+                        })
+                    });
+                }
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({}));
                     throw new Error(errData.error || '삭제 실패');
