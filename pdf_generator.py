@@ -150,21 +150,31 @@ def create_token_tables_for_sentence(tokens, style_word, style_sub, max_width=51
                 else:
                     w_html = f"{u_tag}<font color='{c_hex}'><b>{safe_txt}</b></font>{u_close}"
 
+                is_main_clause = bool(t.get('underline'))
+                is_subject = sub_clean.startswith('S') and not '전치사' in sub_clean and not sub_clean.startswith('SC') and not '의미상' in sub
+                is_verb = sub_clean.startswith('VI') or sub_clean.startswith('VT') or (sub_clean.startswith('V') and not '부사' in sub_clean)
+                is_main_clause_sv = is_main_clause and (is_subject or is_verb)
+
+                top_is_main_sv = is_main_clause and ((top_clean.startswith('S') and not top_clean.startswith('SC')) or top_clean.startswith('VI') or top_clean.startswith('VT') or (top_clean.startswith('V') and not '부사' in top_clean))
+
                 if top:
                     top_c_hex = '#0284c7' if top == '△' else '#0f172a'
                     if top_clean.startswith('S'): top_c_hex = '#2563eb'
                     elif top_clean.startswith('V'): top_c_hex = '#e11d48'
                     elif top_clean.startswith('OC') or top_clean == '목적격보어': top_c_hex = '#9333ea'
                     elif top_clean.startswith('O'): top_c_hex = '#059669'
-                    elif top_clean.startswith('SC') or top_clean.startswith('C'): top_c_hex = '#4f46e5'
-                    w_html = f"<font color='{top_c_hex}' size={'8.5' if top == '△' else '7'}><b>{top}</b></font><br/>{w_html}"
+                    elif top_clean.startswith('SC') or top_clean == 'C': top_c_hex = '#4f46e5'
+                    
+                    top_size = '8.5' if (top == '△' or top_is_main_sv) else '7'
+                    w_html = f"<font color='{top_c_hex}' size='{top_size}'><b>{top}</b></font><br/>{w_html}"
 
                 if '⬑' in sub:
                     sub = '⤹'
                 else:
                     sub = re.sub(r'전치사구|전치사|부사구|부사|형용사구|주격관계대명사|목적격관계대명사|소유격관계대명사|관계대명사|관계부사|형용사절|to부정사구|to부정사|분사구문|분사구', '', sub).strip()
 
-                s_html = f"<font color='{c_hex}' size=7><b>{sub}</b></font>" if sub else ""
+                sub_size = '8.5' if is_main_clause_sv else '7'
+                s_html = f"<font color='{c_hex}' size='{sub_size}'><b>{sub}</b></font>" if sub else ""
 
             row_words.append(Paragraph(w_html, style_word))
             row_subs.append(Paragraph(s_html, style_sub))

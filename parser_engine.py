@@ -2913,8 +2913,8 @@ EXPERT_PERSONA_PROMPT = """[★영어 내신 지문 분석 전문가 페르소�
   - **전치사 + 동명사구 중첩 괄호**: `(in [signing` (상단: `Vt`) ` / ` `his check])` (상단: `O`) 형태로 작성하며, 직독직해도 행위 먼저 `서명함으로써 / 그의 수표에`로 작성합니다.
 
 * **[Rule 4] 표준 문장성분 기호 체계 및 등위접속사 넘버링 준수**
-  - 주어: `sub_tag: "S"`, `color: "blue"` (주절: `underline: true`)
-  - 자동사/타동사: `sub_tag: "Vi"` / `"Vt"`, `color: "rose"` (주절: `underline: true`)
+  - 주어: `sub_tag: "S"`, `color: "blue"` (주절: `underline: true`, 문장기호 1.2배 확대 대상)
+  - 자동사/타동사: `sub_tag: "Vi"` / `"Vt"`, `color: "rose"` (주절: `underline: true`, 문장기호 1.2배 확대 대상)
   - 보어: `sub_tag: "SC"`/`"OC"` (`color: "purple"`), 목적어: `sub_tag: "O"`/`"IO"`/`"DO"` (`color: "emerald"`)
   - 등위접속사 병렬 넘버링: 주어/동사/목적어/보어가 2개 이상 병렬될 때 `S1, S2`, `Vt1, Vt2`, `Vi1, Vi2`, `O1, O2`, `SC1, SC2` 로 넘버링을 부여합니다.
 

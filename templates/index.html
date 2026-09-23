@@ -2992,7 +2992,10 @@
                                     else if (topClean.startsWith('S') && !topClean.startsWith('SC')) topColor = 'text-blue-600';
                                     else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColor = 'text-indigo-600';
                                     
-                                    topLabelHtml = `<span class="absolute bottom-[86%] left-1/2 -translate-x-1/2 whitespace-nowrap text-[8.5px] font-black tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
+                                    const isMainClauseTopSV = Boolean(t.underline) && ((topClean.startsWith('S') && !topClean.startsWith('SC')) || topClean.startsWith('V'));
+                                    const topSizeClass = isMainClauseTopSV ? 'text-[10.5px] font-black' : 'text-[8.5px] font-black';
+
+                                    topLabelHtml = `<span class="absolute bottom-[86%] left-1/2 -translate-x-1/2 whitespace-nowrap ${topSizeClass} tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
                                 }
 
                                 // Format word with colored brackets [ and ] matching constituent role
@@ -3035,7 +3038,25 @@
                                         const cleanTag = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
                                         const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
                                         const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : (colorClasses[tagColor] || colorClass).split(' ')[0];
-                                        const tagSizeClass = cleanTag === '의미상 S' ? 'text-[8.5px] font-black' : (isVerbal ? 'text-[9px] font-black' : 'text-[10px] font-black');
+                                        
+                                        // 1.2배 크기 규칙: 주절의 주어(S)와 동사(V/Vi/Vt)는 다른 문장기호보다 1.2배 크게 확대하여 식별력 극대화
+                                        const isMainClause = Boolean(t.underline);
+                                        const isSubject = (cleanTag === 'S' || (cleanTag.startsWith('S') && !cleanTag.startsWith('SC'))) && cleanTag !== '의미상 S' && !cleanTag.includes('전치사');
+                                        const isVerb = cleanTag.toLowerCase() === 'v' || cleanTag.toLowerCase().startsWith('vi') || cleanTag.toLowerCase().startsWith('vt') || (cleanTag.toLowerCase().startsWith('v') && !cleanTag.toLowerCase().includes('부사'));
+
+                                        let tagSizeClass;
+                                        if (isMainClause && isSubject) {
+                                            tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 S (10px) 대비 1.2배 확대
+                                        } else if (isMainClause && isVerb) {
+                                            tagSizeClass = 'text-[11.5px] font-black tracking-tight'; // 표준 V/Vi/Vt (9~9.5px) 대비 1.2배 확대
+                                        } else if (cleanTag === '의미상 S') {
+                                            tagSizeClass = 'text-[8.5px] font-black';
+                                        } else if (isVerbal) {
+                                            tagSizeClass = 'text-[9px] font-black';
+                                        } else {
+                                            tagSizeClass = 'text-[10px] font-black';
+                                        }
+
                                         subTagHtml = `<span class="absolute top-[100%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
                                     }
                                 }
