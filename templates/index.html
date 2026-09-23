@@ -1410,8 +1410,8 @@
                                 <option value="5">5월</option>
                                 <option value="6">6월</option>
                                 <option value="7">7월</option>
-                                <option value="8" selected>8월</option>
-                                <option value="9">9월</option>
+                                <option value="8">8월</option>
+                                <option value="9" selected>9월</option>
                                 <option value="10">10월</option>
                                 <option value="11">11월</option>
                                 <option value="12">12월</option>
@@ -1427,7 +1427,7 @@
                 <div class="flex flex-wrap items-center justify-between gap-3 bg-indigo-50/70 border border-indigo-200 rounded-xl px-4 py-3">
                     <div class="flex items-center gap-2">
                         <span class="bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded">정산 주기</span>
-                        <span id="statsPeriodLabel" class="text-xs font-bold text-indigo-950">2026년 8월 정산 주기 (2026.07.26 00:00 ~ 2026.08.25 24:00)</span>
+                        <span id="statsPeriodLabel" class="text-xs font-bold text-indigo-950">2026년 9월 정산 주기 (2026.08.26 00:00 ~ 2026.09.25 24:00)</span>
                     </div>
                     <div class="text-[11px] text-indigo-700 font-semibold flex items-center gap-1">
                         <i class="fa-solid fa-circle-info"></i> 매월 26일~익월 25일 자동 마감 기준
@@ -1459,7 +1459,7 @@
                 </div>
 
                 <!-- Gemini API Token Pricing Standard Banner -->
-                <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-4 sm:p-5 border border-slate-800 shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl p-4 sm:p-5 border border-slate-800 shadow-md flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
                             <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">단가 기준표</span>
@@ -1469,15 +1469,18 @@
                             입력(프롬프트) $0.075/1M, 출력(응답) $0.300/1M ➔ <b>평균 1,000 토큰당 약 0.35원 (1토큰 ≈ 0.00035원)</b>
                         </p>
                     </div>
-                    <div class="flex flex-wrap gap-2 text-[10px] font-semibold shrink-0">
+                    <div id="pricingBadgeContainer" class="flex flex-wrap gap-2 text-[10px] font-semibold shrink-0">
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
                             강의용 교안: <b class="text-amber-300 font-bold">~4,500T (약 1.6원)</b>
                         </span>
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
-                            단어 TEST: <b class="text-violet-300 font-bold">~2,000T (약 0.7원)</b>
+                            삽화생성: <b class="text-emerald-300 font-bold">~1,500T (약 0.5원)</b>
                         </span>
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
-                            변형문제(1·2차): <b class="text-rose-300 font-bold">~22,000T (약 7.7원)</b>
+                            단어TEST: <b class="text-violet-300 font-bold">~2,000T (약 0.7원)</b>
+                        </span>
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            변형문제 1회: <b class="text-rose-300 font-bold">~11,000T (약 3.9원)</b>
                         </span>
                     </div>
                 </div>
@@ -4473,14 +4476,38 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         const statsYearSelect = document.getElementById('statsYearSelect');
         const statsMonthSelect = document.getElementById('statsMonthSelect');
 
+        function getCurrentBillingPeriod() {
+            const now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1; // 1 ~ 12
+            const day = now.getDate();
+
+            // 정산 주기: 매월 26일 ~ 익월 25일 자동 마감 기준
+            // 오늘이 26일 이상이면 익월 정산 주기 자동 적용
+            if (day >= 26) {
+                month += 1;
+                if (month > 12) {
+                    month = 1;
+                    year += 1;
+                }
+            }
+            return { year: String(year), month: String(month) };
+        }
+
         if (btnRefreshStats) {
             btnRefreshStats.addEventListener('click', () => refreshStatsView());
         }
         if (statsYearSelect) {
-            statsYearSelect.addEventListener('change', () => refreshStatsView());
+            statsYearSelect.addEventListener('change', () => {
+                statsYearSelect.dataset.userChanged = 'true';
+                refreshStatsView();
+            });
         }
         if (statsMonthSelect) {
-            statsMonthSelect.addEventListener('change', () => refreshStatsView());
+            statsMonthSelect.addEventListener('change', () => {
+                statsMonthSelect.dataset.userChanged = 'true';
+                refreshStatsView();
+            });
         }
 
         async function refreshStatsView() {
@@ -4493,9 +4520,19 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             const logTableTitle = document.getElementById('logTableTitle');
             const statMyLogsTableBody = document.getElementById('statMyLogsTableBody');
             const statRankingTableBody = document.getElementById('statRankingTableBody');
+            const pricingBadgeContainer = document.getElementById('pricingBadgeContainer');
 
-            const year = statsYearSelect ? statsYearSelect.value : '2026';
-            const month = statsMonthSelect ? statsMonthSelect.value : '8';
+            // 기본 조회기간을 현재 정산 주기에 맞춤
+            const currentPeriod = getCurrentBillingPeriod();
+            if (statsYearSelect && !statsYearSelect.dataset.userChanged) {
+                statsYearSelect.value = currentPeriod.year;
+            }
+            if (statsMonthSelect && !statsMonthSelect.dataset.userChanged) {
+                statsMonthSelect.value = currentPeriod.month;
+            }
+
+            const year = statsYearSelect && statsYearSelect.value ? statsYearSelect.value : currentPeriod.year;
+            const month = statsMonthSelect && statsMonthSelect.value ? statsMonthSelect.value : currentPeriod.month;
             const myBranch = getCurrentBranch();
             const admin = isUserAdmin();
 
@@ -4511,7 +4548,16 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     statsPeriodLabel.innerText = data.period.label || `${year}년 ${month}월 정산 주기`;
                 }
 
-                // 2. Update KPI Summary Cards
+                // 2. Update Pricing Standard Badges (동적 확장 구조)
+                if (pricingBadgeContainer && data.pricing_standard && data.pricing_standard.items && data.pricing_standard.items.length > 0) {
+                    pricingBadgeContainer.innerHTML = data.pricing_standard.items.map(item => `
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            ${item.name}: <b class="${item.color || 'text-amber-300'} font-bold">${item.badge}</b>
+                        </span>
+                    `).join('');
+                }
+
+                // 3. Update KPI Summary Cards
                 const summary = data.summary || {};
                 const totalCount = summary.total_count || 0;
                 const myCount = summary.my_count || 0;

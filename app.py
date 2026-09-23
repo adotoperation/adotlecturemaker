@@ -559,6 +559,10 @@ def generate_illustration_endpoint():
         material_type=material_type,
         api_key=api_key
     )
+    try:
+        append_usage_log(branch, material_type, '삽화생성', f"{title} (삽화)", 1500)
+    except Exception as log_e:
+        print("[generate_illustration_endpoint] log warning:", log_e)
     return jsonify({'success': True, 'illustration_url': saved_path, 'prompt': ghibli_prompt})
 
 @app.route('/api/fetch_image_url', methods=['POST'])
@@ -1080,9 +1084,11 @@ TOKEN_PRICE_PER_TOKEN_KRW = 0.00035
 def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     dt = (doc_type or '강의용교안').strip()
     if '변형문제' in dt:
-        return 11000  # 9종 변형문제 세트당 약 11,000 토큰
+        return 11000  # 9종 변형문제 1회분당 약 11,000 토큰
     elif '단어' in dt:
         return 2000   # 15개 어휘 추출 및 단어 테스트 약 2,000 토큰
+    elif '삽화' in dt:
+        return 1500   # 삽화 프롬프트 및 이미지 생성 약 1,500 토큰
     else:
         # 강의용 교안: 문장 수 및 구문분석 데이터 크기 반영
         sentence_count = len(sentence_pairs) if sentence_pairs else 7
@@ -1214,9 +1220,22 @@ def get_all_usage_logs():
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
     try:
-        now = time.localtime()
-        current_year = int(request.args.get('year', now.tm_year))
-        current_month = int(request.args.get('month', now.tm_mon))
+        import datetime
+        kst_tz = datetime.timezone(datetime.timedelta(hours=9))
+        now_kst = datetime.datetime.now(kst_tz)
+        
+        def_year = now_kst.year
+        def_month = now_kst.month
+        # 정산 주기: 매월 26일 ~ 익월 25일 자동 마감 기준
+        # 오늘이 26일 이상이면 익월 정산 주기 적용
+        if now_kst.day >= 26:
+            def_month += 1
+            if def_month > 12:
+                def_month = 1
+                def_year += 1
+
+        current_year = int(request.args.get('year', def_year))
+        current_month = int(request.args.get('month', def_month))
         user_branch = request.args.get('branch', '').strip()
         
         # 1. Calculate Billing Period: (M-1)월 26일 00:00:00 ~ M월 25일 23:59:59
@@ -1240,6 +1259,7 @@ def get_stats():
         exam_count = sum(1 for l in period_logs if '변형문제' in l.get('doc_type', ''))
         vocab_count = sum(1 for l in period_logs if '단어' in l.get('doc_type', ''))
         lecture_count = sum(1 for l in period_logs if '강의용' in l.get('doc_type', ''))
+        illu_count = sum(1 for l in period_logs if '삽화' in l.get('doc_type', ''))
         
         # Branch Aggregations
         branch_stats = {}
@@ -1296,7 +1316,13 @@ def get_stats():
                 "token_unit_price_krw": TOKEN_PRICE_PER_TOKEN_KRW,
                 "per_1k_tokens_krw": 0.35,
                 "exchange_rate": 1380,
-                "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.35원)"
+                "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.35원)",
+                "items": [
+                    {"name": "강의용 교안", "tokens": 4500, "cost_krw": 1.6, "badge": "~4,500T (약 1.6원)", "color": "text-amber-300"},
+                    {"name": "삽화생성", "tokens": 1500, "cost_krw": 0.5, "badge": "~1,500T (약 0.5원)", "color": "text-emerald-300"},
+                    {"name": "단어TEST", "tokens": 2000, "cost_krw": 0.7, "badge": "~2,000T (약 0.7원)", "color": "text-violet-300"},
+                    {"name": "변형문제 1회", "tokens": 11000, "cost_krw": 3.9, "badge": "~11,000T (약 3.9원)", "color": "text-rose-300"}
+                ]
             },
             "summary": {
                 "total_count": total_count,
@@ -1306,6 +1332,7 @@ def get_stats():
                 "exam_count": exam_count,
                 "vocab_count": vocab_count,
                 "lecture_count": lecture_count,
+                "illu_count": illu_count,
                 "my_count": my_count,
                 "my_tokens": my_tokens,
                 "my_cost_krw": my_cost_krw
