@@ -1899,7 +1899,10 @@
                         <!-- Student Header for Print -->
                         <div class="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
                             <div>
-                                <div class="text-[11px] font-black text-indigo-700 tracking-wider uppercase mb-0.5">A.DOT ENGLISH ACADEMY · 1:1 ORAL TEST</div>
+                                <div class="flex items-center gap-1.5 text-[11px] font-black text-indigo-700 tracking-wider uppercase mb-0.5">
+                                    <img src="https://play-lh.googleusercontent.com/Q5M2_78koAxQqBUOMUbG3kSWu6lWr2NorJSTk2erIm5GsUJ2_IqAE4_sBfvCVjhmiTrN2g8emRgCRAZ2ELiS9OE" class="w-3.5 h-3.5 object-contain rounded-xs inline-block">
+                                    <span>에이닷 영어학원 · 1:1 ORAL TEST</span>
+                                </div>
                                 <h2 id="oralModalPrintTitle" class="text-lg sm:text-xl font-black text-slate-900">지문 제목</h2>
                             </div>
                             <div class="text-right">
@@ -2779,6 +2782,14 @@
             const targetSent = currentAnalysisData.sentences.find(s => s.index === sentenceIndex);
             if (targetSent) {
                 targetSent.page_break = !targetSent.page_break;
+                renderAnalysisData(currentAnalysisData);
+            }
+        };
+
+        window.toggleStarredPageBreak = function(starredIdx) {
+            if (!window.starredPageBreaks) window.starredPageBreaks = {};
+            window.starredPageBreaks[starredIdx] = !window.starredPageBreaks[starredIdx];
+            if (currentAnalysisData) {
                 renderAnalysisData(currentAnalysisData);
             }
         };
@@ -3843,8 +3854,9 @@
 
                         <!-- Footer -->
                         <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-slate-600">A.DOT ENGLISH ACADEMY</span>
+                            <div class="flex items-center gap-1.5">
+                                <img src="https://play-lh.googleusercontent.com/Q5M2_78koAxQqBUOMUbG3kSWu6lWr2NorJSTk2erIm5GsUJ2_IqAE4_sBfvCVjhmiTrN2g8emRgCRAZ2ELiS9OE" class="w-4 h-4 object-contain rounded-xs inline-block">
+                                <span class="font-extrabold text-slate-700">에이닷 영어학원</span>
                                 <span>·</span>
                                 <span>1:1 Oral Test Sheet (Student Edition - Part 1)</span>
                             </div>
@@ -3861,121 +3873,196 @@
                         if (stSents.length > 1) starredList.push(stSents[Math.floor(stSents.length / 2)]);
                     }
 
-                    const sepOral2 = document.createElement('div');
-                    sepOral2.className = 'page-separator my-6 border-b-2 border-dashed border-rose-400 no-print flex justify-center';
-                    sepOral2.innerHTML = `<span class="bg-rose-100 text-rose-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-rose-600"></i> [강사용 교안 부록] 1:1 구두 TEST지 2페이지 (★ 핵심 빈출 서술형 조건 영작)</span>`;
-                    sentencePagesWrapper.appendChild(sepOral2);
+                    if (!window.starredPageBreaks) window.starredPageBreaks = {};
 
-                    const oralStudentDiv2 = document.createElement('div');
-                    oralStudentDiv2.className = 'a4-page p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between relative shadow-lg mx-auto mb-6 print:m-0 print:border-none print:shadow-none min-h-[1050px]';
-                    oralStudentDiv2.style.pageBreakAfter = 'always';
-
-                    let starredDescriptiveHtml = '';
-                    starredList.forEach((st, idx) => {
-                        const targetSentenceObj = currentAnalysisData?.sentences?.find(s => Number(s.index) === Number(st.sentence_num)) || {};
-                        const koreanMeaning = targetSentenceObj.korean || targetSentenceObj.chunk_korean || '(우리말 해석을 참조하여 영작하시오.)';
+                    // Helper to chunk an English sentence into natural 2~4 word phrases (명사구, 형용사구, 동사구 등)
+                    function chunkSentenceForWordBank(targetSentenceObj, rawFallback) {
+                        // 1. Try to use tokens from currentAnalysisData
+                        const tokens = targetSentenceObj?.tokens || [];
+                        let rawChunks = [];
                         
-                        // Extract cleaned words/chunks for the word bank
-                        let cleanEng = (targetSentenceObj.original || st.text_with_questions || '')
-                            .replace(/\[\s*([^\]\/]+)\s*\/\s*([^\]\/]+)\s*\]/g, '$1')
-                            .replace(/\[\s{2,}\]/g, '')
-                            .replace(/[(),.?!;:"'"]/g, ' ')
-                            .trim();
-                        let wordsArr = cleanEng.split(/\s+/).filter(w => w.length > 0);
-                        
-                        // Shuffle word list
-                        let shuffledWords = [...wordsArr];
-                        for (let i = shuffledWords.length - 1; i > 0; i--) {
-                            const j = Math.floor(Math.random() * (i + 1));
-                            [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+                        if (tokens && tokens.length > 0) {
+                            let currGroup = [];
+                            tokens.forEach(tok => {
+                                let tText = (tok.text || '').trim();
+                                if (!tText || tText === '/' || tText === '//') {
+                                    if (currGroup.length > 0) {
+                                        rawChunks.push(currGroup.join(' '));
+                                        currGroup = [];
+                                    }
+                                    return;
+                                }
+                                // Clean bracket marks and punctuation
+                                let cleanT = tText
+                                    .replace(/\[\s*([^\]\/]+)\s*\/\s*([^\]\/]+)\s*\]/g, '$1')
+                                    .replace(/\[\s{2,}\]/g, '')
+                                    .replace(/^[\[\(]+|[\]\),.?!;:"']+$/g, '')
+                                    .trim();
+                                if (cleanT) {
+                                    currGroup.push(cleanT);
+                                    // If group reaches 2~3 words, flush it
+                                    if (currGroup.length >= 3) {
+                                        rawChunks.push(currGroup.join(' '));
+                                        currGroup = [];
+                                    }
+                                }
+                            });
+                            if (currGroup.length > 0) {
+                                rawChunks.push(currGroup.join(' '));
+                            }
                         }
-                        const wordBankDisplay = shuffledWords.join(' / ');
+                        
+                        // Fallback: If no tokens or chunking failed, chunk words into 2~3 word groups
+                        if (rawChunks.length === 0) {
+                            let cleanEng = (targetSentenceObj.original || rawFallback || '')
+                                .replace(/\[\s*([^\]\/]+)\s*\/\s*([^\]\/]+)\s*\]/g, '$1')
+                                .replace(/\[\s{2,}\]/g, '')
+                                .replace(/[(),.?!;:"']/g, ' ')
+                                .trim();
+                            let wordsArr = cleanEng.split(/\s+/).filter(w => w.length > 0);
+                            for (let i = 0; i < wordsArr.length; i += 2) {
+                                if (i + 2 < wordsArr.length) {
+                                    rawChunks.push(wordsArr.slice(i, i + 2).join(' '));
+                                } else {
+                                    rawChunks.push(wordsArr.slice(i).join(' '));
+                                    break;
+                                }
+                            }
+                        }
 
-                        starredDescriptiveHtml += `
-                            <div class="bg-white border-2 border-slate-300 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs">
-                                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="bg-rose-600 text-white font-black text-xs px-2.5 py-0.5 rounded uppercase font-outfit">문항 ${idx + 1}</span>
-                                        <span class="font-black text-slate-900 text-sm">문장 (${st.sentence_num})</span>
-                                        <span class="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded">★ 핵심 서술형 빈출</span>
+                        // Filter out empty chunks
+                        rawChunks = rawChunks.map(c => c.trim()).filter(c => c.length > 0);
+
+                        // Shuffle chunks
+                        for (let i = rawChunks.length - 1; i > 0; i--) {
+                            const j = Math.floor(Math.random() * (i + 1));
+                            [rawChunks[i], rawChunks[j]] = [rawChunks[j], rawChunks[i]];
+                        }
+                        return rawChunks.join(' / ');
+                    }
+
+                    // Render starred questions with pagination support (page split/merge)
+                    let currentStarredPageItems = [];
+                    let starredPages = [];
+                    starredList.forEach((st, idx) => {
+                        if (idx > 0 && window.starredPageBreaks[idx]) {
+                            starredPages.push(currentStarredPageItems);
+                            currentStarredPageItems = [];
+                        }
+                        currentStarredPageItems.push({ st, idx });
+                    });
+                    if (currentStarredPageItems.length > 0) {
+                        starredPages.push(currentStarredPageItems);
+                    }
+
+                    starredPages.forEach((stPageChunk, pIdx) => {
+                        const isFirstStarredPage = (pIdx === 0);
+                        const isLastStarredPage = (pIdx === starredPages.length - 1);
+
+                        const sepOral2 = document.createElement('div');
+                        sepOral2.className = 'page-separator my-6 border-b-2 border-dashed border-rose-400 no-print flex justify-center';
+                        sepOral2.innerHTML = `<span class="bg-rose-100 text-rose-900 text-xs font-black px-4 py-1 -mb-3 rounded-full shadow-sm flex items-center gap-1.5"><i class="fa-solid fa-pen-nib text-rose-600"></i> [강사용 교안 부록] 1:1 구두 TEST지 ${pIdx + 2}페이지 (★ 핵심 빈출 서술형 조건 영작${starredPages.length > 1 ? ` - ${pIdx + 1}` : ''})</span>`;
+                        sentencePagesWrapper.appendChild(sepOral2);
+
+                        const oralStudentDiv2 = document.createElement('div');
+                        oralStudentDiv2.className = 'a4-page p-6 sm:p-8 bg-white text-slate-900 flex flex-col justify-between relative shadow-lg mx-auto mb-6 print:m-0 print:border-none print:shadow-none min-h-[1050px]';
+                        oralStudentDiv2.style.pageBreakAfter = 'always';
+
+                        let starredDescriptiveHtml = '';
+                        stPageChunk.forEach(({ st, idx }, itemIdxInPage) => {
+                            const targetSentenceObj = currentAnalysisData?.sentences?.find(s => Number(s.index) === Number(st.sentence_num)) || {};
+                            const koreanMeaning = targetSentenceObj.korean || targetSentenceObj.chunk_korean || '(우리말 해석을 참조하여 영작하시오.)';
+                            
+                            // Naturally chunked word bank (명사구/형용사구 등 의미단위 어구 묶음)
+                            const wordBankDisplay = chunkSentenceForWordBank(targetSentenceObj, st.text_with_questions);
+                            const isSplit = Boolean(window.starredPageBreaks[idx]);
+
+                            starredDescriptiveHtml += `
+                                <div class="bg-white border-2 border-slate-300 rounded-xl p-4 sm:p-5 space-y-3 shadow-xs">
+                                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="bg-rose-600 text-white font-black text-xs px-2.5 py-0.5 rounded uppercase font-outfit">문항 ${idx + 1}</span>
+                                            <span class="font-black text-slate-900 text-sm">문장 (${st.sentence_num})</span>
+                                            <span class="bg-rose-100 text-rose-800 border border-rose-300 text-[10px] font-black px-2 py-0.5 rounded">★ 핵심 서술형 빈출</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            ${idx > 0 ? `
+                                                <button type="button" onclick="toggleStarredPageBreak(${idx})" class="no-print text-[10px] font-bold px-2 py-0.5 rounded transition flex items-center gap-1 cursor-pointer ${isSplit ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'}">
+                                                    <i class="fa-solid fa-scissors text-[9px]"></i>
+                                                    <span>${isSplit ? '✂️ 분할됨 (합치기)' : '✂️ 다음 페이지로'}</span>
+                                                </button>
+                                            ` : ''}
+                                            <span class="text-xs text-slate-400 font-bold">[조건 제시형 영작]</span>
+                                        </div>
                                     </div>
-                                    <span class="text-xs text-slate-400 font-bold">[조건 제시형 영작]</span>
-                                </div>
 
-                                <!-- 우리말 뜻 -->
-                                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs leading-relaxed text-slate-800">
-                                    <span class="font-black text-indigo-700 mr-1.5">[우리말 뜻]</span>
-                                    <span class="font-bold">${koreanMeaning}</span>
-                                </div>
-
-                                <!-- 조건 -->
-                                <div class="bg-amber-50/80 border border-amber-200 rounded-lg p-3 text-[11px] leading-relaxed text-amber-950 space-y-1">
-                                    <div class="font-black text-amber-900 flex items-center gap-1">
-                                        <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> &lt;작성 조건&gt;
+                                    <!-- 우리말 뜻 -->
+                                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs leading-relaxed text-slate-800">
+                                        <span class="font-black text-indigo-700 mr-1.5">[우리말 뜻]</span>
+                                        <span class="font-bold">${koreanMeaning}</span>
                                     </div>
-                                    <ul class="list-disc list-inside space-y-0.5 pl-1 font-medium">
-                                        <li>제시된 단어(구)를 반드시 모두 활용하여 완전한 영어 문장으로 완성할 것.</li>
-                                        <li>어법 및 문맥에 맞게 필요한 단어의 형태(시제, 수일치, 품사 등)를 적절히 변형할 것.</li>
-                                        <li>어순에 유의하여 문법적으로 완벽한 문장으로 작성할 것.</li>
-                                    </ul>
-                                </div>
 
-                                <!-- 주어진 단어 / 어구 -->
-                                <div class="p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-xs leading-relaxed font-outfit">
-                                    <div class="font-black text-indigo-800 mb-1 text-[11px]">[주어진 단어 / 어구]</div>
-                                    <div class="text-slate-800 font-semibold tracking-wide">${wordBankDisplay}</div>
-                                </div>
-
-                                <!-- 학생 작성란 -->
-                                <div class="pt-2 space-y-3">
-                                    <div class="flex items-center gap-2 text-xs font-black text-slate-900">
-                                        <span class="text-rose-600 font-black font-outfit">Answer:</span>
+                                    <!-- 조건 -->
+                                    <div class="bg-amber-50/80 border border-amber-200 rounded-lg p-3 text-[11px] leading-relaxed text-amber-950 space-y-1">
+                                        <div class="font-black text-amber-900 flex items-center gap-1">
+                                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> &lt;작성 조건&gt;
+                                        </div>
+                                        <ul class="list-disc list-inside space-y-0.5 pl-1 font-medium">
+                                            <li>제시된 단어(구)를 반드시 모두 활용하여 완전한 영어 문장으로 완성할 것.</li>
+                                            <li>어법 및 문맥에 맞게 필요한 단어의 형태(시제, 수일치, 품사 등)를 적절히 변형할 것.</li>
+                                            <li>어순에 유의하여 문법적으로 완벽한 문장으로 작성할 것.</li>
+                                        </ul>
                                     </div>
-                                    <div class="w-full border-b border-slate-400 h-6"></div>
-                                    <div class="w-full border-b border-slate-400 h-6"></div>
+
+                                    <!-- 주어진 단어 / 어구 (자연스러운 구 단위 청킹 제공) -->
+                                    <div class="p-2.5 bg-indigo-50/60 border border-indigo-200 rounded-lg text-xs leading-relaxed font-outfit">
+                                        <div class="font-black text-indigo-800 mb-1 text-[11px]">[주어진 단어 / 어구]</div>
+                                        <div class="text-slate-800 font-semibold tracking-wide">${wordBankDisplay}</div>
+                                    </div>
                                 </div>
+                            `;
+                        });
+
+                        oralStudentDiv2.innerHTML = `
+                            <div>
+                                <!-- Header -->
+                                <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST · PART 2</span>
+                                            <span class="text-[11px] font-bold text-slate-500">에이닷 영어 1:1 구두 테스트지 (★ 핵심 서술형 조건 영작)</span>
+                                        </div>
+                                        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded">STUDENT SHEET (2)</span>
+                                    </div>
+                                </div>
+
+                                <div class="bg-rose-50/70 border border-rose-200 rounded-lg p-2.5 mb-4 text-[11px] text-rose-950 font-medium leading-relaxed">
+                                    ※ 본 지문에서 학교 시험에 가장 많이 출제되는 <b>★ 서술형 빈출 문장</b>입니다. 주어진 조건과 단어(구)를 활용하여 1:1 구두로 완전한 영어 문장을 영작하여 답변하시오.
+                                </div>
+
+                                <!-- Starred Descriptive Questions List -->
+                                <div class="space-y-4">
+                                    ${starredDescriptiveHtml}
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+                                <div class="flex items-center gap-1.5">
+                                    <img src="https://play-lh.googleusercontent.com/Q5M2_78koAxQqBUOMUbG3kSWu6lWr2NorJSTk2erIm5GsUJ2_IqAE4_sBfvCVjhmiTrN2g8emRgCRAZ2ELiS9OE" class="w-4 h-4 object-contain rounded-xs inline-block">
+                                    <span class="font-extrabold text-slate-700">에이닷 영어학원</span>
+                                    <span>·</span>
+                                    <span>1:1 Oral Test Sheet (Student Edition - Part 2 서술형)</span>
+                                </div>
+                                <div class="font-bold">Page ${currentPageNum}</div>
                             </div>
                         `;
+                        sentencePagesWrapper.appendChild(oralStudentDiv2);
+                        currentPageNum++;
                     });
-
-                    oralStudentDiv2.innerHTML = `
-                        <div>
-                            <!-- Header -->
-                            <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-1">
-                                        <span class="bg-rose-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST · PART 2</span>
-                                        <span class="text-[11px] font-bold text-slate-500">에이닷 영어 1:1 구두 테스트지 (★ 핵심 서술형 조건 영작)</span>
-                                    </div>
-                                    <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">${fullHeading}</h1>
-                                </div>
-                                <div class="text-right">
-                                    <span class="bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded">STUDENT SHEET (2)</span>
-                                </div>
-                            </div>
-
-                            <div class="bg-rose-50/70 border border-rose-200 rounded-lg p-2.5 mb-4 text-[11px] text-rose-950 font-medium leading-relaxed">
-                                ※ 본 지문에서 학교 시험에 가장 많이 출제되는 <b>★ 서술형 빈출 문장</b>입니다. 주어진 조건과 단어를 활용하여 완전한 영어 문장을 서술형으로 작성하시오.
-                            </div>
-
-                            <!-- Starred Descriptive Questions List -->
-                            <div class="space-y-4">
-                                ${starredDescriptiveHtml}
-                            </div>
-                        </div>
-
-                        <!-- Footer -->
-                        <div class="mt-6 pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-slate-600">A.DOT ENGLISH ACADEMY</span>
-                                <span>·</span>
-                                <span>1:1 Oral Test Sheet (Student Edition - Part 2 서술형)</span>
-                            </div>
-                            <div class="font-bold">Page ${currentPageNum}</div>
-                        </div>
-                    `;
-                    sentencePagesWrapper.appendChild(oralStudentDiv2);
-                    currentPageNum++;
 
                     // Dedicated Teacher Oral Guide & Rubric Page
                     if (oralData.oral_questions && oralData.oral_questions.length > 0) {
@@ -4087,10 +4174,9 @@
 
                             <!-- Footer -->
                             <div class="mt-4 pt-2.5 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-bold text-slate-600">A.DOT ENGLISH ACADEMY</span>
-                                    <span>·</span>
-                                    <span>1:1 Oral Test Teacher's Guide</span>
+                                <div class="flex items-center gap-1.5">
+                                    <img src="https://play-lh.googleusercontent.com/Q5M2_78koAxQqBUOMUbG3kSWu6lWr2NorJSTk2erIm5GsUJ2_IqAE4_sBfvCVjhmiTrN2g8emRgCRAZ2ELiS9OE" class="w-4 h-4 object-contain rounded-xs inline-block">
+                                    <span class="font-extrabold text-slate-700">에이닷 영어학원</span>
                                 </div>
                                 <div class="font-bold">Page ${currentPageNum}</div>
                             </div>

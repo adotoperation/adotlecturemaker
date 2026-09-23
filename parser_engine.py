@@ -360,6 +360,8 @@ def post_process_adverbs(analysis_data):
     for s in analysis_data.get('sentences', []):
         tokens = s.get('tokens', [])
         found_subject = False
+        bracket_depth = 0
+        paren_depth = 0
         
         for t in tokens:
             if 'top_label' not in t:
@@ -367,8 +369,16 @@ def post_process_adverbs(analysis_data):
             sub_tag = t.get('sub_tag', '')
             text = t.get('text', '').strip()
             
-            # Check if this token is the main subject
-            if sub_tag.startswith('S') or '가주어' in sub_tag:
+            # Update bracket depth before processing token
+            open_sq = text.count('[')
+            close_sq = text.count(']')
+            open_rn = text.count('(')
+            close_rn = text.count(')')
+            
+            is_inside_subordinate = (bracket_depth > 0) or (paren_depth > 0) or open_sq > 0 or open_rn > 0
+            
+            # Check if this token is the main subject (only if outside subordinate brackets)
+            if not is_inside_subordinate and (sub_tag.startswith('S') or '가주어' in sub_tag):
                 found_subject = True
             
             # Prepositional phrases (전명구): Wrap in () and NEVER give arrow ⬑
@@ -415,15 +425,34 @@ def post_process_adverbs(analysis_data):
 
             # Linking verbs (have been, is, are, was, were, become, remain, seem)
             if clean_word in ['have been', 'has been', 'had been', 'been', 'is', 'are', 'was', 'were', 'become', 'became', 'remained', 'remain', 'seemed', 'seem', 'appeared', 'appear']:
-                t['sub_tag'] = 'Vi'
-                t['color'] = 'rose'
-                t['underline'] = True
+                # If token is inside subordinate clause brackets [ ] or ( ) or already has top_label/no-underline:
+                # it belongs to a subordinate clause (e.g. appositive that clause, noun clause, indirect question)
+                # It must NOT be marked with main clause red underline!
+                if is_inside_subordinate or t.get('top_label') in ['Vi', 'Vt', 'V'] or t.get('underline') is False:
+                    t['top_label'] = 'Vi'
+                    t['sub_tag'] = ''
+                    t['color'] = 'slate'
+                    t['underline'] = False
+                else:
+                    t['sub_tag'] = 'Vi'
+                    t['color'] = 'rose'
+                    t['underline'] = True
 
             # Predicate Adjectives/Complements (SC) following linking verbs
             if t.get('sub_tag') in ['O', 'Vt', 'Vi'] and clean_word in ['related', 'different', 'important', 'crucial', 'essential', 'common', 'rare', 'necessary', 'likely', 'possible', 'difficult', 'clear', 'critical', 'effective', 'useful', 'similar']:
-                t['sub_tag'] = 'SC'
-                t['color'] = 'indigo'
-                t['underline'] = False
+                if is_inside_subordinate:
+                    t['top_label'] = 'SC'
+                    t['sub_tag'] = ''
+                    t['color'] = 'slate'
+                    t['underline'] = False
+                else:
+                    t['sub_tag'] = 'SC'
+                    t['color'] = 'indigo'
+                    t['underline'] = False
+
+            # Update depth tracking after token
+            bracket_depth = max(0, bracket_depth + open_sq - close_sq)
+            paren_depth = max(0, paren_depth + open_rn - close_rn)
 
             # Clean non-standard tag parentheses like Vi (수동태) -> Vi
             if t.get('sub_tag'):
