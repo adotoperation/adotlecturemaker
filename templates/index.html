@@ -1737,6 +1737,20 @@
         const modifyPromptInput = document.getElementById('modifyPromptInput');
         const btnApplyModify = document.getElementById('btnApplyModify');
 
+        const NO_ILLU_PLACEHOLDER_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480" viewBox="0 0 800 480">
+  <rect width="800" height="480" fill="#f8fafc"/>
+  <rect x="24" y="24" width="752" height="432" rx="16" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6,6"/>
+  <circle cx="400" cy="180" r="48" fill="#e0e7ff"/>
+  <path d="M376 185 L395 160 L415 185 L425 175 L440 195 L360 195 Z" fill="#6366f1"/>
+  <circle cx="420" cy="155" r="8" fill="#f59e0b"/>
+  <text x="400" y="270" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="22" font-weight="900" fill="#334155" text-anchor="middle">🎨 지문 맞춤 AI 삽화 미등록</text>
+  <text x="400" y="305" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="middle">클릭하거나 우측 하단 [AI 삽화 재생성]을 누르면 이 지문 전용 삽화가 생성됩니다</text>
+  <rect x="270" y="335" width="260" height="40" rx="8" fill="#e11d48"/>
+  <text x="400" y="360" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">✨ AI 맞춤 삽화 생성하기</text>
+</svg>
+`);
+
         // Input Mode Switcher DOM Elements
         const btnTabFullText = document.getElementById('btnTabFullText');
         const btnTabPairs = document.getElementById('btnTabPairs');
@@ -1951,6 +1965,15 @@
             currentAnalysisData = null;
             if (emptyState) emptyState.classList.remove('hidden');
             if (handoutSheet) handoutSheet.classList.add('hidden');
+            
+            // Completely reset illustration state to prevent cross-contamination
+            const ghibliImg = document.getElementById('ghibliImg');
+            if (ghibliImg) ghibliImg.src = '';
+            if (typeof reviewModalImgPreview !== 'undefined' && reviewModalImgPreview) reviewModalImgPreview.src = '';
+            const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
+            if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
+            const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
+            if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
             
             try {
                 localStorage.removeItem('handout_title');
@@ -2435,17 +2458,17 @@
                     data.illustration_url || 
                     (data.analysis_data && data.analysis_data.illustration_url) || 
                     (data.analysis_data && data.analysis_data.summary_info && data.analysis_data.summary_info.illustration_url) ||
-                    (data.summary_info && data.summary_info.illustration_url) || 
-                    (currentAnalysisData && currentAnalysisData.illustration_url) ||
-                    (currentAnalysisData && currentAnalysisData.summary_info && currentAnalysisData.summary_info.illustration_url)
+                    (data.summary_info && data.summary_info.illustration_url)
                 );
 
-                if (savedIllu && typeof savedIllu === 'string' && savedIllu.trim() !== '' && !savedIllu.includes('placeholder')) {
+                if (savedIllu && typeof savedIllu === 'string' && savedIllu.trim() !== '' && !savedIllu.includes('placeholder') && !savedIllu.includes('미등록') && !savedIllu.endsWith('/static/illustration.jpg')) {
                     ghibliImg.src = savedIllu;
                     if (reviewModalImgPreview) reviewModalImgPreview.src = savedIllu;
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     if (!currentAnalysisData) currentAnalysisData = data;
                     currentAnalysisData.illustration_url = savedIllu;
+                    const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
+                    if (ghibliReviewBadge) ghibliReviewBadge.classList.remove('hidden');
                 } else if (!isFromSaved) {
                     const sceneEn = (sInfo.illustration_scene_en || '').trim();
                     const titleStr = (data.title || titleInput.value || '').trim();
@@ -2469,14 +2492,10 @@
                         })
                     }).then(r => r.json()).then(resData => {
                         if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
-                        if (resData && resData.illustration_url) {
-                            ghibliImg.src = resData.illustration_url;
-                            if (reviewModalImgPreview) reviewModalImgPreview.src = resData.illustration_url;
-                            if (!currentAnalysisData) currentAnalysisData = data;
-                            currentAnalysisData.illustration_url = resData.illustration_url;
-                            if (currentAnalysisData.summary_info) {
-                                currentAnalysisData.summary_info.illustration_url = resData.illustration_url;
-                            }
+                        if (resData && resData.illustration_url && !resData.illustration_url.endsWith('/static/illustration.jpg')) {
+                            applyIllustrationWithCompression(resData.illustration_url, '');
+                            const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
+                            if (ghibliReviewBadge) ghibliReviewBadge.classList.remove('hidden');
                             
                             // Auto-sync new illustration into the saved handout database
                             try {
@@ -2509,16 +2528,28 @@
                             } catch(e) { console.warn("Auto-sync illu save error:", e); }
 
                             showToast('✨ 지문 맞춤 AI 삽화가 완성되어 교안에 안전하게 저장되었습니다!', 'success');
+                        } else {
+                            ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
+                            if (reviewModalImgPreview) reviewModalImgPreview.src = NO_ILLU_PLACEHOLDER_SVG;
                         }
                     }).catch(e => {
                         console.log('Illustration auto-gen warning:', e);
                         if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
+                        ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
                     });
                 } else {
-                    // Loaded from saved item without illustration - show default without auto-regenerating
-                    ghibliImg.src = '/static/illustration.jpg';
-                    if (reviewModalImgPreview) reviewModalImgPreview.src = '/static/illustration.jpg';
+                    // Loaded from saved item without illustration - show clean neutral placeholder and NEVER carry over other handout's image!
+                    ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
+                    if (reviewModalImgPreview) reviewModalImgPreview.src = NO_ILLU_PLACEHOLDER_SVG;
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
+                    const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
+                    if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
+                    if (currentAnalysisData) {
+                        currentAnalysisData.illustration_url = '';
+                        if (currentAnalysisData.summary_info) {
+                            currentAnalysisData.summary_info.illustration_url = '';
+                        }
+                    }
                 }
             }
 
@@ -4280,6 +4311,16 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
         async function loadHandoutFromServer(filename, material = '모의고사', docType = '강의용교안') {
             showLoading("교안 불러오는 중", "구글 서버에서 분석 데이터를 안전하게 내려받고 있습니다...");
+            // Immediately clear previous illustration & analysis state before fetching new handout
+            const ghibliImg = document.getElementById('ghibliImg');
+            if (ghibliImg) ghibliImg.src = '';
+            if (typeof reviewModalImgPreview !== 'undefined' && reviewModalImgPreview) reviewModalImgPreview.src = '';
+            const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
+            if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
+            const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
+            if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
+            currentAnalysisData = null;
+
             try {
                 const response = await fetch(`/api/save/${encodeURIComponent(filename)}?material_type=${encodeURIComponent(material)}&doc_type=${encodeURIComponent(docType)}&label=${encodeURIComponent(material)}`);
                 if (!response.ok) {
@@ -4310,14 +4351,20 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     currentAnalysisData = data.analysis_data;
                     const illu = (
                         data.illustration_url || 
-                        (data.analysis_data && data.analysis_data.illustration_url) ||
+                        (data.analysis_data && data.analysis_data.illustration_url) || 
                         (data.analysis_data && data.analysis_data.summary_info && data.analysis_data.summary_info.illustration_url)
                     );
 
-                    if (illu) {
+                    if (illu && typeof illu === 'string' && illu.trim() !== '' && !illu.includes('placeholder') && !illu.includes('미등록') && !illu.endsWith('/static/illustration.jpg')) {
                         currentAnalysisData.illustration_url = illu;
                         if (currentAnalysisData.summary_info) {
                             currentAnalysisData.summary_info.illustration_url = illu;
+                        }
+                    } else {
+                        // Explicitly clear illustration for this loaded handout so it NEVER inherits anything
+                        currentAnalysisData.illustration_url = '';
+                        if (currentAnalysisData.summary_info) {
+                            currentAnalysisData.summary_info.illustration_url = '';
                         }
                     }
                     if (docType === '단어TEST' || docType === '단어테스트' || (data.analysis_data && data.analysis_data.is_vocab_test)) {
@@ -4812,6 +4859,18 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
+        const ghibliImgEl = document.getElementById('ghibliImg');
+        if (ghibliImgEl) {
+            ghibliImgEl.addEventListener('click', () => {
+                if (ghibliImgEl.src && ghibliImgEl.src.includes('미등록')) {
+                    const btnGen = document.getElementById('btnGenerateAiIllustration');
+                    if (btnGen) btnGen.click();
+                } else if (ghibliImgEl.src && !ghibliImgEl.src.includes('placeholder')) {
+                    openIllustrationReviewModal();
+                }
+            });
+        }
+
         if (btnReviewModalUpload && illustrationFileInput) {
             btnReviewModalUpload.addEventListener('click', () => {
                 illustrationFileInput.click();
@@ -4924,10 +4983,40 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     if (resData.illustration_url) {
                         applyIllustrationWithCompression(resData.illustration_url, '');
                         if (ghibliReviewBadge) ghibliReviewBadge.classList.remove('hidden');
+
+                        // Immediately auto-sync new illustration into Google Sheets database
+                        try {
+                            const folderName = getActiveFolderName();
+                            const title = (titleInput && titleInput.value.trim()) || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                            const syncPairs = [];
+                            if (pairContainer) {
+                                pairContainer.querySelectorAll('.pair-row').forEach(r => {
+                                    const en = (r.querySelector('.pair-en')?.value || '').trim();
+                                    const kr = (r.querySelector('.pair-kr')?.value || '').trim();
+                                    const pb = r.querySelector('.pair-page-break')?.checked || false;
+                                    if (en) syncPairs.push({ english: en, korean: kr, page_break: pb });
+                                });
+                            }
+                            fetch('/api/save', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    title: title,
+                                    folder_name: folderName,
+                                    material_type: selectedMaterialType,
+                                    doc_type: '강의용교안',
+                                    label: selectedMaterialType,
+                                    branch: typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사',
+                                    sentence_pairs: syncPairs,
+                                    analysis_data: currentAnalysisData,
+                                    illustration_url: resData.illustration_url
+                                })
+                            });
+                        } catch(syncErr) { console.warn("Auto-sync save warning:", syncErr); }
                     }
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     hideLoading();
-                    showToast('✨ 지문 맞춤 AI 삽화가 완성되었습니다! [삽화 검토] 버튼으로 확인하세요!', 'success');
+                    showToast('✨ 지문 맞춤 AI 삽화가 완성되어 교안에 안전하게 저장되었습니다!', 'success');
                     openIllustrationReviewModal();
                 } catch (err) {
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
@@ -5022,13 +5111,19 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     }
                 });
 
-                // Ensure current illustration URL is synced
+                // Ensure current illustration URL is strictly synced for THIS handout
                 const ghibliImg = document.getElementById('ghibliImg');
                 let curIllu = (currentAnalysisData && currentAnalysisData.illustration_url) || '';
                 if (ghibliImg && ghibliImg.src) {
-                    if (ghibliImg.src.startsWith('data:') || ghibliImg.src.startsWith('http')) {
+                    if ((ghibliImg.src.startsWith('data:image/') || ghibliImg.src.startsWith('http')) 
+                        && !ghibliImg.src.includes('미등록') 
+                        && !ghibliImg.src.includes('placeholder')
+                        && !ghibliImg.src.endsWith('/static/illustration.jpg')) {
                         curIllu = ghibliImg.src;
                     }
+                }
+                if (curIllu.includes('미등록') || curIllu.includes('placeholder') || curIllu.endsWith('/static/illustration.jpg')) {
+                    curIllu = '';
                 }
                 if (currentAnalysisData) {
                     currentAnalysisData.illustration_url = curIllu;

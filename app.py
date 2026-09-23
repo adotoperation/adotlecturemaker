@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import base64
 import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -242,7 +243,7 @@ try:
 except Exception:
     pass
 
-def compress_base64_image(image_data_url, max_width=560, max_chars=44000):
+def compress_base64_image(image_data_url, max_width=560, max_chars=35000):
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
@@ -260,7 +261,7 @@ def compress_base64_image(image_data_url, max_width=560, max_chars=44000):
         
         result_url = image_data_url
         for w in (max_width, 480, 400, 320):
-            for q in (60, 50, 40, 30):
+            for q in (60, 50, 40, 30, 20):
                 c_img = img.copy()
                 c_img.thumbnail((w, int(w * 9 / 16)), Image.Resampling.LANCZOS)
                 buf = io.BytesIO()
@@ -286,18 +287,20 @@ def persist_base64_image(image_data_url, title=""):
     if not image_data_url.startswith('data:image/'):
         return image_data_url
     
-    # 1. Compress base64 to ensure it stays within Google Sheets 50,000 char limit
-    compressed_url = compress_base64_image(image_data_url)
+    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~35,000 chars max)
+    compressed_url = compress_base64_image(image_data_url, max_chars=35000)
 
-    # 2. Try saving to static/uploads locally for caching
+    # 2. Try saving to static/uploads locally for caching if valid bytes exist
     try:
         header, b64_str = compressed_url.split(',', 1)
-        import hashlib
-        h = hashlib.md5(b64_str.encode('utf-8')).hexdigest()[:12]
-        filename = f"illu_{int(time.time())}_{h}.jpg"
-        filepath = os.path.join(UPLOADS_DIR, filename)
-        with open(filepath, 'wb') as f:
-            f.write(base64.b64decode(b64_str))
+        decoded_bytes = base64.b64decode(b64_str)
+        if decoded_bytes and len(decoded_bytes) > 100:
+            import hashlib
+            h = hashlib.md5(b64_str.encode('utf-8')).hexdigest()[:12]
+            filename = f"illu_{int(time.time())}_{h}.jpg"
+            filepath = os.path.join(UPLOADS_DIR, filename)
+            with open(filepath, 'wb') as f:
+                f.write(decoded_bytes)
     except Exception as e:
         pass
     
@@ -921,26 +924,14 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             doc_res.get('illustration_url') or 
             (isinstance(analysis_data, dict) and analysis_data.get('illustration_url')) or 
             (isinstance(analysis_data, dict) and isinstance(analysis_data.get('summary_info'), dict) and analysis_data['summary_info'].get('illustration_url'))
-        )
+        ) or ''
         
-        # Fallback to local cache file if GAS cell didn't store illustration
-        if not illu:
-            local_path = os.path.join(SAVES_DIR, safe_fn)
-            if os.path.exists(local_path):
-                try:
-                    with open(local_path, 'r', encoding='utf-8') as lf:
-                        local_doc = json.load(lf)
-                        illu = local_doc.get('illustration_url') or (local_doc.get('analysis_data') and local_doc['analysis_data'].get('illustration_url'))
-                except Exception:
-                    pass
-
-        if illu:
-            doc_res['illustration_url'] = illu
-            if isinstance(analysis_data, dict):
-                analysis_data['illustration_url'] = illu
-                if isinstance(analysis_data.get('summary_info'), dict):
-                    analysis_data['summary_info']['illustration_url'] = illu
-                doc_res['analysis_data'] = analysis_data
+        doc_res['illustration_url'] = illu
+        if isinstance(analysis_data, dict):
+            analysis_data['illustration_url'] = illu
+            if isinstance(analysis_data.get('summary_info'), dict):
+                analysis_data['summary_info']['illustration_url'] = illu
+            doc_res['analysis_data'] = analysis_data
     return doc_res
 
 def delete_db_handout(filename, label="모의고사", material_type=None, doc_type=None):
@@ -1267,11 +1258,17 @@ def save_handout():
     if not title:
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400
     try:
-        # Persist illustration image to local static file if it's base64 to avoid Google Sheets cell limits
+        # Persist and compress illustration image if base64 to fit safely within Google Sheets cell limits
         analysis_d = data.get('analysis_data') or {}
-        if 'illustration_url' in analysis_d and analysis_d['illustration_url']:
-            analysis_d['illustration_url'] = persist_base64_image(analysis_d['illustration_url'], title)
-            data['analysis_data'] = analysis_d
+        raw_illu = data.get('illustration_url') or (isinstance(analysis_d, dict) and analysis_d.get('illustration_url')) or (isinstance(analysis_d, dict) and isinstance(analysis_d.get('summary_info'), dict) and analysis_d['summary_info'].get('illustration_url'))
+        if raw_illu and str(raw_illu).startswith('data:image/'):
+            compressed_illu = persist_base64_image(raw_illu, title)
+            data['illustration_url'] = compressed_illu
+            if isinstance(analysis_d, dict):
+                analysis_d['illustration_url'] = compressed_illu
+                if isinstance(analysis_d.get('summary_info'), dict):
+                    analysis_d['summary_info']['illustration_url'] = compressed_illu
+                data['analysis_data'] = analysis_d
 
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch, folder_name=folder_name)
         try:
