@@ -243,7 +243,7 @@ try:
 except Exception:
     pass
 
-def compress_base64_image(image_data_url, max_width=480, max_chars=20000):
+def compress_base64_image(image_data_url, max_width=420, max_chars=14000):
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
@@ -260,8 +260,8 @@ def compress_base64_image(image_data_url, max_width=480, max_chars=20000):
             img = img.convert('RGB')
         
         result_url = image_data_url
-        for w in (max_width, 420, 360, 300, 240):
-            for q in (55, 45, 35, 25, 18):
+        for w in (max_width, 360, 300, 240):
+            for q in (45, 38, 30, 22, 16):
                 c_img = img.copy()
                 c_img.thumbnail((w, int(w * 9 / 16)), Image.Resampling.LANCZOS)
                 buf = io.BytesIO()
@@ -287,8 +287,8 @@ def persist_base64_image(image_data_url, title=""):
     if not image_data_url.startswith('data:image/'):
         return image_data_url
     
-    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~20,000 chars max)
-    compressed_url = compress_base64_image(image_data_url, max_width=480, max_chars=20000)
+    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~14,000 chars max)
+    compressed_url = compress_base64_image(image_data_url, max_width=420, max_chars=14000)
 
     # 2. Try saving to static/uploads locally for caching if valid bytes exist
     try:
