@@ -1778,6 +1778,28 @@
 
         let currentInputMode = 'full'; // Default mode: full passage & translation
 
+        // Page 1 Illustration & Review Modal DOM Elements
+        const ghibliImg = document.getElementById('ghibliImg');
+        const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
+        const btnTriggerImageUpload = document.getElementById('btnTriggerImageUpload');
+        const illustrationFileInput = document.getElementById('illustrationFileInput');
+        const btnGenerateAiIllustration = document.getElementById('btnGenerateAiIllustration');
+        const btnInputImageUrl = document.getElementById('btnInputImageUrl');
+        const btnReviewIllustration = document.getElementById('btnReviewIllustration');
+        const ghibliReviewBadge = document.getElementById('btnReviewIllustration'); // Alias for illustration review button
+        
+        // Modal DOM Elements
+        const modalIllustrationReview = document.getElementById('modalIllustrationReview');
+        const btnCloseIlluReviewModal = document.getElementById('btnCloseIlluReviewModal');
+        const reviewModalImgPreview = document.getElementById('reviewModalImgPreview');
+        const reviewModalTopicText = document.getElementById('reviewModalTopicText');
+        const btnReviewModalUpload = document.getElementById('btnReviewModalUpload');
+        const btnReviewModalRegen = document.getElementById('btnReviewModalRegen');
+        const btnReviewModalConfirm = document.getElementById('btnReviewModalConfirm');
+
+        // Repository Explorer Active Folder State
+        let currentRepoActiveFolder = null; // null: All items / Folder list, object: {folder_name, material_type}
+
         function splitFullTextIntoPairs(showNotification = true) {
             const passage = passageInput.value.trim();
             const korean = koreanPassageInput.value.trim();
@@ -1967,13 +1989,14 @@
             if (handoutSheet) handoutSheet.classList.add('hidden');
             
             // Completely reset illustration state to prevent cross-contamination
-            const ghibliImg = document.getElementById('ghibliImg');
-            if (ghibliImg) ghibliImg.src = '';
-            if (typeof reviewModalImgPreview !== 'undefined' && reviewModalImgPreview) reviewModalImgPreview.src = '';
-            const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
-            if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
-            const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
-            if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
+            const ghibliImgEl = document.getElementById('ghibliImg');
+            if (ghibliImgEl) ghibliImgEl.src = '';
+            const revModalPreview = document.getElementById('reviewModalImgPreview');
+            if (revModalPreview) revModalPreview.src = '';
+            const ghibliLoadingOverlayEl = document.getElementById('ghibliLoadingOverlay');
+            if (ghibliLoadingOverlayEl) ghibliLoadingOverlayEl.classList.add('hidden');
+            const ghibliReviewBadgeEl = document.getElementById('btnReviewIllustration');
+            if (ghibliReviewBadgeEl) ghibliReviewBadgeEl.classList.add('hidden');
             
             try {
                 localStorage.removeItem('handout_title');
@@ -2462,8 +2485,9 @@
                 );
 
                 if (savedIllu && typeof savedIllu === 'string' && savedIllu.trim() !== '' && !savedIllu.includes('placeholder') && !savedIllu.includes('미등록') && !savedIllu.endsWith('/static/illustration.jpg')) {
-                    ghibliImg.src = savedIllu;
-                    if (reviewModalImgPreview) reviewModalImgPreview.src = savedIllu;
+                    if (ghibliImg) ghibliImg.src = savedIllu;
+                    const revModalPreview = document.getElementById('reviewModalImgPreview');
+                    if (revModalPreview) revModalPreview.src = savedIllu;
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     if (!currentAnalysisData) currentAnalysisData = data;
                     currentAnalysisData.illustration_url = savedIllu;
@@ -2529,18 +2553,20 @@
 
                             showToast('✨ 지문 맞춤 AI 삽화가 완성되어 교안에 안전하게 저장되었습니다!', 'success');
                         } else {
-                            ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
-                            if (reviewModalImgPreview) reviewModalImgPreview.src = NO_ILLU_PLACEHOLDER_SVG;
+                            if (ghibliImg) ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
+                            const revModalPreview = document.getElementById('reviewModalImgPreview');
+                            if (revModalPreview) revModalPreview.src = NO_ILLU_PLACEHOLDER_SVG;
                         }
                     }).catch(e => {
                         console.log('Illustration auto-gen warning:', e);
                         if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
-                        ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
+                        if (ghibliImg) ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
                     });
                 } else {
                     // Loaded from saved item without illustration - show clean neutral placeholder and NEVER carry over other handout's image!
-                    ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
-                    if (reviewModalImgPreview) reviewModalImgPreview.src = NO_ILLU_PLACEHOLDER_SVG;
+                    if (ghibliImg) ghibliImg.src = NO_ILLU_PLACEHOLDER_SVG;
+                    const revModalPreview = document.getElementById('reviewModalImgPreview');
+                    if (revModalPreview) revModalPreview.src = NO_ILLU_PLACEHOLDER_SVG;
                     if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
                     const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
                     if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
@@ -3657,7 +3683,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         }
 
         // ================= SERVER REPOSITORY & FOLDER EXPLORER LOGIC =================
-        let currentRepoActiveFolder = null; // null: All items / Folder list, object: {folder_name, material_type}
+        currentRepoActiveFolder = null; // null: All items / Folder list, object: {folder_name, material_type}
         let currentRepoViewMode = 'list';   // 'list' (default table list) or 'folders'
         let currentRepoSort = 'date_desc';  // 'date_desc', 'date_asc', 'title_asc', 'title_desc', 'folder_asc'
 
@@ -4312,13 +4338,14 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         async function loadHandoutFromServer(filename, material = '모의고사', docType = '강의용교안') {
             showLoading("교안 불러오는 중", "구글 서버에서 분석 데이터를 안전하게 내려받고 있습니다...");
             // Immediately clear previous illustration & analysis state before fetching new handout
-            const ghibliImg = document.getElementById('ghibliImg');
-            if (ghibliImg) ghibliImg.src = '';
-            if (typeof reviewModalImgPreview !== 'undefined' && reviewModalImgPreview) reviewModalImgPreview.src = '';
-            const ghibliLoadingOverlay = document.getElementById('ghibliLoadingOverlay');
-            if (ghibliLoadingOverlay) ghibliLoadingOverlay.classList.add('hidden');
-            const ghibliReviewBadge = document.getElementById('btnReviewIllustration');
-            if (ghibliReviewBadge) ghibliReviewBadge.classList.add('hidden');
+            const ghibliImgEl = document.getElementById('ghibliImg');
+            if (ghibliImgEl) ghibliImgEl.src = '';
+            const revModalPreview = document.getElementById('reviewModalImgPreview');
+            if (revModalPreview) revModalPreview.src = '';
+            const ghibliLoadingOverlayEl = document.getElementById('ghibliLoadingOverlay');
+            if (ghibliLoadingOverlayEl) ghibliLoadingOverlayEl.classList.add('hidden');
+            const ghibliReviewBadgeEl = document.getElementById('btnReviewIllustration');
+            if (ghibliReviewBadgeEl) ghibliReviewBadgeEl.classList.add('hidden');
             currentAnalysisData = null;
 
             try {
@@ -4800,21 +4827,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
         }
 
         // ================= PAGE 1 ILLUSTRATION IMAGE CONTROLS & REVIEW MODAL =================
-        const btnTriggerImageUpload = document.getElementById('btnTriggerImageUpload');
-        const illustrationFileInput = document.getElementById('illustrationFileInput');
-        const btnGenerateAiIllustration = document.getElementById('btnGenerateAiIllustration');
-        const btnInputImageUrl = document.getElementById('btnInputImageUrl');
-        const btnReviewIllustration = document.getElementById('btnReviewIllustration');
-        const ghibliReviewBadge = document.getElementById('ghibliReviewBadge');
-        
-        // Modal DOM Elements
-        const modalIllustrationReview = document.getElementById('modalIllustrationReview');
-        const btnCloseIlluReviewModal = document.getElementById('btnCloseIlluReviewModal');
-        const reviewModalImgPreview = document.getElementById('reviewModalImgPreview');
-        const reviewModalTopicText = document.getElementById('reviewModalTopicText');
-        const btnReviewModalUpload = document.getElementById('btnReviewModalUpload');
-        const btnReviewModalRegen = document.getElementById('btnReviewModalRegen');
-        const btnReviewModalConfirm = document.getElementById('btnReviewModalConfirm');
+        // (Illustration DOM elements & review modal elements declared at top of script)
 
         function openIllustrationReviewModal() {
             if (!modalIllustrationReview) return;
@@ -4859,13 +4872,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
             });
         }
 
-        const ghibliImgEl = document.getElementById('ghibliImg');
-        if (ghibliImgEl) {
-            ghibliImgEl.addEventListener('click', () => {
-                if (ghibliImgEl.src && ghibliImgEl.src.includes('미등록')) {
+        if (ghibliImg) {
+            ghibliImg.addEventListener('click', () => {
+                if (ghibliImg.src && ghibliImg.src.includes('미등록')) {
                     const btnGen = document.getElementById('btnGenerateAiIllustration');
                     if (btnGen) btnGen.click();
-                } else if (ghibliImgEl.src && !ghibliImgEl.src.includes('placeholder')) {
+                } else if (ghibliImg.src && !ghibliImg.src.includes('placeholder')) {
                     openIllustrationReviewModal();
                 }
             });
