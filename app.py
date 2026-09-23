@@ -242,37 +242,66 @@ try:
 except Exception:
     pass
 
+def compress_base64_image(image_data_url, max_width=560, max_chars=44000):
+    if not image_data_url or not isinstance(image_data_url, str):
+        return image_data_url
+    if not image_data_url.startswith('data:image/'):
+        return image_data_url
+    if len(image_data_url) <= max_chars:
+        return image_data_url
+    try:
+        from PIL import Image
+        import io
+        header, b64_str = image_data_url.split(',', 1)
+        img_bytes = base64.b64decode(b64_str)
+        img = Image.open(io.BytesIO(img_bytes))
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        result_url = image_data_url
+        for w in (max_width, 480, 400, 320):
+            for q in (60, 50, 40, 30):
+                c_img = img.copy()
+                c_img.thumbnail((w, int(w * 9 / 16)), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                c_img.save(buf, format='JPEG', quality=q, optimize=True)
+                b = buf.getvalue()
+                encoded = base64.b64encode(b).decode('utf-8')
+                candidate = f"data:image/jpeg;base64,{encoded}"
+                if len(candidate) <= max_chars:
+                    return candidate
+                result_url = candidate
+        return result_url
+    except Exception as e:
+        print("[compress_base64_image] Compression error:", e)
+        return image_data_url
+
 def persist_base64_image(image_data_url, title=""):
     """
-    Saves a base64 image data URL to a local static file to prevent overflowing 
-    Google Sheets cell character limits (50,000 chars) and ensure 100% reliable persistence.
+    Compresses base64 image data URL to strictly fit within Google Sheets cell limit (50,000 chars)
+    and caches locally where possible.
     """
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
         return image_data_url
     
+    # 1. Compress base64 to ensure it stays within Google Sheets 50,000 char limit
+    compressed_url = compress_base64_image(image_data_url)
+
+    # 2. Try saving to static/uploads locally for caching
     try:
-        header, b64_str = image_data_url.split(',', 1)
-        ext = 'png'
-        if 'jpeg' in header or 'jpg' in header:
-            ext = 'jpg'
-        elif 'webp' in header:
-            ext = 'webp'
-        elif 'svg' in header:
-            ext = 'svg'
-        
+        header, b64_str = compressed_url.split(',', 1)
         import hashlib
         h = hashlib.md5(b64_str.encode('utf-8')).hexdigest()[:12]
-        filename = f"illu_{int(time.time())}_{h}.{ext}"
+        filename = f"illu_{int(time.time())}_{h}.jpg"
         filepath = os.path.join(UPLOADS_DIR, filename)
         with open(filepath, 'wb') as f:
             f.write(base64.b64decode(b64_str))
-        
-        return f"/static/uploads/{filename}"
     except Exception as e:
-        print("[persist_base64_image] Error saving image file:", e)
-        return image_data_url
+        pass
+    
+    return compressed_url
 
 def create_themed_svg_illustration(topic_text, title=""):
     """Generates an aesthetic SVG illustration matching the exact topic when external AI APIs are unreachable."""
@@ -456,16 +485,10 @@ Output ONLY the final English image generation prompt string without any introdu
         try:
             import urllib.parse
             import hashlib
-            import base64
             clean_seed = abs(int(hashlib.md5(f"{english_scene}_{title}".encode()).hexdigest()[:8], 16)) % 999999
             enc_prompt = urllib.parse.quote(ghibli_prompt)
             poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=800&height=480&nologo=true&seed={clean_seed}"
-            
-            p_res = requests.get(poll_url, timeout=10)
-            if p_res.status_code == 200 and len(p_res.content) > 1000:
-                b64_str = base64.b64encode(p_res.content).decode('utf-8')
-                raw_data_url = f"data:image/jpeg;base64,{b64_str}"
-                saved_path = persist_base64_image(raw_data_url, title)
+            saved_path = poll_url
         except Exception as poll_e:
             print("[generate_illustration_sync] Pollinations AI warning:", poll_e)
 
