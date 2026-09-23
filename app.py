@@ -168,6 +168,128 @@ def generate_exam():
         print(f"[generate_exam] Error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/generate_extra_exam', methods=['POST'])
+def generate_extra_exam():
+    data = request.json or {}
+    base_title = data.get('base_title', '').strip() or data.get('title', '').strip()
+    passage = data.get('passage', '').strip()
+    topic = data.get('topic', '').strip()
+    branch = data.get('branch', '기타').strip() or '기타'
+    material_type = data.get('material_type') or data.get('label') or '모의고사'
+    folder_name = data.get('folder_name') or ''
+    start_set = int(data.get('start_set', 3))
+    count = min(3, max(1, int(data.get('count', 1))))
+    api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
+    existing_questions = data.get('existing_questions') or {}
+
+    if not base_title:
+        return jsonify({'error': '지문 제목 정보가 필요합니다.'}), 400
+
+    title_clean = re.sub(r'\s*-\s*(?:9종\s*)?변형문제.*$', '', base_title).strip()
+    title_clean = re.sub(r'\s*-\s*단어(?:TEST|테스트).*$', '', title_clean).strip()
+    title_clean = re.sub(r'\s*강의용교안.*$', '', title_clean).strip()
+
+    if not passage:
+        # Try loading passage from base file or existing save
+        try:
+            cand_fn = safe_korean_filename(title_clean) + '.json'
+            loaded = load_db_handout(cand_fn, label=material_type, material_type=material_type)
+            if loaded:
+                passage = loaded.get('passage_raw') or loaded.get('analysis_data', {}).get('passage', '')
+                if not passage and loaded.get('sentence_pairs'):
+                    passage = " ".join([p.get('english', '').strip() for p in loaded['sentence_pairs'] if p.get('english')])
+                if not folder_name:
+                    folder_name = loaded.get('folder_name') or loaded.get('analysis_data', {}).get('folder_name', '')
+                if not topic:
+                    topic = loaded.get('analysis_data', {}).get('topic', title_clean)
+        except Exception as e:
+            print(f"[generate_extra_exam] Passage recovery warning: {e}")
+
+    if not passage:
+        return jsonify({'error': '지문 원문 내용(passage)을 찾을 수 없습니다.'}), 400
+
+    if not folder_name:
+        folder_name = extract_default_folder_name(title_clean, material_type)
+    if not topic:
+        topic = title_clean
+
+    all_keys = [
+        "topic_korean", "sentence_ordering", "grammar_syntax", "vocabulary",
+        "passage_ordering", "descriptive_writing_2", "topic_english",
+        "descriptive_writing_1", "vocab_blank"
+    ]
+
+    try:
+        def _gen_single_extra(idx):
+            t_name = f"{title_clean} - 변형문제 {idx}차"
+            doc_type_val = f"변형문제 {idx}차"
+            # Add directive to avoid duplication
+            custom_topic = f"{topic} (세트 {idx}차 - 이전 세트와 다른 어법/어휘 밑줄 및 다른 서술형 문장 출제)"
+            q_data = generate_variation_exam(passage, topic=custom_topic, api_key=api_key)
+            import random
+            shuffled_order = list(all_keys)
+            random.shuffle(shuffled_order)
+
+            p_load = {
+                "title": t_name,
+                "folder_name": folder_name,
+                "material_type": material_type,
+                "doc_type": doc_type_val,
+                "label": material_type,
+                "branch": branch,
+                "analysis_data": {
+                    "title": t_name,
+                    "folder_name": folder_name,
+                    "material_type": material_type,
+                    "doc_type": doc_type_val,
+                    "passage": passage,
+                    "topic": topic,
+                    "branch": branch,
+                    "questions": q_data,
+                    "question_order": shuffled_order,
+                    "is_variation_exam": True,
+                    "set_number": idx,
+                    "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
+                }
+            }
+            f_name = save_db_handout(t_name, p_load, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch, folder_name=folder_name)
+            try:
+                actual_tokens = q_data.get('_total_tokens', 0) or estimate_tokens_for_item(doc_type_val)
+                append_usage_log(branch, material_type, doc_type_val, t_name, actual_tokens)
+            except Exception:
+                pass
+            return {
+                "title": t_name,
+                "filename": f_name,
+                "material_type": material_type,
+                "doc_type": doc_type_val,
+                "questions": q_data,
+                "question_order": shuffled_order,
+                "branch": branch,
+                "set_number": idx
+            }
+
+        results = []
+        set_indices = [start_set + i for i in range(count)]
+        with ThreadPoolExecutor(max_workers=min(3, count)) as executor:
+            futures = [executor.submit(_gen_single_extra, s_idx) for s_idx in set_indices]
+            for f in futures:
+                results.append(f.result())
+
+        # Sort by set_number
+        results.sort(key=lambda x: x['set_number'])
+
+        return jsonify({
+            'success': True,
+            'results': results,
+            'base_title': title_clean,
+            'created_count': len(results),
+            'message': f"추가 변형문제 {', '.join([str(r['set_number']) + '차' for r in results])} 생성이 완료되었습니다!"
+        })
+    except Exception as e:
+        print(f"[generate_extra_exam] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/generate_oral_test', methods=['POST'])
 def api_generate_oral_test():
     data = request.json or {}
@@ -1290,9 +1412,9 @@ TOKEN_PRICE_PER_TOKEN_KRW = 0.0005
 def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     dt = (doc_type or '강의용교안').strip()
     if '변형문제' in dt:
-        return 11000  # 9종 변형문제 1회분당 약 11,000 토큰
+        return 12000  # 9종 변형문제 1회분당 약 12,000 토큰
     elif '강사용' in dt:
-        return 6500   # 강사용 교안 (교안 + 1:1 구두TEST 결합) 약 6,500 토큰
+        return 8000   # 강사용 교안 (교안 + 1:1 구두TEST 결합)
     elif '구두' in dt or 'oral' in dt.lower():
         return 2500   # 1:1 구두 TEST지 약 2,500 토큰
     elif '단어' in dt:
@@ -1300,9 +1422,8 @@ def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     elif '삽화' in dt:
         return 1500   # 삽화 프롬프트 및 이미지 생성 약 1,500 토큰
     else:
-        # 강의용 교안(학생용): 문장 수 및 구문분석 데이터 크기 반영
-        sentence_count = len(sentence_pairs) if sentence_pairs else 7
-        return max(4000, min(8000, 3000 + sentence_count * 300))
+        # 강의용 교안: 학생용과 강사용이 동시 생성되므로 합산 약 16,000 토큰
+        return 16000
 
 def get_billing_period_bounds(year, month):
     """
@@ -1544,10 +1665,10 @@ def get_stats():
                 "exchange_rate": 1380,
                 "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.5원)",
                 "items": [
-                    {"name": "강의용 교안", "tokens": 4500, "cost_krw": 2.3, "badge": "~4,500T (약 2.3원)", "color": "text-amber-300"},
+                    {"name": "강의용 교안", "tokens": 16000, "cost_krw": 8.0, "badge": "~16,000T (약 8원)", "color": "text-amber-300"},
                     {"name": "삽화생성", "tokens": 0, "cost_krw": 55.0, "badge": "장당 55원", "color": "text-emerald-300"},
                     {"name": "단어TEST", "tokens": 2000, "cost_krw": 1.0, "badge": "~2,000T (약 1원)", "color": "text-violet-300"},
-                    {"name": "변형문제 1회", "tokens": 11000, "cost_krw": 5.5, "badge": "~11,000T (약 5.5원)", "color": "text-rose-300"}
+                    {"name": "변형문제 1회", "tokens": 12000, "cost_krw": 6.0, "badge": "~12,000T (약 6원)", "color": "text-rose-300"}
                 ]
             },
             "summary": {

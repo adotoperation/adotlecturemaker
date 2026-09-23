@@ -37,6 +37,7 @@
         /* A4 Sheet Dimensions */
         .a4-page {
             width: 210mm;
+            max-width: 210mm;
             min-height: 297mm;
             padding: 18mm 16mm 18mm 16mm;
             margin: 0 auto 24px auto;
@@ -46,8 +47,10 @@
             box-sizing: border-box;
             position: relative;
             display: flex;
-            flex-col;
+            flex-direction: column;
             justify-content: space-between;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
 
         /* 2-Column Answer Sheet Layout */
@@ -55,11 +58,14 @@
             column-count: 2;
             column-gap: 24px;
             column-rule: 1px dashed #cbd5e1;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         .answer-card {
             break-inside: avoid;
             page-break-inside: avoid;
             margin-bottom: 16px;
+            box-sizing: border-box;
         }
 
         /* Print Media Styles */
@@ -84,6 +90,7 @@
                 padding: 14mm 14mm 14mm 14mm !important;
                 margin: 0 !important;
                 width: 210mm !important;
+                max-width: 210mm !important;
                 min-height: 297mm !important;
                 box-sizing: border-box !important;
                 page-break-after: always;
@@ -108,12 +115,25 @@
                 display: block !important;
             }
 
-            /* Answers Only Print Mode */
+            /* Answers Only Print Mode: Remove page-break-before so page 1 is NOT blank */
             body.print-answers-only #examQuestionsContainer {
                 display: none !important;
             }
             body.print-answers-only #examAnswersSection {
+                display: flex !important;
+                page-break-before: avoid !important;
+                break-before: avoid !important;
+                margin-top: 0 !important;
+            }
+
+            /* All / Combined Print Mode (문제 + 정답 합본) */
+            body.print-all #examQuestionsContainer {
                 display: block !important;
+            }
+            body.print-all #examAnswersSection {
+                display: flex !important;
+                page-break-before: always !important;
+                break-before: page !important;
             }
 
             /* 2-column answer print enforcement */
@@ -128,6 +148,8 @@
             font-family: 'Pretendard', sans-serif;
             line-height: 1.7;
             text-align: justify;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         .exam-passage u {
             text-decoration: underline;
@@ -176,6 +198,12 @@
                 <button id="btnPrintAnswers" type="button" class="bg-violet-600 hover:bg-violet-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5">
                     <i class="fa-solid fa-print"></i> <span>정답지 인쇄 (2단)</span>
                 </button>
+                <button id="btnPrintAll" type="button" class="bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="문제 시험지와 2단 정답지를 하나의 연속된 문서로 함께 인쇄">
+                    <i class="fa-solid fa-file-export"></i> <span>합본 인쇄 (문제+정답)</span>
+                </button>
+                <button id="btnOpenExtraExamModal" type="button" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-black py-2 px-3.5 rounded-xl shadow-md transition flex items-center gap-1.5" title="동일 지문 기반의 추가 변형문제(3차, 4차, 5차 등)를 중복 없이 추가 출제">
+                    <i class="fa-solid fa-plus-circle"></i> <span>추가 변형문제 만들기</span>
+                </button>
                 <button id="btnCloseWindow" type="button" class="bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-bold py-2 px-3 rounded-xl transition flex items-center gap-1">
                     <i class="fa-solid fa-xmark"></i> 닫기
                 </button>
@@ -192,7 +220,7 @@
         </div>
 
         <!-- ==================== 2. 정답 및 해설지 섹션 (2단 분할 ANSWERS SECTION) ==================== -->
-        <section id="examAnswersSection" class="a4-page bg-white border border-slate-200 rounded p-6 sm:p-10 shadow space-y-6 page-break-before">
+        <section id="examAnswersSection" class="a4-page bg-white border border-slate-200 rounded shadow space-y-6 page-break-before">
             
             <div class="flex-1 space-y-6">
                 <!-- Answer Sheet Header -->
@@ -210,6 +238,66 @@
 
     </main>
 
+    <!-- Extra Exam Creation Modal -->
+    <div id="extraExamModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden transform transition-all duration-200 animate-scaleIn">
+            <div class="bg-gradient-to-r from-rose-600 to-indigo-600 px-6 py-4 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-lg text-amber-300"></i>
+                    <h3 class="font-black text-base">추가 변형문제 출제 (1~3회)</h3>
+                </div>
+                <button type="button" id="btnCloseExtraModal" class="text-white/80 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-5">
+                <div class="bg-rose-50 border border-rose-200 rounded-xl p-3.5 text-xs text-rose-900 leading-relaxed">
+                    <p class="font-bold flex items-center gap-1.5 mb-1 text-rose-700">
+                        <i class="fa-solid fa-lightbulb"></i> 중복 없는 신규 문제 세트 생성
+                    </p>
+                    동일 지문을 바탕으로 기존 1~2차 시험지와 겹치지 않는 새로운 어법/어휘 밑줄, 순서 배열, 서술형 영작 문항을 AI가 독창적으로 출제합니다.
+                </div>
+
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700">추가 몇 회가 필요하십니까? (1~3회 선택)</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <label class="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/50 cursor-pointer hover:border-indigo-600 transition extra-round-option">
+                            <input type="radio" name="extraRoundCount" value="1" checked class="hidden">
+                            <span class="text-lg font-black text-indigo-700">+1회</span>
+                            <span class="text-[11px] font-bold text-slate-500 mt-0.5">다음 1세트</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 bg-white cursor-pointer hover:border-indigo-600 transition extra-round-option">
+                            <input type="radio" name="extraRoundCount" value="2" class="hidden">
+                            <span class="text-lg font-black text-slate-700">+2회</span>
+                            <span class="text-[11px] font-bold text-slate-500 mt-0.5">다음 2세트</span>
+                        </label>
+                        <label class="flex flex-col items-center justify-center p-3 rounded-xl border-2 border-slate-200 bg-white cursor-pointer hover:border-indigo-600 transition extra-round-option">
+                            <input type="radio" name="extraRoundCount" value="3" class="hidden">
+                            <span class="text-lg font-black text-slate-700">+3회</span>
+                            <span class="text-[11px] font-bold text-slate-500 mt-0.5">다음 3세트</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="extraExamModalTargetInfo" class="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
+                    <div><b>대상 지문:</b> <span id="extraModalTargetTitle" class="text-slate-800 font-bold">-</span></div>
+                    <div><b>예상 세트:</b> <span id="extraModalEstimatedSets" class="text-indigo-600 font-bold">3차 출제 예정</span></div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" id="btnCancelExtraModal" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition">
+                        취소
+                    </button>
+                    <button type="button" id="btnConfirmGenerateExtra" class="flex-1 py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-md transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>지금 추가 생성하기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Logic Script -->
     <script>
         // DOM Elements
@@ -225,13 +313,24 @@
 
         const btnPrintQuestions = document.getElementById('btnPrintQuestions');
         const btnPrintAnswers = document.getElementById('btnPrintAnswers');
+        const btnPrintAll = document.getElementById('btnPrintAll');
+        const btnOpenExtraExamModal = document.getElementById('btnOpenExtraExamModal');
         const btnSavePageBreaks = document.getElementById('btnSavePageBreaks');
         const btnShuffleOrder = document.getElementById('btnShuffleOrder');
         const btnCloseWindow = document.getElementById('btnCloseWindow');
 
+        // Modal Elements
+        const extraExamModal = document.getElementById('extraExamModal');
+        const btnCloseExtraModal = document.getElementById('btnCloseExtraModal');
+        const btnCancelExtraModal = document.getElementById('btnCancelExtraModal');
+        const btnConfirmGenerateExtra = document.getElementById('btnConfirmGenerateExtra');
+        const extraModalTargetTitle = document.getElementById('extraModalTargetTitle');
+        const extraModalEstimatedSets = document.getElementById('extraModalEstimatedSets');
+
         // State Variables
         let examTitle = "영어 지문";
         let questionsData = {};
+        let currentLoadedData = null;
 
         // Page break flags for questions (index 1 to 8: whether there is a page break BEFORE question i)
         // Default: breaks before Q3, Q5, Q7, Q9 (adjusts nicely to ~3-4 pages)
@@ -297,6 +396,7 @@
                     const res = await fetch(`/api/save/${encodeURIComponent(filename)}?label=${encodeURIComponent(label)}`);
                     if (res.ok) {
                         const data = await res.json();
+                        currentLoadedData = data;
                         examTitle = data.title || filename.replace('.json', '');
                         if (data.analysis_data) {
                             if (data.analysis_data.questions) questionsData = data.analysis_data.questions;
@@ -603,7 +703,7 @@
         btnPrintQuestions.addEventListener('click', () => {
             const prevTitle = document.title;
             document.title = '';
-            document.body.classList.remove('print-answers-only');
+            document.body.classList.remove('print-answers-only', 'print-all');
             document.body.classList.add('print-questions-only');
             window.print();
             document.body.classList.remove('print-questions-only');
@@ -613,16 +713,183 @@
         btnPrintAnswers.addEventListener('click', () => {
             const prevTitle = document.title;
             document.title = '';
-            document.body.classList.remove('print-questions-only');
+            document.body.classList.remove('print-questions-only', 'print-all');
             document.body.classList.add('print-answers-only');
             window.print();
             document.body.classList.remove('print-answers-only');
             document.title = prevTitle;
         });
 
-        btnCloseWindow.addEventListener('click', () => {
-            window.close();
+        if (btnPrintAll) {
+            btnPrintAll.addEventListener('click', () => {
+                const prevTitle = document.title;
+                document.title = '';
+                document.body.classList.remove('print-questions-only', 'print-answers-only');
+                document.body.classList.add('print-all');
+                window.print();
+                document.body.classList.remove('print-all');
+                document.title = prevTitle;
+            });
+        }
+
+        if (btnCloseWindow) {
+            btnCloseWindow.addEventListener('click', () => {
+                window.close();
+            });
+        }
+
+        // --- Extra Exam Modal Logic ---
+        function getBaseCleanTitle() {
+            return examTitle
+                .replace(/\s*-\s*(?:9종\s*)?변형문제.*$/i, '')
+                .replace(/\s*-\s*단어(?:TEST|테스트).*$/i, '')
+                .replace(/\s*강의용교안.*$/i, '')
+                .trim();
+        }
+
+        function getCurrentMaxSetNumber() {
+            const m = examTitle.match(/변형문제\s*(\d+)차/);
+            if (m) return parseInt(m[1], 10);
+            return 2; // default base sets are 1차, 2차
+        }
+
+        function updateExtraModalSummary() {
+            const baseClean = getBaseCleanTitle();
+            const currMax = getCurrentMaxSetNumber();
+            const startSet = currMax + 1;
+            const selectedRadio = document.querySelector('input[name="extraRoundCount"]:checked');
+            const count = selectedRadio ? parseInt(selectedRadio.value, 10) : 1;
+
+            if (extraModalTargetTitle) extraModalTargetTitle.innerText = baseClean || examTitle;
+            if (extraModalEstimatedSets) {
+                const endSet = startSet + count - 1;
+                const setRangeText = count === 1 ? `${startSet}차` : `${startSet}차 ~ ${endSet}차 (총 ${count}회분)`;
+                extraModalEstimatedSets.innerText = `${setRangeText} 신규 출제 예정`;
+            }
+        }
+
+        if (btnOpenExtraExamModal) {
+            btnOpenExtraExamModal.addEventListener('click', () => {
+                updateExtraModalSummary();
+                extraExamModal.classList.remove('hidden');
+            });
+        }
+
+        if (btnCloseExtraModal) {
+            btnCloseExtraModal.addEventListener('click', () => {
+                extraExamModal.classList.add('hidden');
+            });
+        }
+
+        if (btnCancelExtraModal) {
+            btnCancelExtraModal.addEventListener('click', () => {
+                extraExamModal.classList.add('hidden');
+            });
+        }
+
+        // Radio click style toggle
+        document.querySelectorAll('.extra-round-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                document.querySelectorAll('.extra-round-option').forEach(o => {
+                    o.classList.remove('border-indigo-600', 'bg-indigo-50/50');
+                    o.classList.add('border-slate-200', 'bg-white');
+                    const spanVal = o.querySelector('span:first-of-type');
+                    if (spanVal) {
+                        spanVal.classList.remove('text-indigo-700');
+                        spanVal.classList.add('text-slate-700');
+                    }
+                });
+                opt.classList.remove('border-slate-200', 'bg-white');
+                opt.classList.add('border-indigo-600', 'bg-indigo-50/50');
+                const activeSpan = opt.querySelector('span:first-of-type');
+                if (activeSpan) {
+                    activeSpan.classList.remove('text-slate-700');
+                    activeSpan.classList.add('text-indigo-700');
+                }
+                const radio = opt.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+                updateExtraModalSummary();
+            });
         });
+
+        // Confirm Generate Extra Exam
+        if (btnConfirmGenerateExtra) {
+            btnConfirmGenerateExtra.addEventListener('click', async () => {
+                const selectedRadio = document.querySelector('input[name="extraRoundCount"]:checked');
+                const count = selectedRadio ? parseInt(selectedRadio.value, 10) : 1;
+                const currMax = getCurrentMaxSetNumber();
+                const startSet = currMax + 1;
+                const baseClean = getBaseCleanTitle();
+
+                // Extract passage and metadata from currentLoadedData
+                let passage = '';
+                let folderName = '';
+                let materialType = '모의고사';
+                let branch = '본사';
+
+                if (currentLoadedData) {
+                    materialType = currentLoadedData.material_type || currentLoadedData.label || '모의고사';
+                    branch = currentLoadedData.branch || '본사';
+                    folderName = currentLoadedData.folder_name || (currentLoadedData.analysis_data && currentLoadedData.analysis_data.folder_name) || '';
+                    passage = currentLoadedData.passage_raw || (currentLoadedData.analysis_data && currentLoadedData.analysis_data.passage) || '';
+                    if (!passage && currentLoadedData.sentence_pairs) {
+                        passage = currentLoadedData.sentence_pairs.map(p => p.english || '').filter(Boolean).join(' ');
+                    }
+                }
+
+                btnConfirmGenerateExtra.disabled = true;
+                btnConfirmGenerateExtra.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>생성 중 (약 15~25초)...</span>';
+
+                try {
+                    const payload = {
+                        base_title: baseClean,
+                        title: examTitle,
+                        passage: passage,
+                        topic: baseClean,
+                        start_set: startSet,
+                        count: count,
+                        folder_name: folderName,
+                        material_type: materialType,
+                        branch: branch,
+                        existing_questions: questionsData
+                    };
+
+                    const resp = await fetch('/api/generate_extra_exam', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        throw new Error(err.error || '추가 변형문제 생성에 실패했습니다.');
+                    }
+
+                    const resData = await resp.json();
+                    extraExamModal.classList.add('hidden');
+
+                    const createdList = resData.results || [];
+                    const setsCreated = createdList.map(r => `${r.set_number}차`).join(', ');
+
+                    showExamToast(`추가 변형문제 [${setsCreated}] 생성이 완료되어 저장소에 등록되었습니다!`, 'success');
+
+                    // If user created at least 1 set, ask or allow immediate switch to the first newly created set
+                    if (createdList.length > 0) {
+                        const firstNew = createdList[0];
+                        setTimeout(() => {
+                            if (confirm(`새로 출제된 [${firstNew.title}] 화면으로 바로 이동하시겠습니까?`)) {
+                                window.location.href = `/exam-view?filename=${encodeURIComponent(firstNew.filename)}&material_type=${encodeURIComponent(firstNew.material_type)}&doc_type=${encodeURIComponent(firstNew.doc_type)}`;
+                            }
+                        }, 500);
+                    }
+                } catch (e) {
+                    showExamToast(e.message, 'error');
+                } finally {
+                    btnConfirmGenerateExtra.disabled = false;
+                    btnConfirmGenerateExtra.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> <span>지금 추가 생성하기</span>';
+                }
+            });
+        }
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', initExamData);
