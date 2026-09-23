@@ -4930,7 +4930,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         const canvas = document.createElement('canvas');
                         let w = img.width;
                         let h = img.height;
-                        const maxW = 560;
+                        const maxW = 480;
                         if (w > maxW) {
                             h = Math.round(h * (maxW / w));
                             w = maxW;
@@ -4939,7 +4939,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, w, h);
-                        const compressed = canvas.toDataURL('image/jpeg', 0.55);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.50);
                         applyUrl(compressed);
                     } catch(e) {
                         applyUrl(dataUrl);
@@ -5153,7 +5153,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 if (currentAnalysisData) {
                     currentAnalysisData.illustration_url = curIllu;
                     if (currentAnalysisData.summary_info) {
-                        currentAnalysisData.summary_info.illustration_url = curIllu;
+                        currentAnalysisData.summary_info.illustration_url = '';
                     }
                 }
 
@@ -5180,7 +5180,10 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) throw new Error('서버 저장 실패');
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || '서버 저장 실패');
+                    }
                     hideLoading();
                     showToast(`'${title}' 강의용 교안이 [${folderName}] 폴더에 성공적으로 저장되었습니다!`);
                 } catch (err) {

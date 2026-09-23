@@ -243,7 +243,7 @@ try:
 except Exception:
     pass
 
-def compress_base64_image(image_data_url, max_width=560, max_chars=35000):
+def compress_base64_image(image_data_url, max_width=480, max_chars=20000):
     if not image_data_url or not isinstance(image_data_url, str):
         return image_data_url
     if not image_data_url.startswith('data:image/'):
@@ -260,8 +260,8 @@ def compress_base64_image(image_data_url, max_width=560, max_chars=35000):
             img = img.convert('RGB')
         
         result_url = image_data_url
-        for w in (max_width, 480, 400, 320):
-            for q in (60, 50, 40, 30, 20):
+        for w in (max_width, 420, 360, 300, 240):
+            for q in (55, 45, 35, 25, 18):
                 c_img = img.copy()
                 c_img.thumbnail((w, int(w * 9 / 16)), Image.Resampling.LANCZOS)
                 buf = io.BytesIO()
@@ -287,8 +287,8 @@ def persist_base64_image(image_data_url, title=""):
     if not image_data_url.startswith('data:image/'):
         return image_data_url
     
-    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~35,000 chars max)
-    compressed_url = compress_base64_image(image_data_url, max_chars=35000)
+    # 1. Compress base64 to ensure it stays well within Google Sheets cell limit (~20,000 chars max)
+    compressed_url = compress_base64_image(image_data_url, max_width=480, max_chars=20000)
 
     # 2. Try saving to static/uploads locally for caching if valid bytes exist
     try:
@@ -670,7 +670,7 @@ def get_db_saves():
     raw_saves = []
     if GAS_URL:
         try:
-            res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+            res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=25)
             if res.status_code == 200:
                 raw_saves = res.json().get("saves", [])
         except Exception as e:
@@ -791,7 +791,8 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
         if 'analysis_data' in data and isinstance(data['analysis_data'], dict):
             data['analysis_data']['illustration_url'] = illu_url
             if 'summary_info' in data['analysis_data'] and isinstance(data['analysis_data']['summary_info'], dict):
-                data['analysis_data']['summary_info']['illustration_url'] = illu_url
+                # Do NOT duplicate in summary_info to avoid Google Sheets 50,000 char cell overflow
+                data['analysis_data']['summary_info']['illustration_url'] = ''
 
     # Always persist local cache copy so illustration is instantly retrievable
     try:
@@ -815,13 +816,25 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "illustration_url": illu_url or ''
         }
         try:
-            res = requests.post(GAS_URL, json=payload, timeout=10)
-            if res.status_code == 200 and res.json().get("success"):
-                return filename
+            res = requests.post(GAS_URL, json=payload, timeout=35)
+            if res.status_code == 200:
+                try:
+                    res_json = res.json()
+                    if res_json.get("success"):
+                        return filename
+                    else:
+                        err_msg = res_json.get("error", "알 수 없는 오류")
+                        print(f"[save_db_handout] Google Sheet Save error: {err_msg}")
+                        raise Exception(f"Google Sheet 저장 실패: {err_msg}")
+                except json.JSONDecodeError:
+                    print(f"[save_db_handout] Google Sheet HTML error response: {res.text[:300]}")
+                    raise Exception("Google Sheet 단일 셀 용량(50,000자) 초과 또는 Apps Script 오류로 저장이 거부되었습니다.")
             else:
-                print(f"[save_db_handout] Google Sheet Save response: {res.text}")
+                print(f"[save_db_handout] Google Sheet HTTP {res.status_code}: {res.text[:200]}")
+                raise Exception(f"Google Sheet 서버 응답 오류 (HTTP {res.status_code})")
         except Exception as e:
             print(f"[save_db_handout] Google Sheet API error: {str(e)}")
+            raise e
             
     if IS_VERCEL_KV:
         headers = {"Authorization": f"Bearer {KV_TOKEN}"}
@@ -851,7 +864,7 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             "label": material_type or label or '모의고사'
         }
         try:
-            res = requests.post(GAS_URL, json=payload, timeout=10)
+            res = requests.post(GAS_URL, json=payload, timeout=25)
             if res.status_code == 200:
                 res_data = res.json()
                 if "error" not in res_data:
@@ -859,7 +872,7 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             
             if not doc_res:
                 # Fallback: Query list to find matching item regardless of label
-                list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=10)
+                list_res = requests.post(GAS_URL, json={"action": "list", "label": "all"}, timeout=25)
                 if list_res.status_code == 200:
                     all_saves = list_res.json().get("saves", [])
                     for item in all_saves:
@@ -871,7 +884,7 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
                                 "material_type": item.get("material_type", item.get("label", "")),
                                 "doc_type": item.get("doc_type", "")
                             }
-                            f_res = requests.post(GAS_URL, json=fallback_payload, timeout=10)
+                            f_res = requests.post(GAS_URL, json=fallback_payload, timeout=25)
                             if f_res.status_code == 200 and "error" not in f_res.json():
                                 doc_res = f_res.json()
                                 break
@@ -1296,11 +1309,10 @@ def save_handout():
         raw_illu = data.get('illustration_url') or (isinstance(analysis_d, dict) and analysis_d.get('illustration_url')) or (isinstance(analysis_d, dict) and isinstance(analysis_d.get('summary_info'), dict) and analysis_d['summary_info'].get('illustration_url'))
         if raw_illu and str(raw_illu).startswith('data:image/'):
             compressed_illu = persist_base64_image(raw_illu, title)
-            data['illustration_url'] = compressed_illu
             if isinstance(analysis_d, dict):
                 analysis_d['illustration_url'] = compressed_illu
                 if isinstance(analysis_d.get('summary_info'), dict):
-                    analysis_d['summary_info']['illustration_url'] = compressed_illu
+                    analysis_d['summary_info']['illustration_url'] = ''
                 data['analysis_data'] = analysis_d
 
         filename = save_db_handout(title, data, label=material_type, material_type=material_type, doc_type=doc_type, branch=branch, folder_name=folder_name)
