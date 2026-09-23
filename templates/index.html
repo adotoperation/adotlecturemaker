@@ -74,7 +74,7 @@
             #loginModalOverlay, #loadingOverlay, #customConfirmModal,
             [id*="modal"], [id*="Modal"], [id*="Overlay"], [id*="overlay"],
             #viewDashboard, #emptyState, .no-print, .hidden,
-            #handoutSheet.hidden, #vocabTestSheet.hidden, #sentencePagesWrapper.hidden {
+            #handoutSheet.hidden, #vocabTestSheet.hidden, #oralTestSheet.hidden, #sentencePagesWrapper.hidden {
                 display: none !important;
                 visibility: hidden !important;
                 position: absolute !important;
@@ -86,7 +86,7 @@
             }
 
             main, #viewGenerator, section, section > div,
-            #handoutSheet:not(.hidden), #sentencePagesWrapper:not(.hidden), #vocabTestSheet:not(.hidden) {
+            #handoutSheet:not(.hidden), #sentencePagesWrapper:not(.hidden), #vocabTestSheet:not(.hidden), #oralTestSheet:not(.hidden) {
                 display: block !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -878,9 +878,14 @@
                             <span>단어 테스트 저장</span>
                         </button>
 
-                        <button id="btnCreateVariationExam" type="button" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center">
+                        <button id="btnCreateVariationExam" type="button" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-1.5 text-xs text-center cursor-pointer">
                             <i class="fa-solid fa-file-pen text-sm"></i>
                             <span>변형문제 만들기 & 저장</span>
+                        </button>
+
+                        <button id="btnCreateOralTest" type="button" class="w-full col-span-2 bg-gradient-to-r from-sky-600 via-indigo-600 to-indigo-700 hover:from-sky-700 hover:to-indigo-800 text-white font-bold py-3 px-2.5 rounded-lg shadow hover:shadow-md transition flex items-center justify-center space-x-2 text-xs text-center cursor-pointer">
+                            <i class="fa-solid fa-microphone-lines text-sm text-sky-200"></i>
+                            <span>1:1 구두 TEST지 출제 & 저장</span>
                         </button>
                     </div>
 
@@ -909,12 +914,22 @@
                             </button>
                         </div>
                     </div>
-                    <!-- [페이지 분할 및 문장 수 설정 컨트롤] -->
-                    <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-xs text-xs font-bold text-slate-700">
-                        <span class="text-slate-500 text-[11px]"><i class="fa-solid fa-file-lines text-indigo-600 mr-1"></i>페이지당 문장:</span>
-                        <button type="button" onclick="setSentencesPerPage(1)" id="btnPage1Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">1문장</button>
-                        <button type="button" onclick="setSentencesPerPage(2)" id="btnPage2Sent" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer">2문장 (기본)</button>
-                        <button type="button" onclick="setSentencesPerPage(3)" id="btnPage3Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">3문장</button>
+
+                    <!-- [교안 모드 전환 & 페이지 분할 컨트롤] -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- 강사용 교안 모드 토글 버튼 -->
+                        <button type="button" id="btnToggleTeacherMode" onclick="toggleTeacherMode()" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50">
+                            <i id="teacherModeIcon" class="fa-solid fa-chalkboard-user text-indigo-600"></i>
+                            <span id="teacherModeLabel">강사용 교안 (TEST 출제 포인트)</span>
+                        </button>
+
+                        <!-- 페이지 분할 및 문장 수 설정 컨트롤 -->
+                        <div class="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-300 shadow-xs text-xs font-bold text-slate-700">
+                            <span class="text-slate-500 text-[11px]"><i class="fa-solid fa-file-lines text-indigo-600 mr-1"></i>페이지당:</span>
+                            <button type="button" onclick="setSentencesPerPage(1)" id="btnPage1Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">1문장</button>
+                            <button type="button" onclick="setSentencesPerPage(2)" id="btnPage2Sent" class="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] shadow-xs cursor-pointer">2문장 (기본)</button>
+                            <button type="button" onclick="setSentencesPerPage(3)" id="btnPage3Sent" class="px-2 py-0.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition text-[11px] cursor-pointer">3문장</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1246,6 +1261,113 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- ==================== 1:1 Oral Test Sheet Container ==================== -->
+                <div id="oralTestSheet" class="space-y-6 hidden">
+                    <!-- Mode Switcher Toolbar (No Print) -->
+                    <div class="bg-white p-3 rounded-xl border border-slate-300 shadow-sm flex flex-wrap items-center justify-between gap-2 no-print">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button id="btnBackToHandoutFromOral" type="button" onclick="switchBackToHandout()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-arrow-left"></i> 강의용 교안
+                            </button>
+                            <!-- Tab Switchers -->
+                            <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                                <button id="tabOralSubStudent" type="button" onclick="switchOralSubView('student')" class="text-xs font-bold px-3 py-1 rounded-md bg-indigo-600 text-white shadow-xs transition flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-file-pen"></i> [1] 학생용 테스트지
+                                </button>
+                                <button id="tabOralSubTeacher" type="button" onclick="switchOralSubView('teacher')" class="text-xs font-bold px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-chalkboard-user"></i> [2] 구두 질문 & 루브릭
+                                </button>
+                                <button id="tabOralSubFlow" type="button" onclick="switchOralSubView('flow')" class="text-xs font-bold px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer">
+                                    <i class="fa-solid fa-diagram-project"></i> [3] 지문 요약 & 흐름도
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="copyOralTestContent()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                                <i class="fa-regular fa-copy"></i> 텍스트 복사
+                            </button>
+                            <button type="button" onclick="window.print()" class="bg-slate-900 hover:bg-black text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs">
+                                <i class="fa-solid fa-print"></i> A4 인쇄 / PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Printable A4 Sheet for Student Oral Test -->
+                    <div id="oralTestPageStudent" class="a4-page print-page-block">
+                        <div class="flex flex-col h-full justify-between">
+                            <div>
+                                <!-- Header -->
+                                <div class="border-b-2 border-slate-900 pb-2 mb-3 flex justify-between items-end">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="bg-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">1:1 ORAL TEST</span>
+                                            <span class="text-[11px] font-bold text-slate-500">에이닷 영어 내신대비 1:1 구두 테스트지</span>
+                                        </div>
+                                        <h1 id="oralSheetTitle" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">지문 제목</h1>
+                                    </div>
+                                    <div class="text-right text-xs font-bold text-slate-600 space-y-0.5">
+                                        <div>이름: <span class="inline-block w-24 border-b border-slate-400"></span></div>
+                                        <div>점수: <span class="inline-block w-14 border-b border-slate-400"></span> / 100</div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-indigo-50/70 border border-indigo-200/80 rounded-lg p-2 mb-4 text-[11px] text-indigo-950 font-medium leading-relaxed">
+                                    ※ 각 문장의 <b>[A / B]</b> 어법 선택지를 올바르게 고르고, <b>[ &nbsp; ]</b> 빈칸에 알맞은 연결사나 핵심어를 채우시오. (<b>★</b> 표시는 핵심 서술형 영작 대비 문장입니다.)
+                                </div>
+
+                                <!-- Sentences List -->
+                                <div id="oralSheetSentencesList" class="space-y-4 font-outfit text-sm leading-relaxed text-slate-900">
+                                </div>
+                            </div>
+
+                            <!-- Footer note -->
+                            <div class="mt-6 pt-3 border-t border-slate-300 flex justify-between items-center text-[10px] text-slate-400">
+                                <span>에이닷 영어학원 AI 내신자료메이커 위브</span>
+                                <span>1:1 Oral Test Sheet (Student Edition)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Printable A4 Sheet for Teacher Oral Questions & Flow -->
+                    <div id="oralTestPageTeacher" class="a4-page print-page-block hidden">
+                        <div class="flex flex-col h-full justify-between">
+                            <div class="space-y-4">
+                                <!-- Header -->
+                                <div class="border-b-2 border-slate-900 pb-2 flex justify-between items-end">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">TEACHER'S GUIDE</span>
+                                            <span class="text-[11px] font-bold text-slate-500">1:1 구두 질문 및 채점 기준 (Rubric)</span>
+                                        </div>
+                                        <h1 id="oralTeacherSheetTitle" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">지문 제목</h1>
+                                    </div>
+                                    <span class="text-xs font-bold text-slate-500">교사용 1:1 평가 가이드</span>
+                                </div>
+
+                                <!-- Teacher Oral Questions List -->
+                                <div id="oralTeacherQuestionsContainer" class="space-y-3">
+                                </div>
+
+                                <!-- Flow in Teacher Sheet -->
+                                <div class="mt-4 pt-3 border-t border-slate-200 space-y-2">
+                                    <div class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                        <i class="fa-solid fa-diagram-project text-indigo-600"></i> 지문 요약 및 흐름도
+                                    </div>
+                                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800">
+                                        <div class="font-bold text-indigo-900 mb-1">[주제/요지] <span id="oralTeacherTheme" class="font-semibold text-slate-800"></span></div>
+                                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-[11px]" id="oralTeacherFlowGrid"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 pt-3 border-t border-slate-300 flex justify-between items-center text-[10px] text-slate-400">
+                                <span>에이닷 영어학원 AI 내신자료메이커 위브</span>
+                                <span>1:1 Oral Test Sheet (Teacher's Guide)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div> <!-- End View A: Generator -->
 
@@ -1463,11 +1585,8 @@
                     <div class="space-y-1">
                         <div class="flex items-center gap-2">
                             <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded uppercase tracking-wider">단가 기준표</span>
-                            <h4 class="text-xs sm:text-sm font-bold text-white">Google Gemini API 공식 토큰 단가 기준 (환율 1,380원 환산)</h4>
+                            <h4 class="text-xs sm:text-sm font-bold text-white">평균 1,000 토큰당 약 0.35원 (1토큰 ≈ 0.00035원)</h4>
                         </div>
-                        <p class="text-[11px] text-slate-300 leading-relaxed">
-                            입력(프롬프트) $0.075/1M, 출력(응답) $0.300/1M ➔ <b>평균 1,000 토큰당 약 0.35원 (1토큰 ≈ 0.00035원)</b>
-                        </p>
                     </div>
                     <div id="pricingBadgeContainer" class="flex flex-wrap gap-2 text-[10px] font-semibold shrink-0">
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
@@ -1478,6 +1597,9 @@
                         </span>
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
                             단어TEST: <b class="text-violet-300 font-bold">~2,000T (약 0.7원)</b>
+                        </span>
+                        <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
+                            1:1 구두TEST: <b class="text-sky-300 font-bold">~2,500T (약 0.9원)</b>
                         </span>
                         <span class="bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-lg text-slate-200">
                             변형문제 1회: <b class="text-rose-300 font-bold">~11,000T (약 3.9원)</b>
@@ -1705,6 +1827,144 @@
                 <button onclick="submitEditItemModal()" id="btnSubmitEditItem" type="button" class="text-xs font-bold px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition shadow-sm cursor-pointer flex items-center gap-1.5">
                     <i class="fa-solid fa-check"></i> 변경사항 저장
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1:1 Oral Test Sheet Modal ==================== -->
+    <div id="modalOralTest" class="fixed inset-0 z-[99998] flex items-center justify-center p-2 sm:p-4 bg-slate-900/60 backdrop-blur-xs hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white flex items-center justify-between border-b border-indigo-900">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center text-sm border border-sky-400/30">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                    </span>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-white">에이닷 1:1 구두 TEST지 (Oral Test Sheet)</h3>
+                            <span id="oralTestTopicBadge" class="text-[10px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full font-bold border border-sky-500/30">구두테스트 & 루브릭</span>
+                        </div>
+                        <p id="oralTestModalSubtitle" class="text-[11px] text-slate-300">학생용 테스트지 및 교사용 1:1 구두 질문·채점 기준·논리 흐름도</p>
+                    </div>
+                </div>
+                <button onclick="closeOralTestModal()" type="button" class="text-slate-400 hover:text-white transition text-base cursor-pointer p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="bg-slate-100 px-5 py-2 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                    <button type="button" id="tabOralStudent" onclick="switchOralTab('student')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-xs border border-slate-200 cursor-pointer">
+                        <i class="fa-solid fa-file-pen"></i> [1] 학생용 테스트지 (Student Sheet)
+                    </button>
+                    <button type="button" id="tabOralTeacher" onclick="switchOralTab('teacher')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-slate-200 cursor-pointer">
+                        <i class="fa-solid fa-chalkboard-user"></i> [2] 교사용 구두 질문 & 루브릭 (Questions & Rubric)
+                    </button>
+                    <button type="button" id="tabOralFlow" onclick="switchOralTab('flow')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-slate-200 cursor-pointer">
+                        <i class="fa-solid fa-diagram-project"></i> [3] 지문 요약 & 흐름도 (Logic Flow)
+                    </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="copyOralTestContent()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition flex items-center gap-1 cursor-pointer shadow-xs">
+                        <i class="fa-regular fa-copy"></i> 복사하기
+                    </button>
+                    <button type="button" onclick="printOralTestFromModal()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition flex items-center gap-1 cursor-pointer shadow-xs">
+                        <i class="fa-solid fa-print"></i> A4 인쇄 / PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-5 overflow-y-auto flex-1 space-y-4 bg-slate-50" id="oralModalScrollArea">
+                <!-- Tab 1: Student Sheet -->
+                <div id="oralTabContentStudent" class="space-y-4">
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs" id="oralStudentPrintSheet">
+                        <!-- Student Header for Print -->
+                        <div class="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-end">
+                            <div>
+                                <div class="text-[11px] font-black text-indigo-700 tracking-wider uppercase mb-0.5">A.DOT ENGLISH ACADEMY · 1:1 ORAL TEST</div>
+                                <h2 id="oralModalPrintTitle" class="text-lg sm:text-xl font-black text-slate-900">지문 제목</h2>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs font-bold text-slate-700 border border-slate-300 rounded-lg px-3 py-1.5 bg-slate-50">
+                                <div>이름: <span class="inline-block w-20 border-b border-slate-400"></span></div>
+                                <div>점수: <span class="inline-block w-12 border-b border-slate-400"></span> / 100</div>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-slate-500 font-semibold mb-3 flex items-center justify-between">
+                            <span>※ 각 문장의 <b>[A / B]</b> 어법 선택지를 올바르게 고르고, <b>[ &nbsp; ]</b> 빈칸에 알맞은 연결사/핵심어를 적으시오. (<b>★</b>: 주요 서술형 문장)</span>
+                        </div>
+                        <!-- Sentences List -->
+                        <div id="oralModalSentencesList" class="space-y-3 font-outfit text-sm leading-relaxed text-slate-900">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Teacher Questions & Rubric -->
+                <div id="oralTabContentTeacher" class="space-y-4 hidden">
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-chalkboard-user text-indigo-600"></i>
+                                1:1 구두 질문 및 교사용 채점 기준 (Oral Questions & Rubric)
+                            </h4>
+                            <span class="text-xs text-slate-500">선생님이 학생에게 직접 질문하고 채점합니다.</span>
+                        </div>
+                        <div id="oralModalTeacherQuestionsList" class="space-y-3">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Core Logic & Flow -->
+                <div id="oralTabContentFlow" class="space-y-4 hidden">
+                    <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+                        <!-- Theme -->
+                        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
+                            <div class="text-xs font-bold text-indigo-800 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-quote-left"></i> 지문 주제 및 요지 한 줄 요약
+                            </div>
+                            <div id="oralModalFlowTheme" class="text-sm font-bold text-slate-900"></div>
+                        </div>
+
+                        <!-- 4-Stage Flow -->
+                        <div>
+                            <div class="text-xs font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-diagram-project text-indigo-600"></i> 지문 논리 흐름도 (4-Step Flow)
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3" id="oralModalFlowStepsGrid">
+                            </div>
+                        </div>
+
+                        <!-- Final Oral Question -->
+                        <div class="bg-slate-900 text-white rounded-xl p-4 space-y-2 border border-slate-800">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded">최종 요약 구두 질문</span>
+                                <span class="text-xs text-slate-300">테스트 종료 전 학생이 한국어로 말로 요약해야 할 질문</span>
+                            </div>
+                            <p id="oralModalFlowFinalQuestion" class="text-xs sm:text-sm font-bold text-amber-300 leading-relaxed"></p>
+                            <div class="border-t border-slate-800 pt-2 mt-2">
+                                <div class="text-[11px] text-emerald-400 font-bold mb-0.5">교사용 모범 답변:</div>
+                                <p id="oralModalFlowFinalAnswer" class="text-xs text-slate-300 leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs text-slate-500 font-medium">
+                    💡 강의용 교안 상단에서 <b>[강사용 교안 모드]</b>를 켜시면 교안 본문에도 본 TEST지 문제가 실시간으로 결합됩니다.
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="saveOralTestToRepository()" type="button" id="btnSaveOralToRepo" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> 자료 저장소에 저장
+                    </button>
+                    <button onclick="closeOralTestModal()" type="button" class="text-xs font-bold bg-slate-800 hover:bg-slate-700 text-white px-4 py-1.5 rounded-lg transition cursor-pointer">
+                        닫기
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2993,8 +3253,8 @@
                                     else if (topClean.startsWith('S') && !topClean.startsWith('SC')) topColor = 'text-blue-600';
                                     else if (topClean.startsWith('SC') || topClean.startsWith('C')) topColor = 'text-indigo-600';
                                     
-                                    const isMainClauseTopSV = Boolean(t.underline) && ((topClean.startsWith('S') && !topClean.startsWith('SC')) || topClean.startsWith('V'));
-                                    const topSizeClass = isMainClauseTopSV ? 'text-[10.5px] font-black' : 'text-[8.5px] font-black';
+                                    const isMainClauseTop = Boolean(t.underline);
+                                    const topSizeClass = isMainClauseTop ? 'text-[10.5px] font-black' : 'text-[8.5px] font-black';
 
                                     topLabelHtml = `<span class="absolute bottom-[86%] left-1/2 -translate-x-1/2 whitespace-nowrap ${topSizeClass} tracking-tight ${topColor} pointer-events-none leading-none">${topLabel}</span>`;
                                 }
@@ -3026,12 +3286,15 @@
                                 // Sub Tag (rendered symmetrically tightly beneath word baseline/underline)
                                 let subTagHtml = '';
                                 if (displaySubTag || hasArrow) {
+                                    const isMainClause = Boolean(t.underline);
                                     if (hasArrow) {
                                         const cleanTagText = displaySubTag.replace(/[⬑⤹⤺]/g, '').trim();
-                                        const labelPart = cleanTagText ? `<span class="ml-0.5 text-[8.5px] font-black">${cleanTagText}</span>` : '';
+                                        const arrowSize = isMainClause ? 'text-[14.5px]' : 'text-[12px]';
+                                        const labelSize = isMainClause ? 'text-[10px]' : 'text-[8.5px]';
+                                        const labelPart = cleanTagText ? `<span class="ml-0.5 ${labelSize} font-black">${cleanTagText}</span>` : '';
                                         subTagHtml = `
                                             <span class="absolute top-[100%] left-0 whitespace-nowrap text-indigo-600 flex items-center pointer-events-none leading-none">
-                                                <span class="text-[12px] font-black leading-none text-indigo-600">⬑</span>
+                                                <span class="${arrowSize} font-black leading-none text-indigo-600">⬑</span>
                                                 ${labelPart}
                                             </span>
                                         `;
@@ -3040,22 +3303,31 @@
                                         const isVerbal = ['v', 'o', 'c', 'vt', 'vi', 'oc', 'sc'].includes(cleanTag.toLowerCase());
                                         const tagColorClass = cleanTag === '의미상 S' ? 'text-blue-600 font-bold' : (colorClasses[tagColor] || colorClass).split(' ')[0];
                                         
-                                        // 1.2배 크기 규칙: 주절의 주어(S)와 동사(V/Vi/Vt)는 다른 문장기호보다 1.2배 크게 확대하여 식별력 극대화
-                                        const isMainClause = Boolean(t.underline);
+                                        // 1.2배 크기 규칙: 주절의 모든 문장기호(S, V, Vi, Vt, O, C, SC, OC, M 등)는 종속절 대비 1.2배 크게 확대
                                         const isSubject = (cleanTag === 'S' || (cleanTag.startsWith('S') && !cleanTag.startsWith('SC'))) && cleanTag !== '의미상 S' && !cleanTag.includes('전치사');
                                         const isVerb = cleanTag.toLowerCase() === 'v' || cleanTag.toLowerCase().startsWith('vi') || cleanTag.toLowerCase().startsWith('vt') || (cleanTag.toLowerCase().startsWith('v') && !cleanTag.toLowerCase().includes('부사'));
 
                                         let tagSizeClass;
-                                        if (isMainClause && isSubject) {
-                                            tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 S (10px) 대비 1.2배 확대
-                                        } else if (isMainClause && isVerb) {
-                                            tagSizeClass = 'text-[11.5px] font-black tracking-tight'; // 표준 V/Vi/Vt (9~9.5px) 대비 1.2배 확대
-                                        } else if (cleanTag === '의미상 S') {
-                                            tagSizeClass = 'text-[8.5px] font-black';
-                                        } else if (isVerbal) {
-                                            tagSizeClass = 'text-[9px] font-black';
+                                        if (isMainClause) {
+                                            if (isSubject) {
+                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 10px 대비 1.2배 확대
+                                            } else if (isVerb) {
+                                                tagSizeClass = 'text-[11.5px] font-black tracking-tight'; // 표준 9.5px 대비 1.2배 확대
+                                            } else if (cleanTag === '의미상 S') {
+                                                tagSizeClass = 'text-[10px] font-black tracking-tight'; // 표준 8.5px 대비 1.2배 확대
+                                            } else if (isVerbal) {
+                                                tagSizeClass = 'text-[11px] font-black tracking-tight'; // 표준 O, C, SC, OC (9px) 대비 1.2배 확대
+                                            } else {
+                                                tagSizeClass = 'text-[12px] font-black tracking-tight'; // 표준 M/수식어 등 (10px) 대비 1.2배 확대
+                                            }
                                         } else {
-                                            tagSizeClass = 'text-[10px] font-black';
+                                            if (cleanTag === '의미상 S') {
+                                                tagSizeClass = 'text-[8.5px] font-black';
+                                            } else if (isVerbal) {
+                                                tagSizeClass = 'text-[9px] font-black';
+                                            } else {
+                                                tagSizeClass = 'text-[10px] font-black';
+                                            }
                                         }
 
                                         subTagHtml = `<span class="absolute top-[100%] left-1/2 -translate-x-1/2 whitespace-nowrap ${tagSizeClass} ${tagColorClass} pointer-events-none leading-none">${displaySubTag}</span>`;
@@ -3076,6 +3348,44 @@
                     }
 
                     pageHtml += '</div>'; // End token list
+
+                    // [강사용 교안 전용] 문장별 TEST 출제 포인트 표시 (어법 선택형, 빈칸, 서술형 문장)
+                    if (window.isTeacherMode) {
+                        const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const sNum = s.index || (chunkIdx + 1);
+                        const matchSent = oralData?.student_sheet?.sentences?.find(st => Number(st.sentence_num) === Number(sNum));
+                        
+                        if (matchSent && matchSent.test_points && matchSent.test_points.length > 0) {
+                            let ptsHtml = '';
+                            matchSent.test_points.forEach(pt => {
+                                const ptDisplay = pt.choices || `빈칸: [${pt.target}]`;
+                                ptsHtml += `
+                                    <div class="inline-flex items-center gap-1.5 bg-white border border-amber-300 rounded px-2 py-0.5 text-[10px] shadow-2xs font-semibold text-slate-800">
+                                        <span class="text-indigo-600 font-extrabold font-outfit">${ptDisplay}</span>
+                                        <span class="text-slate-400">➔ 정답:</span>
+                                        <b class="text-rose-600 font-black">${pt.correct_answer}</b>
+                                    </div>
+                                `;
+                            });
+                            const starredBadge = matchSent.is_starred ? '<span class="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.2 rounded">★ 서술형 빈출</span>' : '';
+                            pageHtml += `
+                                <div class="bg-amber-50/90 border border-amber-300/80 rounded-lg p-1.5 px-2 text-[10px] space-y-1 my-1">
+                                    <div class="flex items-center justify-between text-amber-900 font-bold">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="bg-amber-500 text-white font-black px-1.5 py-0.2 rounded text-[9px] uppercase tracking-wide">
+                                                <i class="fa-solid fa-microphone-lines mr-0.5"></i> TEST 출제 포인트
+                                            </span>
+                                            ${starredBadge}
+                                            <span class="text-amber-900 font-bold">문장 (${sNum}) 학생 TEST지 변형 지점</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                        ${ptsHtml}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
 
                     // 1. [직독직해] Block (Compact 70% Spacing)
                     const chunkKrRaw = typeof s.chunk_korean === 'string' ? s.chunk_korean : (Array.isArray(s.chunk_korean) ? s.chunk_korean.join(' / ') : '');
@@ -3178,6 +3488,81 @@
                         }
                     }
 
+                    // [강사용 교안 전용] [중요 어법 포인트] 아래에 [TEST지 질문 및 답안] 블록 추가
+                    if (window.isTeacherMode) {
+                        const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const sNum = s.index || (chunkIdx + 1);
+
+                        if (oralData) {
+                            const matchQuestions = (oralData.oral_questions || []).filter(q => Number(q.sentence_num) === Number(sNum));
+                            const matchSent = oralData?.student_sheet?.sentences?.find(st => Number(st.sentence_num) === Number(sNum));
+                            const testPoints = matchSent?.test_points || [];
+
+                            if (matchQuestions.length > 0 || testPoints.length > 0) {
+                                let oralContentHtml = '';
+
+                                if (matchQuestions.length > 0) {
+                                    matchQuestions.forEach(q => {
+                                        oralContentHtml += `
+                                            <div class="bg-indigo-950/90 text-white rounded p-2 text-[10px] space-y-1 border border-indigo-800">
+                                                <div class="flex items-center gap-1.5 font-bold text-amber-300">
+                                                    <span class="bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded text-[9px]">${q.q_id || '구두질문'}</span>
+                                                    <span>[${q.type || '1:1 구두 질문'}]</span>
+                                                </div>
+                                                <div class="text-slate-100 font-semibold pl-1 leading-snug">
+                                                    <span class="text-sky-300 font-bold">Q.</span> ${q.question}
+                                                </div>
+                                                <div class="text-emerald-300 font-medium pl-1 leading-snug">
+                                                    <span class="text-emerald-400 font-bold">A. 모범답안:</span> ${q.model_answer}
+                                                </div>
+                                                <div class="text-slate-300 text-[9px] pl-1 pt-0.5 border-t border-indigo-800/80">
+                                                    <span class="text-amber-400 font-bold">채점 기준:</span> ${q.rubric}
+                                                </div>
+                                            </div>
+                                        `;
+                                    });
+                                }
+
+                                if (testPoints.length > 0) {
+                                    oralContentHtml += `
+                                        <div class="bg-white border border-amber-200 rounded p-1.5 text-[9.5px] text-slate-700 space-y-0.5">
+                                            <div class="font-bold text-slate-900 text-[10px] flex items-center gap-1 mb-0.5">
+                                                <i class="fa-solid fa-list-check text-amber-600"></i> 문항별 출제 포인트 및 정답 근거
+                                            </div>
+                                            ${testPoints.map(pt => `
+                                                <div class="leading-relaxed">
+                                                    • <b class="text-indigo-700 font-outfit">${pt.choices || pt.target}</b> ➔ 정답: <b class="text-rose-600">${pt.correct_answer}</b>
+                                                    <span class="text-slate-500">(${pt.explanation})</span>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `;
+                                }
+
+                                pageHtml += `
+                                    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-lg p-2 space-y-1.5 mt-1.5">
+                                        <div class="flex items-center justify-between border-b border-amber-200 pb-1">
+                                            <span class="text-amber-900 font-black text-[11px] flex items-center gap-1.5">
+                                                <i class="fa-solid fa-chalkboard-user text-amber-600"></i> [TEST지 질문 및 답안 (강사 1:1 지도 코멘트)]
+                                            </span>
+                                            <span class="text-[9px] bg-amber-500 text-white font-black px-1.5 py-0.5 rounded">1:1 질문 가이드</span>
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            ${oralContentHtml}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        } else {
+                            pageHtml += `
+                                <div class="bg-amber-50/70 border border-dashed border-amber-300 rounded-lg p-2 mt-1.5 flex items-center justify-between text-[10px] text-amber-800">
+                                    <span>💡 [1:1 구두 TEST지 출제 & 저장]을 실행하면 이 자리에 문장별 구두 질문과 모범답안 코멘트가 자동으로 표시됩니다.</span>
+                                    <button type="button" onclick="triggerCreateOralTest()" class="bg-amber-600 hover:bg-amber-700 text-white px-2 py-0.5 rounded font-bold text-[9px] cursor-pointer shrink-0 ml-2">지금 출제</button>
+                                </div>
+                            `;
+                        }
+                    }
+
                     pageHtml += '</div>'; // End print-block div
 
                     // If not the last sentence in the page chunk, show page split trigger button on hover
@@ -3194,6 +3579,75 @@
                 });
 
                 pageHtml += '</div>'; // End sentence list
+
+                // [강사용 교안 전용] 마지막 페이지 하단 지문 요지 및 4단계 논리 흐름도 구두 질문/답안
+                if (isLastPage && window.isTeacherMode) {
+                    const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                    if (oralData && oralData.core_logic_flow) {
+                        const flow = oralData.core_logic_flow;
+                        const flowSteps = flow.flow || {};
+                        pageHtml += `
+                            <div class="mt-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white rounded-xl p-4 border border-indigo-700 shadow-md space-y-3">
+                                <div class="flex items-center justify-between border-b border-indigo-700/70 pb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="bg-amber-400 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded uppercase">테스트 플로우 최종 점검</span>
+                                        <h4 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                                            <i class="fa-solid fa-compass text-amber-400"></i> [지문 요지 및 논리구조 구두 질문 & 답안]
+                                        </h4>
+                                    </div>
+                                    <span class="text-[10px] text-indigo-300 font-bold">1:1 Oral Test 최종 마무리</span>
+                                </div>
+                                
+                                <!-- 주제 / 요지 한 줄 요약 -->
+                                <div class="bg-white/10 rounded-lg p-2.5 border border-white/10 text-[11px] leading-relaxed">
+                                    <span class="text-amber-300 font-bold mr-1.5">[주제 / 요지]</span>
+                                    <span class="text-slate-100 font-medium">${flow.theme || '지문의 핵심 주제'}</span>
+                                </div>
+
+                                <!-- 흐름도 4단계 -->
+                                <div class="space-y-1.5">
+                                    <div class="text-[10px] font-bold text-indigo-300 flex items-center gap-1">
+                                        <i class="fa-solid fa-arrow-right-arrow-left"></i> [논리 흐름도 (Flow)]
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[10px]">
+                                        <div class="bg-slate-800/90 border border-slate-700 rounded p-2">
+                                            <div class="text-sky-300 font-black mb-0.5">[도입]</div>
+                                            <div class="text-slate-200 leading-snug">${flowSteps.intro || '-'}</div>
+                                        </div>
+                                        <div class="bg-slate-800/90 border border-slate-700 rounded p-2">
+                                            <div class="text-emerald-300 font-black mb-0.5">[전개/원인]</div>
+                                            <div class="text-slate-200 leading-snug">${flowSteps.development || '-'}</div>
+                                        </div>
+                                        <div class="bg-slate-800/90 border border-slate-700 rounded p-2">
+                                            <div class="text-amber-300 font-black mb-0.5">[대조/반전]</div>
+                                            <div class="text-slate-200 leading-snug">${flowSteps.contrast || '-'}</div>
+                                        </div>
+                                        <div class="bg-slate-800/90 border border-slate-700 rounded p-2">
+                                            <div class="text-rose-300 font-black mb-0.5">[결론]</div>
+                                            <div class="text-slate-200 leading-snug">${flowSteps.conclusion || '-'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 최종 구두 요약 질문 및 모범 답안 -->
+                                <div class="bg-indigo-900/70 border border-indigo-600/60 rounded-lg p-3 space-y-1.5 text-[11px]">
+                                    <div class="flex items-start gap-2">
+                                        <span class="bg-rose-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded shrink-0 mt-0.5">최종 질문</span>
+                                        <div class="font-bold text-amber-300 leading-relaxed">
+                                            ${flow.final_oral_question || '지문의 핵심 주제와 흐름을 본인의 말로 요약하여 설명해보세요.'}
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2 pt-1 border-t border-indigo-700/60">
+                                        <span class="bg-emerald-500 text-slate-950 font-black text-[9px] px-1.5 py-0.5 rounded shrink-0 mt-0.5">모범 답안</span>
+                                        <div class="text-slate-200 leading-relaxed font-medium">
+                                            ${flow.final_oral_answer || '-'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
 
                 // Removed Vocab Box from Last Page (moved to Page 1)
 
@@ -3271,6 +3725,362 @@
                 });
             });
         }
+
+        // ================= TEACHER HANDOUT MODE & 1:1 ORAL TEST LOGIC =================
+        window.isTeacherMode = false;
+        window.currentOralTestData = null;
+
+        window.toggleTeacherMode = function() {
+            window.isTeacherMode = !window.isTeacherMode;
+            updateTeacherModeUI();
+            if (currentAnalysisData) {
+                renderAnalysisData(currentAnalysisData);
+            }
+            if (window.isTeacherMode) {
+                showToast('👨‍🏫 [강사용 교안 모드]가 활성화되었습니다.\n문장별 TEST 출제 포인트, 구두 질문/답안, 논리 흐름도가 표시됩니다.', 'info');
+            } else {
+                showToast('🎓 [학생용 교안 모드]로 전환되었습니다.\n출제 포인트와 교사용 답안이 숨겨집니다.', 'info');
+            }
+        };
+
+        function updateTeacherModeUI() {
+            const btn = document.getElementById('btnToggleTeacherMode');
+            const icon = document.getElementById('teacherModeIcon');
+            const label = document.getElementById('teacherModeLabel');
+            if (!btn || !icon || !label) return;
+
+            if (window.isTeacherMode) {
+                btn.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer border bg-amber-500 text-white border-amber-600 hover:bg-amber-600";
+                icon.className = "fa-solid fa-chalkboard-user text-white";
+                label.innerHTML = "👨‍🏫 강사용 교안 <span class='bg-amber-700/60 text-white px-1.5 py-0.2 rounded text-[10px] ml-0.5'>ON</span>";
+            } else {
+                btn.className = "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer border bg-white text-slate-700 border-slate-300 hover:bg-slate-50";
+                icon.className = "fa-solid fa-graduation-cap text-indigo-600";
+                label.innerHTML = "강사용 교안 (TEST 출제 포인트)";
+            }
+        }
+
+        // Switch Oral Sub View inside #oralTestSheet ('student', 'teacher', 'flow')
+        window.currentOralSubView = 'student';
+        window.switchOralSubView = function(viewType) {
+            window.currentOralSubView = viewType;
+            const tabStd = document.getElementById('tabOralSubStudent');
+            const tabTch = document.getElementById('tabOralSubTeacher');
+            const tabFlw = document.getElementById('tabOralSubFlow');
+
+            const pageStd = document.getElementById('oralTestPageStudent');
+            const pageTch = document.getElementById('oralTestPageTeacher');
+
+            if (tabStd) tabStd.className = viewType === 'student'
+                ? 'text-xs font-bold px-3 py-1 rounded-md bg-indigo-600 text-white shadow-xs transition flex items-center gap-1 cursor-pointer'
+                : 'text-xs font-bold px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer';
+
+            if (tabTch) tabTch.className = viewType === 'teacher'
+                ? 'text-xs font-bold px-3 py-1 rounded-md bg-amber-600 text-white shadow-xs transition flex items-center gap-1 cursor-pointer'
+                : 'text-xs font-bold px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer';
+
+            if (tabFlw) tabFlw.className = viewType === 'flow'
+                ? 'text-xs font-bold px-3 py-1 rounded-md bg-sky-600 text-white shadow-xs transition flex items-center gap-1 cursor-pointer'
+                : 'text-xs font-bold px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer';
+
+            if (viewType === 'student') {
+                if (pageStd) pageStd.classList.remove('hidden');
+                if (pageTch) pageTch.classList.add('hidden');
+            } else {
+                if (pageStd) pageStd.classList.add('hidden');
+                if (pageTch) pageTch.classList.remove('hidden');
+            }
+        };
+
+        // Switch Oral Modal Tabs ('student', 'teacher', 'flow')
+        window.currentOralTab = 'student';
+        window.switchOralTab = function(tabName) {
+            window.currentOralTab = tabName;
+            const tabStd = document.getElementById('tabOralStudent');
+            const tabTch = document.getElementById('tabOralTeacher');
+            const tabFlw = document.getElementById('tabOralFlow');
+
+            const cntStd = document.getElementById('oralTabContentStudent');
+            const cntTch = document.getElementById('oralTabContentTeacher');
+            const cntFlw = document.getElementById('oralTabContentFlow');
+
+            if (tabStd) tabStd.className = tabName === 'student'
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-indigo-700 shadow-xs border border-slate-200 cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-slate-200 cursor-pointer';
+
+            if (tabTch) tabTch.className = tabName === 'teacher'
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-amber-700 shadow-xs border border-slate-200 cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-slate-200 cursor-pointer';
+
+            if (tabFlw) tabFlw.className = tabName === 'flow'
+                ? 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-sky-700 shadow-xs border border-slate-200 cursor-pointer'
+                : 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:bg-slate-200 cursor-pointer';
+
+            if (cntStd) cntStd.classList.toggle('hidden', tabName !== 'student');
+            if (cntTch) cntTch.classList.toggle('hidden', tabName !== 'teacher');
+            if (cntFlw) cntFlw.classList.toggle('hidden', tabName !== 'flow');
+        };
+
+        window.openOralTestModal = function() {
+            const modal = document.getElementById('modalOralTest');
+            if (modal) modal.classList.remove('hidden');
+        };
+
+        window.closeOralTestModal = function() {
+            const modal = document.getElementById('modalOralTest');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.switchBackToHandout = function() {
+            const oralSheet = document.getElementById('oralTestSheet');
+            const handoutSheet = document.getElementById('handoutSheet');
+            if (oralSheet) oralSheet.classList.add('hidden');
+            if (handoutSheet) handoutSheet.classList.remove('hidden');
+        };
+
+        window.printOralTestFromModal = function() {
+            closeOralTestModal();
+            const oralSheet = document.getElementById('oralTestSheet');
+            const handoutSheet = document.getElementById('handoutSheet');
+            const vocabSheet = document.getElementById('vocabTestSheet');
+            if (handoutSheet) handoutSheet.classList.add('hidden');
+            if (vocabSheet) vocabSheet.classList.add('hidden');
+            if (oralSheet) oralSheet.classList.remove('hidden');
+            switchOralSubView(window.currentOralTab === 'student' ? 'student' : 'teacher');
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        };
+
+        // Render Oral Test Data into both Modal & #oralTestSheet
+        window.renderOralTestData = function(oralData, title) {
+            if (!oralData) return;
+            const fullTitle = title || (currentAnalysisData && currentAnalysisData.title) || '영어 지문 1:1 구두 TEST';
+            const cleanTitle = fullTitle.replace(/\s*-\s*1:1\s*구두TEST.*$/i, '').trim();
+
+            // Set titles
+            ['oralPrintTitle', 'oralModalPrintTitle', 'oralSheetTitle', 'oralTeacherSheetTitle'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = cleanTitle;
+            });
+
+            // 1. Student Sheet Sentences
+            const sentences = oralData.student_sheet?.sentences || [];
+            const stdListEl = document.getElementById('oralSheetSentencesList');
+            const modalStdListEl = document.getElementById('oralModalSentencesList');
+
+            let sentHtml = '';
+            sentences.forEach(s => {
+                const star = s.is_starred ? '<span class="text-rose-600 font-black mr-1 text-base">★</span>' : '';
+                let txt = s.text_with_questions || '';
+                txt = txt.replace(/\[\s*([^\]\/]+)\s*\/\s*([^\]\/]+)\s*\]/g, `<span class="bg-indigo-50 border border-indigo-300 text-indigo-900 font-bold px-1.5 py-0.5 rounded text-[13px] inline-block mx-0.5 font-outfit">[$1 / $2]</span>`);
+                txt = txt.replace(/\[\s{2,}\]/g, `<span class="inline-block w-16 border-b-2 border-slate-700 mx-1 align-baseline"></span>`);
+
+                sentHtml += `
+                    <div class="flex items-start gap-2 py-1.5 border-b border-slate-100 last:border-b-0 leading-relaxed">
+                        <span class="font-black text-slate-800 shrink-0 text-sm font-outfit mt-0.5">${star}(${s.sentence_num})</span>
+                        <div class="text-slate-900 font-medium text-[13.5px] leading-relaxed flex-1">${txt}</div>
+                    </div>
+                `;
+            });
+
+            if (stdListEl) stdListEl.innerHTML = sentHtml || '<div class="text-center py-6 text-slate-400">출제된 문장이 없습니다.</div>';
+            if (modalStdListEl) modalStdListEl.innerHTML = sentHtml || '<div class="text-center py-6 text-slate-400">출제된 문장이 없습니다.</div>';
+
+            // 2. Teacher Oral Questions & Rubric
+            const questions = oralData.oral_questions || [];
+            const tchListEl = document.getElementById('oralTeacherQuestionsContainer');
+            const modalTchListEl = document.getElementById('oralModalTeacherQuestionsList');
+
+            let qHtml = '';
+            questions.forEach(q => {
+                qHtml += `
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2 text-xs">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-600 text-white font-black text-[10px] px-2 py-0.5 rounded uppercase">${q.q_id || 'Q'}</span>
+                                <span class="font-bold text-slate-900 text-xs">${q.type || '1:1 구두 질문'} (문장 ${q.sentence_num}번)</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">구두 질문</span>
+                        </div>
+                        <div class="leading-relaxed text-slate-900 font-bold">
+                            <span class="text-rose-600 mr-1">[질문]</span> ${q.question}
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-emerald-950 leading-relaxed font-semibold">
+                            <span class="text-emerald-700 font-bold mr-1">[모범 답변]</span> ${q.model_answer}
+                        </div>
+                        <div class="text-[11px] text-slate-600 leading-snug">
+                            <span class="font-bold text-amber-700 mr-1">[채점 기준 (Rubric)]</span> ${q.rubric}
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (tchListEl) tchListEl.innerHTML = qHtml || '<div class="text-center py-6 text-slate-400">질문이 없습니다.</div>';
+            if (modalTchListEl) modalTchListEl.innerHTML = qHtml || '<div class="text-center py-6 text-slate-400">질문이 없습니다.</div>';
+
+            // 3. Core Logic & Flow
+            const flow = oralData.core_logic_flow || {};
+            const flowSteps = flow.flow || {};
+
+            const themeEls = ['oralFlowTheme', 'oralModalFlowTheme', 'oralTeacherTheme'];
+            themeEls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = flow.theme || '핵심 주제 및 요지';
+            });
+
+            const stepsHtml = `
+                <div class="bg-sky-50 border border-sky-200 rounded-lg p-2 text-xs">
+                    <div class="font-black text-sky-800 mb-0.5">[도입]</div>
+                    <div class="text-slate-700 leading-snug">${flowSteps.intro || '-'}</div>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-xs">
+                    <div class="font-black text-emerald-800 mb-0.5">[전개/원인]</div>
+                    <div class="text-slate-700 leading-snug">${flowSteps.development || '-'}</div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs">
+                    <div class="font-black text-amber-800 mb-0.5">[대조/반전]</div>
+                    <div class="text-slate-700 leading-snug">${flowSteps.contrast || '-'}</div>
+                </div>
+                <div class="bg-rose-50 border border-rose-200 rounded-lg p-2 text-xs">
+                    <div class="font-black text-rose-800 mb-0.5">[결론]</div>
+                    <div class="text-slate-700 leading-snug">${flowSteps.conclusion || '-'}</div>
+                </div>
+            `;
+
+            const flowStepsGrid = document.getElementById('oralFlowStepsGrid');
+            const modalFlowStepsGrid = document.getElementById('oralModalFlowStepsGrid');
+            const tchFlowGrid = document.getElementById('oralTeacherFlowGrid');
+
+            if (flowStepsGrid) flowStepsGrid.innerHTML = stepsHtml;
+            if (modalFlowStepsGrid) modalFlowStepsGrid.innerHTML = stepsHtml;
+            if (tchFlowGrid) tchFlowGrid.innerHTML = stepsHtml;
+
+            const qFinalEls = ['oralFlowFinalQuestion', 'oralModalFlowFinalQuestion'];
+            qFinalEls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = flow.final_oral_question || '지문의 핵심 주제와 논리 흐름을 요약하여 설명해보세요.';
+            });
+
+            const aFinalEls = ['oralFlowFinalAnswer', 'oralModalFlowFinalAnswer'];
+            aFinalEls.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = flow.final_oral_answer || '-';
+            });
+        };
+
+        // Trigger Oral Test Generation
+        window.triggerCreateOralTest = function() {
+            const btn = document.getElementById('btnCreateOralTest');
+            if (btn) btn.click();
+        };
+
+        // Copy Oral Test content to Clipboard
+        window.copyOralTestContent = function() {
+            const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+            if (!oralData) {
+                showToast('복사할 1:1 구두 TEST지 데이터가 없습니다.', 'error');
+                return;
+            }
+
+            let fullTxt = `[에이닷 영어학원 1:1 구두 TEST지]\n`;
+            fullTxt += `제목: ${currentAnalysisData?.title || '영어 지문'}\n`;
+            fullTxt += `=========================================\n\n`;
+
+            fullTxt += `[1. 학생용 테스트지]\n`;
+            (oralData.student_sheet?.sentences || []).forEach(s => {
+                const star = s.is_starred ? '★ ' : '';
+                fullTxt += `${star}(${s.sentence_num}) ${s.text_with_questions}\n`;
+            });
+            fullTxt += `\n=========================================\n`;
+
+            fullTxt += `[2. 1:1 구두 질문 및 교사용 채점 기준]\n`;
+            (oralData.oral_questions || []).forEach(q => {
+                fullTxt += `[${q.q_id}] ${q.type} (문장 ${q.sentence_num}번)\n`;
+                fullTxt += `질문: ${q.question}\n`;
+                fullTxt += `모범답안: ${q.model_answer}\n`;
+                fullTxt += `채점기준: ${q.rubric}\n\n`;
+            });
+            fullTxt += `=========================================\n`;
+
+            const flow = oralData.core_logic_flow || {};
+            fullTxt += `[3. 지문 요약 및 흐름도]\n`;
+            fullTxt += `주제/요지: ${flow.theme || '-'}\n`;
+            fullTxt += `흐름도: [도입] ${flow.flow?.intro || '-'} -> [전개] ${flow.flow?.development || '-'} -> [반전] ${flow.flow?.contrast || '-'} -> [결론] ${flow.flow?.conclusion || '-'}\n`;
+            fullTxt += `최종 질문: ${flow.final_oral_question || '-'}\n`;
+            fullTxt += `모범 답안: ${flow.final_oral_answer || '-'}\n`;
+
+            navigator.clipboard.writeText(fullTxt).then(() => {
+                showToast('1:1 구두 TEST지 전체 텍스트가 클립보드에 복사되었습니다!', 'success');
+            }).catch(() => {
+                showToast('클립보드 복사에 실패했습니다.', 'error');
+            });
+        };
+
+        // Save Oral Test to Google Sheets & Local Cache
+        window.saveOralTestToRepository = async function() {
+            const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+            if (!oralData) {
+                showToast('저장할 1:1 구두 TEST지 데이터가 없습니다.', 'error');
+                return;
+            }
+
+            const rawTitle = titleInput?.value?.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+            const cleanBaseTitle = rawTitle.replace(/\s*-\s*1:1\s*구두TEST.*$/i, '').replace(/\s*-\s*단어(?:TEST|테스트).*$/, '').replace(/\s*-\s*(?:9종\s*)?변형문제.*$/, '').replace(/\s*강의용교안.*$/, '').trim();
+            const title = `${cleanBaseTitle} - 1:1 구두TEST`;
+            const folderName = getActiveFolderName();
+
+            const pairs = [];
+            const rows = pairContainer.querySelectorAll('.pair-row');
+            rows.forEach(r => {
+                const en = r.querySelector('.pair-en').value.trim();
+                const kr = r.querySelector('.pair-kr').value.trim();
+                const pbInput = r.querySelector('.pair-page-break');
+                const pb = pbInput ? pbInput.checked : false;
+                if (en) pairs.push({ english: en, korean: kr, page_break: pb });
+            });
+
+            showLoading("1:1 구두 TEST지 저장 중", `[${selectedMaterialType} / ${folderName}] 폴더에 안전하게 기록하고 있습니다...`);
+
+            try {
+                const payload = {
+                    title: title,
+                    folder_name: folderName,
+                    material_type: selectedMaterialType,
+                    doc_type: '구두TEST',
+                    label: selectedMaterialType,
+                    branch: getCurrentBranch(),
+                    sentence_pairs: pairs,
+                    analysis_data: {
+                        ...(currentAnalysisData || {}),
+                        title: title,
+                        folder_name: folderName,
+                        material_type: selectedMaterialType,
+                        doc_type: '구두TEST',
+                        branch: getCurrentBranch(),
+                        oral_test: oralData,
+                        created_at: new Date().toISOString()
+                    }
+                };
+
+                const response = await fetch('/api/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || '저장 실패');
+                }
+
+                hideLoading();
+                showToast(`'${title}' 1:1 구두 TEST지가 [${folderName}] 폴더에 성공적으로 저장되었습니다!`, 'success');
+            } catch (err) {
+                hideLoading();
+                showToast(err.message, 'error');
+            }
+        };
 
         // ================= VOCABULARY TEST & SPEED TEST LOGIC =================
         function switchVocabSubView(viewType) {
@@ -3943,6 +4753,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                 const isVocab = docType.includes('단어') || s.label === '단어테스트';
                 const isExam = docType.includes('변형문제') || s.label === '변형문제';
+                const isOral = docType.includes('구두') || s.label === '구두TEST';
 
                 const itemBranch = s.branch || '본사';
                 const isMainOffice = (itemBranch === '본사' || itemBranch === 'admin' || itemBranch === '본원' || itemBranch === '에이닷 본원' || itemBranch === '본사제작');
@@ -3960,6 +4771,9 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 if (isVocab) {
                     docColor = 'bg-violet-100 text-violet-800';
                     docIcon = 'fa-spell-check text-violet-600';
+                } else if (isOral) {
+                    docColor = 'bg-sky-100 text-sky-800';
+                    docIcon = 'fa-microphone-lines text-sky-600';
                 } else if (docType.includes('2차')) {
                     docColor = 'bg-rose-100 text-rose-800';
                     docIcon = 'fa-file-pen text-rose-600';
@@ -3973,6 +4787,12 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     primaryActionHtml = `
                         <button type="button" class="btn-repo-run-speed-test bg-violet-600 hover:bg-violet-700 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" title="3초 단어 테스트 실행">
                             <i class="fa-solid fa-bolt text-amber-300"></i> 단어TEST
+                        </button>
+                    `;
+                } else if (isOral) {
+                    primaryActionHtml = `
+                        <button type="button" class="btn-repo-load bg-sky-600 hover:bg-sky-700 text-white font-bold px-2.5 py-1 rounded text-xs transition flex items-center gap-1 cursor-pointer" data-filename="${s.filename}" data-material="${matType}" data-doctype="${docType}" data-ismy="${isMyItem}" title="구두 TEST지 열기">
+                            <i class="fa-solid fa-microphone-lines"></i> TEST지 열기
                         </button>
                     `;
                 } else if (isExam) {
@@ -4419,6 +5239,22 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     if (docType === '단어TEST' || docType === '단어테스트' || (data.analysis_data && data.analysis_data.is_vocab_test)) {
                         const vocabList = data.analysis_data.vocabulary || [];
                         renderVocabTestSheet(data.title || '', vocabList);
+                    } else if (docType === '구두TEST' || docType.includes('구두') || (data.analysis_data && data.analysis_data.oral_test)) {
+                        const oralData = data.analysis_data?.oral_test || data.oral_test;
+                        if (oralData) {
+                            window.currentOralTestData = oralData;
+                            renderOralTestData(oralData, data.title || '');
+                        }
+                        if (docType.includes('구두')) {
+                            vocabTestSheet.classList.add('hidden');
+                            handoutSheet.classList.add('hidden');
+                            const oralSheet = document.getElementById('oralTestSheet');
+                            if (oralSheet) oralSheet.classList.remove('hidden');
+                            openOralTestModal();
+                        } else {
+                            vocabTestSheet.classList.add('hidden');
+                            renderAnalysisData(currentAnalysisData, true);
+                        }
                     } else {
                         vocabTestSheet.classList.add('hidden');
                         renderAnalysisData(currentAnalysisData, true);
@@ -4620,6 +5456,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                             let docBadgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
                             if (docType.includes('단어')) docBadgeClass = 'bg-violet-50 text-violet-700 border-violet-200';
+                            else if (docType.includes('구두')) docBadgeClass = 'bg-sky-50 text-sky-700 border-sky-200';
                             else if (docType.includes('2차')) docBadgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
                             else if (docType.includes('변형문제')) docBadgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
                             else if (docType.includes('삽화')) docBadgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
@@ -5412,6 +6249,88 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
 
                     hideLoading();
                     showToast(`'${title}'의 [9종 변형문제 1차] 및 [2차] 2개 세트가 구글 시트에 저장되었습니다! [자료 저장소]에서 각각 확인하실 수 있습니다.`);
+                } catch (err) {
+                    hideLoading();
+                    showToast(err.message, 'error');
+                }
+            });
+        }
+
+        // 1:1 Oral Test Creation & Saving Button
+        const btnCreateOralTest = document.getElementById('btnCreateOralTest');
+        if (btnCreateOralTest) {
+            btnCreateOralTest.addEventListener('click', async () => {
+                const rawTitle = titleInput.value.trim() || (currentAnalysisData && currentAnalysisData.title) || '영어 지문';
+                const cleanBaseTitle = rawTitle.replace(/\s*-\s*1:1\s*구두TEST.*$/i, '').replace(/\s*-\s*단어(?:TEST|테스트).*$/, '').replace(/\s*-\s*(?:9종\s*)?변형문제.*$/, '').replace(/\s*강의용교안.*$/, '').trim();
+                const title = cleanBaseTitle;
+                const folderName = getActiveFolderName();
+
+                const pairs = [];
+                const rows = pairContainer.querySelectorAll('.pair-row');
+                rows.forEach(r => {
+                    const en = r.querySelector('.pair-en').value.trim();
+                    const kr = r.querySelector('.pair-kr').value.trim();
+                    const pbInput = r.querySelector('.pair-page-break');
+                    const pb = pbInput ? pbInput.checked : false;
+                    if (en) pairs.push({ english: en, korean: kr, page_break: pb });
+                });
+
+                let fullPassage = pairs.map(p => p.english).join(' ');
+                if (!fullPassage && currentAnalysisData && currentAnalysisData.passage_raw) {
+                    fullPassage = currentAnalysisData.passage_raw;
+                }
+
+                if (!fullPassage) {
+                    showToast('먼저 영어 문장을 입력하거나 [직독직해 & 구문분석 교안 생성]을 실행해 주세요.', 'error');
+                    return;
+                }
+
+                const apiKey = (typeof apiKeyInput !== 'undefined' && apiKeyInput) ? apiKeyInput.value.trim() : '';
+
+                showLoading("1:1 구두 TEST지 생성 및 저장 중", `[${title}] 지문을 정밀 분석하여 에이닷 스타일 어법 양자택일, 빈칸, 서술형 문장 및 교사용 1:1 구두 질문/루브릭, 논리 흐름도를 생성하고 있습니다...`);
+
+                try {
+                    const payload = {
+                        title: title,
+                        folder_name: folderName,
+                        material_type: selectedMaterialType,
+                        passage: fullPassage,
+                        topic: title,
+                        branch: getCurrentBranch(),
+                        sentence_pairs: pairs,
+                        api_key: apiKey,
+                        save_to_db: true
+                    };
+
+                    const response = await fetch('/api/generate_oral_test', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || '1:1 구두 TEST지 생성 실패');
+                    }
+
+                    const resData = await response.json();
+                    window.currentOralTestData = resData.oral_test;
+                    if (currentAnalysisData) {
+                        currentAnalysisData.oral_test = resData.oral_test;
+                    }
+
+                    // Automatically enable teacher mode to display test points on the lecture handout
+                    window.isTeacherMode = true;
+                    updateTeacherModeUI();
+                    if (currentAnalysisData) {
+                        renderAnalysisData(currentAnalysisData);
+                    }
+
+                    renderOralTestData(resData.oral_test, title);
+                    openOralTestModal();
+
+                    hideLoading();
+                    showToast(`'${title}' 1:1 구두 TEST지가 성공적으로 생성 및 저장되었습니다!\n교안에도 강사용 출제 포인트가 결합되었습니다.`, 'success');
                 } catch (err) {
                     hideLoading();
                     showToast(err.message, 'error');

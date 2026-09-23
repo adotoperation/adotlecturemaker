@@ -4358,3 +4358,156 @@ Ensure all content is generated cleanly without trailing comments, raw backticks
             continue
 
     raise Exception(f"변형문제 생성 중 AI 응답 오류가 발생했습니다: {last_error}")
+
+
+def generate_oral_test(passage, sentences=None, topic="", api_key=DEFAULT_GEMINI_API_KEY):
+    """
+    에이닷 스타일 고난도 1:1 구두 테스트 (Oral Test Sheet) 생성 엔진
+    - Section 1: [Oral Test Sheet: 학생용 테스트지] (문장 번호, [A/B] 어법 양자택일, [   ] 빈칸, ★ 서술형 문장)
+    - Section 2: [Oral Questions & Rubric: 1:1 구두 질문 및 교사용 채점 기준] (Q1 어법근거, Q2 논리전개, Q3 서술형영작)
+    - Section 3: [Core Logic & Flow: 지문 요약 및 흐름도] (주제/요지, 4단계 흐름도, 학생 최종 구두 요약 질문)
+    """
+    key = api_key or DEFAULT_GEMINI_API_KEY
+    if not topic:
+        topic = "핵심 지문 주제 및 요지"
+
+    import random
+    random_seed = random.randint(1000, 999999)
+
+    prompt_tmpl = """You are an elite, highly experienced English exam test-maker and 1:1 oral test specialist for Korean high school students at A.DOT English Academy (에이닷 영어학원 1:1 구두 테스트 전문 출제위원).
+Based on the provided English passage, create a rigorous, high-level [1:1 Oral Test Sheet] and Teacher Oral Guide.
+
+[Generation Seed: __RANDOM_SEED__]
+[Passage Topic Reference]
+__TOPIC__
+
+[Input English Passage]
+__PASSAGE__
+
+[Required Output Structure & Rules]
+You must respond with valid JSON ONLY. No markdown wrapper outside the JSON, no introductory or concluding chatter.
+The JSON must adhere to the following schema:
+{
+  "student_sheet": {
+    "sentences": [
+      {
+        "sentence_num": 1,
+        "is_starred": false,
+        "text_with_questions": "(1) English sentence with [OptionA / OptionB] or [   ] blanks...",
+        "test_points": [
+          {
+            "point_num": 1,
+            "type": "choice",
+            "target": "original_word",
+            "choices": "[OptionA / OptionB]",
+            "correct_answer": "OptionA",
+            "explanation": "어법적/문맥적 출제 근거 및 해설"
+          }
+        ]
+      }
+    ],
+    "full_sheet_text": "Plain text formatted representation of the entire student test sheet for direct printing/copying."
+  },
+  "oral_questions": [
+    {
+      "q_id": "Q1",
+      "type": "어법 근거 설명",
+      "sentence_num": 2,
+      "question": "학생에게 던질 1:1 구두 질문 (예: 문장 (2)에서 왜 OptionB가 아닌 OptionA가 와야 하는지 문법적 원리와 근거를 말로 설명해보세요.)",
+      "model_answer": "학생이 구두로 답변해야 할 모범 답변 (문법적 이유, 구조적 근거 완벽 서술)",
+      "rubric": "교사용 채점 기준 / 루브릭 (핵심 평가 포인트 및 감점 요인)"
+    },
+    {
+      "q_id": "Q2",
+      "type": "논리 전개 및 순서/삽입",
+      "sentence_num": 4,
+      "question": "연결사나 특정 문장의 위치 이유, 대조 관계를 묻는 구두 질문 (예: 문장 (4)의 However가 이 위치에 들어가야 하는 앞뒤 문맥의 논리적 연결성을 설명해보세요.)",
+      "model_answer": "모범 답변",
+      "rubric": "교사용 채점 기준"
+    },
+    {
+      "q_id": "Q3",
+      "type": "서술형/조건 영작",
+      "sentence_num": 3,
+      "question": "★ 표시된 핵심 문장에 대한 구문 설명 및 조건 영작 유도 구두 질문",
+      "model_answer": "모범 답변 및 완전한 영작문",
+      "rubric": "교사용 채점 기준"
+    }
+  ],
+  "core_logic_flow": {
+    "theme": "지문의 핵심 주제/요지 한국어 1줄 요약",
+    "flow": {
+      "intro": "[도입] 핵심 내용 요약",
+      "development": "[전개/원인] 핵심 내용 요약",
+      "contrast": "[대조/반전] 핵심 내용 요약",
+      "conclusion": "[결론] 핵심 내용 요약"
+    },
+    "final_oral_question": "지문 테스트 마지막에 학생이 한국어로 직접 말로 설명해야 할 핵심 요약 질문 1개",
+    "final_oral_answer": "교사용 모범 답변 및 핵심 확인 포인트"
+  }
+}
+
+[Detailed Section Guidelines]
+1. student_sheet:
+   - EVERY single sentence of the input passage must be included in sequence with numbers ( (1), (2), (3)... ).
+   - In EVERY sentence, create at least 1~2 high-frequency exam points:
+     * Grammar binary choice: [A / B] (e.g. 능동 vs 수동, 관계사 vs 접속사, 수일치, to부정사 vs 동명사, 형용사 vs 부사 등)
+     * Discourse marker or crucial core content blank: [   ]
+   - Mark 1~2 most critical descriptive writing sentences (가주어-진주어, 분사구문, 도치, 강조, 위드 분사구문 등) with '★' right beside the sentence number (e.g. '★ (3) ...') and set "is_starred": true.
+   - "full_sheet_text" should be a ready-to-print string containing title, student info header (이름 / 점수), and all numbered test sentences.
+
+2. oral_questions:
+   - Provide 3~4 high-impact 1:1 questions that the teacher asks directly to the student:
+     * Q1: 어법 근거 설명 - 단순 암기 정답이 아닌 '왜 그런지' 문법적 원리를 구두로 설명하게 하는 질문
+     * Q2: 논리 전개 및 순서/삽입 - 연결사 또는 문장의 위치 근거, 앞뒤 문맥 대조/인과를 묻는 질문
+     * Q3: 서술형/조건 영작 - ★ 표시된 문장의 구문적 특징 파악 및 한글 조건을 바탕으로 한 영작 질문
+
+3. core_logic_flow:
+   - theme: 한국어 1줄 명확한 요지
+   - flow: 4단계 ([도입] -> [전개/원인] -> [대조/반전] -> [결론])로 지문의 흐름을 간결하고 명확하게 정리
+   - final_oral_question & answer: 학생이 지문의 전체 맥락을 스스로 꿰뚫고 있는지 점검하는 최종 구두 확인 질문과 모범 답안
+
+Ensure all Korean sentences are natural, professional, and educationally rigorous."""
+
+    prompt = prompt_tmpl.replace("__RANDOM_SEED__", str(random_seed)).replace("__PASSAGE__", passage).replace("__TOPIC__", topic)
+
+    models = ["gemini-2.5-flash"]
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.7,
+            "responseMimeType": "application/json"
+        }
+    }
+
+    last_error = None
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+        try:
+            resp = requests.post(url, json=payload, timeout=90)
+            if resp.status_code == 200:
+                result = resp.json()
+                text_response = result['candidates'][0]['content']['parts'][0]['text']
+                cleaned = re.sub(r'^```json\s*', '', text_response.strip(), flags=re.MULTILINE)
+                cleaned = re.sub(r'\s*```$', '', cleaned, flags=re.MULTILINE).strip()
+                oral_data = json.loads(cleaned)
+
+                usage_meta = result.get('usageMetadata', {})
+                oral_data["_usage_metadata"] = {
+                    "prompt_tokens": usage_meta.get('promptTokenCount', 0),
+                    "output_tokens": usage_meta.get('candidatesTokenCount', 0),
+                    "total_tokens": usage_meta.get('totalTokenCount', 0)
+                }
+                oral_data["_total_tokens"] = usage_meta.get('totalTokenCount', 0)
+                return oral_data
+            else:
+                last_error = f"HTTP {resp.status_code}: {resp.text}"
+                print(f"[generate_oral_test] Model {model} returned {resp.status_code}")
+                continue
+        except Exception as e:
+            last_error = str(e)
+            print(f"[generate_oral_test] Model {model} failed: {e}")
+            continue
+
+    raise Exception(f"1:1 구두 TEST지 생성 중 AI 응답 오류가 발생했습니다: {last_error}")
+

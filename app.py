@@ -6,7 +6,7 @@ import requests
 import time
 from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, render_template, request, jsonify, Response
-from parser_engine import parse_english_passage, modify_analysis_with_prompt, generate_variation_exam
+from parser_engine import parse_english_passage, modify_analysis_with_prompt, generate_variation_exam, generate_oral_test
 from pdf_generator import create_lecture_handout_pdf
 
 def load_env():
@@ -167,6 +167,84 @@ def generate_exam():
     except Exception as e:
         print(f"[generate_exam] Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/generate_oral_test', methods=['POST'])
+def api_generate_oral_test():
+    data = request.json or {}
+    passage = data.get('passage', '').strip()
+    topic = data.get('topic', '').strip()
+    title = data.get('title', '에이닷 1:1 구두 TEST').strip()
+    api_key = data.get('api_key') or DEFAULT_API_KEY
+    branch = data.get('branch') or '본사'
+    material_type = data.get('material_type') or '모의고사'
+    sentence_pairs = data.get('sentence_pairs', [])
+    folder_name = data.get('folder_name') or extract_default_folder_name(title, material_type)
+    save_to_db = data.get('save_to_db', True)
+
+    if not passage and sentence_pairs:
+        passage = " ".join([p.get('english', '').strip() for p in sentence_pairs if p.get('english')])
+
+    if not passage:
+        return jsonify({'error': '구두 TEST지를 생성할 영어 지문 내용이 없습니다.'}), 400
+
+    if not topic:
+        topic = title
+
+    try:
+        oral_data = generate_oral_test(passage, sentences=sentence_pairs, topic=topic, api_key=api_key)
+        
+        doc_type_val = "구두TEST"
+        title_clean = re.sub(r'\s*-\s*(?:9종\s*)?변형문제.*$', '', title).strip()
+        title_clean = re.sub(r'\s*-\s*단어(?:TEST|테스트).*$', '', title_clean).strip()
+        title_clean = re.sub(r'\s*강의용교안.*$', '', title_clean).strip()
+        oral_title = f"{title_clean} - 1:1 구두TEST"
+
+        saved_filename = ""
+        if save_to_db:
+            payload = {
+                "title": oral_title,
+                "folder_name": folder_name,
+                "material_type": material_type,
+                "doc_type": doc_type_val,
+                "label": material_type,
+                "branch": branch,
+                "sentence_pairs": sentence_pairs,
+                "analysis_data": {
+                    "title": oral_title,
+                    "folder_name": folder_name,
+                    "material_type": material_type,
+                    "doc_type": doc_type_val,
+                    "passage": passage,
+                    "topic": topic,
+                    "branch": branch,
+                    "oral_test": oral_data,
+                    "created_at": time.strftime('%Y-%m-%dT%H:%M:%S')
+                }
+            }
+            try:
+                saved_filename = save_db_handout(oral_title, payload, label=material_type, material_type=material_type, doc_type=doc_type_val, branch=branch, folder_name=folder_name)
+            except Exception as se:
+                print(f"[generate_oral_test] save_db_handout error: {se}")
+
+        try:
+            actual_tokens = oral_data.get('_total_tokens', 0) or 2500
+            append_usage_log(branch, material_type, doc_type_val, oral_title, actual_tokens)
+        except Exception as ue:
+            print(f"[generate_oral_test] append_usage_log error: {ue}")
+
+        return jsonify({
+            'success': True,
+            'oral_test': oral_data,
+            'title': oral_title,
+            'filename': saved_filename,
+            'material_type': material_type,
+            'doc_type': doc_type_val,
+            'branch': branch
+        })
+    except Exception as e:
+        print(f"[generate_oral_test] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/save_exam_layout', methods=['POST'])
 def save_exam_layout():
@@ -1085,6 +1163,8 @@ def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     dt = (doc_type or '강의용교안').strip()
     if '변형문제' in dt:
         return 11000  # 9종 변형문제 1회분당 약 11,000 토큰
+    elif '구두' in dt or 'oral' in dt.lower():
+        return 2500   # 1:1 구두 TEST지 약 2,500 토큰
     elif '단어' in dt:
         return 2000   # 15개 어휘 추출 및 단어 테스트 약 2,000 토큰
     elif '삽화' in dt:
