@@ -821,7 +821,7 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             "label": mat_type,
             "folder_name": folder,
             "title": title,
-            "branch": illu_url or branch or '',
+            "branch": branch or '본사',
             "illustration_url": illu_url or '',
             "sentence_pairs": data.get("sentence_pairs", []),
             "analysis_data": clean_ad

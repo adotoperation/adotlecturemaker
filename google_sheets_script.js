@@ -96,9 +96,15 @@ function handleSave(ss, data) {
 
   // F열: 삽화 데이터 (Base64 또는 URL)
   var illustrationUrl = (data.illustration_url || "").trim();
+  if (!illustrationUrl && data.branch && (String(data.branch).startsWith("data:image/") || String(data.branch).startsWith("http"))) {
+    illustrationUrl = String(data.branch).trim();
+  }
   
   // G열: 지점 및 타임스탬프
   var branch = (data.branch || "본사").trim();
+  if (branch.startsWith("data:image/") || branch.startsWith("http")) {
+    branch = "본사";
+  }
   var nowIso = new Date().toISOString();
   var timestampStr = branch ? (branch + " | " + nowIso) : nowIso;
 
@@ -185,6 +191,9 @@ function handleLoad(ss, data) {
 
         // F열(6번째 열)에서 삽화 데이터 추출
         var illustrationUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
+        if (illustrationUrl && !illustrationUrl.startsWith("data:image/") && !illustrationUrl.startsWith("http")) {
+          illustrationUrl = "";
+        }
         
         // 과거 데이터 하위 호환성 (과거에는 E열에 저장되었던 경우)
         if (!illustrationUrl && analysisData.illustration_url) {
@@ -199,6 +208,9 @@ function handleLoad(ss, data) {
 
         var branchMeta = (numCols >= 7 && row[6]) ? String(row[6]).trim() : "본사";
         var branchName = branchMeta.split("|")[0].trim() || "본사";
+        if (branchName.startsWith("data:image/") || branchName.startsWith("http")) {
+          branchName = "본사";
+        }
 
         return createJsonResponse({
           success: true,
@@ -244,10 +256,16 @@ function handleList(ss, data) {
       if (!title) continue;
 
       var illuUrl = (numCols >= 6 && row[5]) ? String(row[5]).trim() : "";
+      if (illuUrl && !illuUrl.startsWith("data:image/") && !illuUrl.startsWith("http")) {
+        illuUrl = "";
+      }
       var branchMeta = (numCols >= 7 && row[6]) ? String(row[6]).trim() : "본사";
       var branchName = branchMeta.split("|")[0].trim() || "본사";
+      if (branchName.startsWith("data:image/") || branchName.startsWith("http")) {
+        branchName = "본사";
+      }
 
-      saves.append({
+      saves.push({
         filename: title + ".json",
         title: title,
         material_type: matType,
