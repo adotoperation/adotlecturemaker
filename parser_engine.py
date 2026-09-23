@@ -375,7 +375,10 @@ def post_process_adverbs(analysis_data):
             open_rn = text.count('(')
             close_rn = text.count(')')
             
-            is_inside_subordinate = (bracket_depth > 0) or (paren_depth > 0) or open_sq > 0 or open_rn > 0
+            # Determine if this token itself is enclosed or within an open clause bracket
+            # Note: Do not consider token inside subordinate if it merely follows a closed parenthesis/bracket
+            is_token_enclosed = (text.startswith('[') and text.endswith(']')) or (text.startswith('(') and text.endswith(')')) or (text.startswith('(') and text.endswith('),')) or (text.startswith('[') and text.endswith('],'))
+            is_inside_subordinate = (bracket_depth > 0) or (paren_depth > 0) or is_token_enclosed
             
             # Check if this token is the main subject (only if outside subordinate brackets)
             if not is_inside_subordinate and (sub_tag.startswith('S') or '가주어' in sub_tag):
@@ -425,10 +428,15 @@ def post_process_adverbs(analysis_data):
 
             # Linking verbs (have been, is, are, was, were, become, remain, seem)
             if clean_word in ['have been', 'has been', 'had been', 'been', 'is', 'are', 'was', 'were', 'become', 'became', 'remained', 'remain', 'seemed', 'seem', 'appeared', 'appear']:
-                # If token is inside subordinate clause brackets [ ] or ( ) or already has top_label/no-underline:
+                # If token is strictly inside subordinate clause brackets [ ] or ( ) or already marked as sub-clause:
                 # it belongs to a subordinate clause (e.g. appositive that clause, noun clause, indirect question)
-                # It must NOT be marked with main clause red underline!
-                if is_inside_subordinate or t.get('top_label') in ['Vi', 'Vt', 'V'] or t.get('underline') is False:
+                # If outside subordinate clause (bracket_depth == 0 and paren_depth == 0 and not is_token_enclosed), it is the MAIN verb!
+                if (bracket_depth == 0 and paren_depth == 0 and not is_token_enclosed):
+                    t['sub_tag'] = 'Vi'
+                    t['top_label'] = ''
+                    t['color'] = 'rose'
+                    t['underline'] = True
+                elif is_inside_subordinate or t.get('top_label') in ['Vi', 'Vt', 'V'] or t.get('underline') is False:
                     t['top_label'] = 'Vi'
                     t['sub_tag'] = ''
                     t['color'] = 'slate'

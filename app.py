@@ -1159,8 +1159,19 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
                     if loc_oral and not (isinstance(analysis_data, dict) and analysis_data.get('oral_test')):
                         if isinstance(analysis_data, dict):
                             analysis_data['oral_test'] = loc_oral
+                    # Also restore passage_raw and korean_raw if available in local cache
+                    if not doc_res.get('passage_raw'):
+                        doc_res['passage_raw'] = loc_json.get('passage_raw') or loc_json.get('analysis_data', {}).get('passage_raw')
+                    if not doc_res.get('korean_raw'):
+                        doc_res['korean_raw'] = loc_json.get('korean_raw') or loc_json.get('analysis_data', {}).get('korean_raw')
             except Exception:
                 pass
+
+        # Make sure passage_raw and korean_raw are exposed at top-level
+        if not doc_res.get('passage_raw') and isinstance(analysis_data, dict):
+            doc_res['passage_raw'] = analysis_data.get('passage_raw')
+        if not doc_res.get('korean_raw') and isinstance(analysis_data, dict):
+            doc_res['korean_raw'] = analysis_data.get('korean_raw')
 
         doc_res['illustration_url'] = illu
         if isinstance(analysis_data, dict):
@@ -1273,8 +1284,8 @@ def get_saves():
         return jsonify({'error': str(e)}), 500
 
 # Token pricing constants (Gemini API standard with USD/KRW 1,380)
-# Prompt: $0.075 / 1M tokens, Output: $0.300 / 1M tokens -> Blended: ~0.00035 KRW / token
-TOKEN_PRICE_PER_TOKEN_KRW = 0.00035
+# Prompt & Output Blended: 0.5 KRW / 1,000 tokens (1 token = 0.0005 KRW)
+TOKEN_PRICE_PER_TOKEN_KRW = 0.0005
 
 def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     dt = (doc_type or '강의용교안').strip()
@@ -1520,14 +1531,14 @@ def get_stats():
             },
             "pricing_standard": {
                 "token_unit_price_krw": TOKEN_PRICE_PER_TOKEN_KRW,
-                "per_1k_tokens_krw": 0.35,
+                "per_1k_tokens_krw": 0.5,
                 "exchange_rate": 1380,
-                "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.35원)",
+                "pricing_desc": "Gemini Flash 모델 기준 (1,000 토큰 당 약 0.5원)",
                 "items": [
-                    {"name": "강의용 교안", "tokens": 4500, "cost_krw": 1.6, "badge": "~4,500T (약 1.6원)", "color": "text-amber-300"},
-                    {"name": "삽화생성", "tokens": 1500, "cost_krw": 0.5, "badge": "~1,500T (약 0.5원)", "color": "text-emerald-300"},
-                    {"name": "단어TEST", "tokens": 2000, "cost_krw": 0.7, "badge": "~2,000T (약 0.7원)", "color": "text-violet-300"},
-                    {"name": "변형문제 1회", "tokens": 11000, "cost_krw": 3.9, "badge": "~11,000T (약 3.9원)", "color": "text-rose-300"}
+                    {"name": "강의용 교안", "tokens": 4500, "cost_krw": 4.5, "badge": "~4,500T (약 4.5원)", "color": "text-amber-300"},
+                    {"name": "삽화생성", "tokens": 1500, "cost_krw": 1.5, "badge": "~1,500T (약 1.5원)", "color": "text-emerald-300"},
+                    {"name": "단어TEST", "tokens": 2000, "cost_krw": 2.0, "badge": "~2,000T (약 2원)", "color": "text-violet-300"},
+                    {"name": "변형문제 1회", "tokens": 11000, "cost_krw": 11.0, "badge": "~11,000T (약 11원)", "color": "text-rose-300"}
                 ]
             },
             "summary": {
