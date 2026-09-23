@@ -4322,7 +4322,14 @@ The value of each key should be a single string formatted with line breaks (\\n)
   ④ (Option 4)
   ⑤ (Option 5)
   [정답] (Correct option number)
-  [해설] (Provide detailed Korean explanation on why the correct choice is right and why others are incorrect.)
+  [해설]
+  (전체 글의 핵심 요지 및 정답 근거를 한글로 상세히 서술)
+  ① (선지 1 한글 해석): (오답 또는 정답인 이유 설명)
+  ② (선지 2 한글 해석): (오답 또는 정답인 이유 설명)
+  ③ (선지 3 한글 해석): (오답 또는 정답인 이유 설명)
+  ④ (선지 4 한글 해석): (오답 또는 정답인 이유 설명)
+  ⑤ (선지 5 한글 해석): (오답 또는 정답인 이유 설명)
+  * CRITICAL: [해설]은 반드시 100% 한글로만 작성해야 하며, 영어 선지 ①~⑤ 각각의 정확한 '한글 해석'과 '선택 이유(오답/정답 근거)'를 위 양식대로 빠짐없이 명시할 것. 절대 영문으로 해설을 작성하지 말 것.
 
 ■ Key 8: "descriptive_writing_1" (서술형 - 조건 제시형 영작 1순위)
 - Instructions:
