@@ -859,9 +859,13 @@ def get_db_saves():
     return clean_saves
 
 def save_db_handout(title, data, label="모의고사", material_type="모의고사", doc_type="강의용교안", branch="기타", folder_name=None):
-    filename = safe_korean_filename(title)
-    if not filename.endswith('.json'):
-        filename += '.json'
+    base_name = safe_korean_filename(title)
+    if '강사용' in (doc_type or ''):
+        filename = f"{base_name}_강사용.json" if not base_name.endswith('_강사용') else f"{base_name}.json"
+    elif '학생용' in (doc_type or '') or '강의용' in (doc_type or ''):
+        filename = f"{base_name}_학생용.json" if not (base_name.endswith('_학생용') or base_name.endswith('_강사용')) else f"{base_name}.json"
+    else:
+        filename = f"{base_name}.json"
     
     mat_type = material_type or label or '모의고사'
     folder = folder_name or data.get('folder_name') or extract_default_folder_name(title, mat_type)
@@ -1163,6 +1167,8 @@ def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     dt = (doc_type or '강의용교안').strip()
     if '변형문제' in dt:
         return 11000  # 9종 변형문제 1회분당 약 11,000 토큰
+    elif '강사용' in dt:
+        return 6500   # 강사용 교안 (교안 + 1:1 구두TEST 결합) 약 6,500 토큰
     elif '구두' in dt or 'oral' in dt.lower():
         return 2500   # 1:1 구두 TEST지 약 2,500 토큰
     elif '단어' in dt:
@@ -1170,7 +1176,7 @@ def estimate_tokens_for_item(doc_type, analysis_data=None, sentence_pairs=None):
     elif '삽화' in dt:
         return 1500   # 삽화 프롬프트 및 이미지 생성 약 1,500 토큰
     else:
-        # 강의용 교안: 문장 수 및 구문분석 데이터 크기 반영
+        # 강의용 교안(학생용): 문장 수 및 구문분석 데이터 크기 반영
         sentence_count = len(sentence_pairs) if sentence_pairs else 7
         return max(4000, min(8000, 3000 + sentence_count * 300))
 

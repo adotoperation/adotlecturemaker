@@ -4397,11 +4397,12 @@ The JSON must adhere to the following schema:
         "test_points": [
           {
             "point_num": 1,
+            "category": "어법 또는 어휘",
             "type": "choice",
             "target": "original_word",
             "choices": "[OptionA / OptionB]",
             "correct_answer": "OptionA",
-            "explanation": "어법적/문맥적 출제 근거 및 해설"
+            "explanation": "어법적(문법 원리) 또는 어휘적(문맥상 반의어/혼동어) 출제 근거 및 해설"
           }
         ]
       }
@@ -4419,9 +4420,9 @@ The JSON must adhere to the following schema:
     },
     {
       "q_id": "Q2",
-      "type": "논리 전개 및 순서/삽입",
+      "type": "논리 전개 및 순서/어휘/연결사",
       "sentence_num": 4,
-      "question": "연결사나 특정 문장의 위치 이유, 대조 관계를 묻는 구두 질문 (예: 문장 (4)의 However가 이 위치에 들어가야 하는 앞뒤 문맥의 논리적 연결성을 설명해보세요.)",
+      "question": "연결사나 특정 문장의 위치 이유, 대조 어휘 선택 이유를 묻는 구두 질문 (예: 문장 (4)의 However 및 해당 문맥에서 특정 어휘가 선택되어야 하는 논리적 연결성을 설명해보세요.)",
       "model_answer": "모범 답변",
       "rubric": "교사용 채점 기준"
     },
@@ -4450,16 +4451,19 @@ The JSON must adhere to the following schema:
 [Detailed Section Guidelines]
 1. student_sheet:
    - EVERY single sentence of the input passage must be included in sequence with numbers ( (1), (2), (3)... ).
-   - In EVERY sentence, create at least 1~2 high-frequency exam points:
-     * Grammar binary choice: [A / B] (e.g. 능동 vs 수동, 관계사 vs 접속사, 수일치, to부정사 vs 동명사, 형용사 vs 부사 등)
-     * Discourse marker or crucial core content blank: [   ]
+   - In EVERY sentence, create 1~2 high-frequency exam points:
+     * Question types MUST include BOTH Grammar (어법) and Contextual Vocabulary (어휘):
+       - **Strict Ratio**: **Grammar (어법) 40% : Vocabulary (어휘) 60%** across the entire passage test points.
+       - **어법 (40%)**: Binary choice [A / B] testing 핵심 어법 원리 (능동 vs 수동, 관계사 vs 접속사, 수일치, to부정사 vs 동명사/분사, 형용사 vs 부사 등). Set "category": "어법".
+       - **어휘 (60%)**: Binary choice [A / B] testing 문맥상 반의어(Antonyms) 및 혼동 어휘 (예: positive vs negative, increase vs decrease, accelerate vs delay, fragile vs durable, explicit vs implicit, enhance vs undermine 등 문맥 흐름에 결정적인 핵심 단어). Set "category": "어휘".
+       - **핵심 빈칸**: Discourse marker or crucial core content blank: [   ]. Set "category": "어휘/연결사" and "type": "blank".
    - Mark 1~2 most critical descriptive writing sentences (가주어-진주어, 분사구문, 도치, 강조, 위드 분사구문 등) with '★' right beside the sentence number (e.g. '★ (3) ...') and set "is_starred": true.
-   - "full_sheet_text" should be a ready-to-print string containing title, student info header (이름 / 점수), and all numbered test sentences.
+   - "full_sheet_text" should be a ready-to-print string containing title, instructions, and all numbered test sentences. (DO NOT include '이름' or '점수' fields).
 
 2. oral_questions:
    - Provide 3~4 high-impact 1:1 questions that the teacher asks directly to the student:
      * Q1: 어법 근거 설명 - 단순 암기 정답이 아닌 '왜 그런지' 문법적 원리를 구두로 설명하게 하는 질문
-     * Q2: 논리 전개 및 순서/삽입 - 연결사 또는 문장의 위치 근거, 앞뒤 문맥 대조/인과를 묻는 질문
+     * Q2: 논리 전개 및 순서/어휘 - 연결사 또는 문장의 위치 근거, 문맥상 해당 어휘가 쓰인 인과/대조 논리를 묻는 질문
      * Q3: 서술형/조건 영작 - ★ 표시된 문장의 구문적 특징 파악 및 한글 조건을 바탕으로 한 영작 질문
 
 3. core_logic_flow:
