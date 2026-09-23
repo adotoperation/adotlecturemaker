@@ -175,11 +175,12 @@ def api_generate_oral_test():
     topic = data.get('topic', '').strip()
     title = data.get('title', '에이닷 1:1 구두 TEST').strip()
     api_key = data.get('api_key') or DEFAULT_API_KEY
-    branch = data.get('branch') or '본사'
+    raw_br = data.get('branch') or data.get('username') or '본사'
+    branch = 'admin' if str(raw_br).lower() == 'admin' else raw_br
     material_type = data.get('material_type') or '모의고사'
     sentence_pairs = data.get('sentence_pairs', [])
     folder_name = data.get('folder_name') or extract_default_folder_name(title, material_type)
-    save_to_db = data.get('save_to_db', True)
+    save_to_db = data.get('save_to_db', False)
 
     if not passage and sentence_pairs:
         passage = " ".join([p.get('english', '').strip() for p in sentence_pairs if p.get('english')])
@@ -403,9 +404,9 @@ def persist_base64_image(image_data_url, title=""):
         if img.mode in ('RGBA', 'P'):
             img = img.convert('RGB')
         
-        # Keep crystal-clear high definition: max 1280px width, preserving aspect ratio
+        # Keep crystal-clear high definition: max 1920px width, preserving original aspect ratio
         orig_w, orig_h = img.size
-        max_w = 1280
+        max_w = 1920
         if orig_w > max_w:
             new_h = int(orig_h * (max_w / orig_w))
             img = img.resize((max_w, new_h), Image.Resampling.LANCZOS)
@@ -414,8 +415,8 @@ def persist_base64_image(image_data_url, title=""):
         filename = f"illu_{int(time.time())}_{h}.jpg"
         filepath = os.path.join(UPLOADS_DIR, filename)
         
-        # Save as high-quality JPEG
-        img.save(filepath, format='JPEG', quality=92, optimize=True)
+        # Save as ultra high-quality JPEG
+        img.save(filepath, format='JPEG', quality=96, optimize=True)
         return f"/static/uploads/{filename}"
     except Exception as e:
         print("[persist_base64_image] Error saving high-res image:", e)
@@ -489,6 +490,7 @@ def create_themed_svg_illustration(topic_text, title=""):
         return '/static/illustration.jpg'
 
 def generate_illustration_sync(title, topic, keywords, summary, passage, branch="본사", material_type="모의고사", api_key="", scene_en=""):
+    branch = 'admin' if str(branch).lower() == 'admin' else (branch or '본사')
     api_key = api_key or DEFAULT_API_KEY
     combined_context = f"Title: {title}\nSubject/Topic: {topic}\nKeywords: {keywords}\nSummary: {summary}\nPassage: {passage[:300]}"
     
@@ -605,7 +607,7 @@ Output ONLY the final English image generation prompt string without any introdu
             import hashlib
             clean_seed = abs(int(hashlib.md5(f"{english_scene}_{title}".encode()).hexdigest()[:8], 16)) % 999999
             enc_prompt = urllib.parse.quote(ghibli_prompt)
-            poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=1024&height=576&nologo=true&seed={clean_seed}"
+            poll_url = f"https://image.pollinations.ai/prompt/{enc_prompt}?width=1600&height=900&nologo=true&seed={clean_seed}"
             try:
                 p_res = requests.get(poll_url, timeout=12)
                 if p_res.status_code == 200 and len(p_res.content) > 1000:
@@ -671,7 +673,8 @@ def generate_illustration_endpoint():
     keywords = data.get('keywords', '').strip()
     summary = data.get('summary', '').strip()
     passage = data.get('passage', '').strip()
-    branch = data.get('branch', '본사')
+    raw_br = data.get('branch') or data.get('username') or '본사'
+    branch = 'admin' if str(raw_br).lower() == 'admin' else raw_br
     material_type = data.get('material_type', '모의고사')
     api_key = data.get('api_key', '').strip() or DEFAULT_API_KEY
     
@@ -891,7 +894,11 @@ def get_db_saves():
             s['illustration_url'] = br
             s['has_illu'] = True
             s['branch'] = '본사'
-        elif not br or br.lower() == 'admin' or br in ['에이닷 본원', '본원', '본사', 'admin', '본사제작']:
+        elif not br:
+            s['branch'] = '본사'
+        elif br.lower() == 'admin':
+            s['branch'] = 'admin'
+        elif br in ['에이닷 본원', '본원', '본사', '본사제작']:
             s['branch'] = '본사'
         else:
             s['branch'] = br
@@ -952,9 +959,25 @@ def save_db_handout(title, data, label="모의고사", material_type="모의고�
             clean_ad['summary_info'] = dict(clean_ad['summary_info'])
             clean_ad['summary_info']['illustration_url'] = ''
 
-        user_id = data.get('username') or branch or '본사'
-        if str(user_id).startswith(('data:image/', 'http')):
+        if 'oral_test' in clean_ad and isinstance(clean_ad['oral_test'], dict):
+            if 'oral_test' in clean_ad['oral_test'] and isinstance(clean_ad['oral_test']['oral_test'], dict):
+                clean_ad['oral_test'] = clean_ad['oral_test']['oral_test']
+
+        # Ensure Column E stays within Google Sheets 50,000 char cell limit
+        try:
+            if len(json.dumps(clean_ad, ensure_ascii=False)) > 46000:
+                clean_ad.pop('passage_raw', None)
+                clean_ad.pop('korean_raw', None)
+        except Exception:
+            pass
+
+        raw_uid = data.get('username') or data.get('branch') or branch or '본사'
+        if str(raw_uid).lower() == 'admin':
+            user_id = 'admin'
+        elif str(raw_uid).startswith(('data:image/', 'http')) or not raw_uid:
             user_id = '본사'
+        else:
+            user_id = str(raw_uid).strip()
 
         # Ensure illustration_url in Google Sheets Column F stays strictly within cell limits (50,000 chars)
         sheet_illu = illu_url or ''
@@ -1118,6 +1141,27 @@ def load_db_handout(filename, label="모의고사", material_type=None, doc_type
             if saved_local and saved_local.startswith('/static/uploads/'):
                 illu = saved_local
 
+        # Prioritize local pristine high-resolution illustration URL and preserved oral_test
+        clean_t = doc_res.get('title', '')
+        local_cand = os.path.join(SAVES_DIR, filename if filename.endswith('.json') else safe_fn)
+        if not os.path.exists(local_cand) and clean_t:
+            local_cand = os.path.join(SAVES_DIR, f"{safe_korean_filename(clean_t)}.json")
+        if os.path.exists(local_cand):
+            try:
+                with open(local_cand, 'r', encoding='utf-8') as lcf:
+                    loc_json = json.load(lcf)
+                    loc_illu = loc_json.get('illustration_url') or (loc_json.get('analysis_data', {}).get('illustration_url'))
+                    if loc_illu and str(loc_illu).startswith('/static/uploads/'):
+                        loc_img_path = os.path.join(UPLOADS_DIR, os.path.basename(loc_illu))
+                        if os.path.exists(loc_img_path):
+                            illu = loc_illu
+                    loc_oral = loc_json.get('analysis_data', {}).get('oral_test') or loc_json.get('oral_test')
+                    if loc_oral and not (isinstance(analysis_data, dict) and analysis_data.get('oral_test')):
+                        if isinstance(analysis_data, dict):
+                            analysis_data['oral_test'] = loc_oral
+            except Exception:
+                pass
+
         doc_res['illustration_url'] = illu
         if isinstance(analysis_data, dict):
             analysis_data['illustration_url'] = illu
@@ -1280,11 +1324,12 @@ def append_usage_log(branch, material_type, doc_type, title, tokens=None):
     now_kst = datetime.datetime.now(kst_tz)
     now_ts = time.time()
     
+    clean_br = 'admin' if str(branch).lower() == 'admin' else (branch or '본사')
     log_entry = {
         'id': f"log_{int(now_ts * 1000)}",
         'timestamp': now_kst.strftime('%Y-%m-%dT%H:%M:%S'),
         'mtime': now_ts,
-        'branch': branch or '본사',
+        'branch': clean_br,
         'material_type': material_type or '모의고사',
         'doc_type': doc_type or '강의용교안',
         'title': title,
@@ -1419,9 +1464,15 @@ def get_stats():
         # Branch Aggregations
         branch_stats = {}
         for l in period_logs:
-            br = (l.get('branch') or '본사').strip()
-            if not br or br.lower() == 'admin' or br in ['본사', '에이닷 본원', '본사제작']:
+            raw_b = (l.get('branch') or '본사').strip()
+            if not raw_b:
                 br = '본사'
+            elif raw_b.lower() == 'admin':
+                br = 'admin'
+            elif raw_b in ['본사', '에이닷 본원', '본사제작']:
+                br = '본사'
+            else:
+                br = raw_b
             l['branch'] = br
             if br not in branch_stats:
                 branch_stats[br] = {
@@ -1443,8 +1494,8 @@ def get_stats():
             item['rank'] = idx
 
         # Access Control: admin sees all branches; individual branch sees ONLY their own branch
-        if user_branch and user_branch != 'admin':
-            effective_branch = '본사' if user_branch.lower() == 'admin' else user_branch
+        if user_branch and user_branch.lower() != 'admin':
+            effective_branch = user_branch
             my_logs = [l for l in period_logs if l.get('branch') == effective_branch]
             my_count = len(my_logs)
             my_tokens = sum(l.get('tokens', 0) for l in my_logs)
@@ -1505,7 +1556,11 @@ def save_handout():
     title = data.get('title', '').strip()
     material_type = data.get('material_type') or data.get('label') or '모의고사'
     doc_type = data.get('doc_type') or '강의용교안'
-    branch = data.get('branch', '기타').strip() or '기타'
+    raw_br = data.get('branch') or data.get('username') or '기타'
+    branch = 'admin' if str(raw_br).lower() == 'admin' else str(raw_br).strip()
+    data['branch'] = branch
+    data['username'] = branch
+    data['doc_type'] = doc_type
     folder_name = data.get('folder_name', '').strip()
     if not title:
         return jsonify({'error': '교안 제목이 필요합니다.'}), 400

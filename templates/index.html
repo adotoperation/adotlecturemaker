@@ -923,17 +923,17 @@
                                 <span>강사용 ON</span>
                             </button>
                             <!-- Help Popover Icon -->
-                            <div class="relative group ml-0.5">
-                                <button type="button" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-700 flex items-center justify-center text-[11px] font-black cursor-help transition border border-slate-200" title="교안 모드 안내">
+                            <div class="relative ml-0.5 group" id="helpPopoverContainer">
+                                <button type="button" id="btnHelpTeacherMode" onclick="toggleTeacherModePopover(event)" class="w-5 h-5 rounded-full bg-slate-100 hover:bg-indigo-100 text-slate-500 hover:text-indigo-700 flex items-center justify-center text-[11px] font-black cursor-pointer transition border border-slate-200" title="교안 모드 안내">
                                     ?
                                 </button>
-                                <div class="absolute right-0 top-full mt-2 w-72 p-3 bg-slate-900 text-white text-[11px] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none leading-relaxed">
-                                    <div class="font-bold text-amber-300 mb-1 flex items-center gap-1">
+                                <div id="popoverTeacherMode" class="absolute left-0 top-full mt-2 w-80 max-w-[90vw] p-3.5 bg-slate-900/95 backdrop-blur text-white text-[11px] rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none leading-relaxed border border-slate-700">
+                                    <div class="font-bold text-amber-300 mb-1.5 flex items-center gap-1.5 text-xs">
                                         <i class="fa-solid fa-circle-info"></i> 교안 모드 안내
                                     </div>
-                                    <div class="space-y-1 text-slate-200">
-                                        <p>• <b>학생용 ON</b>: 직독직해 및 어법 구문분석 학습용 순수 교안이 출력됩니다.</p>
-                                        <p>• <b>강사용 ON</b>: 문장별 어법/어휘 출제 힌트 및 강사 지도 코멘트가 표시되며, <b>교안 마지막에 1:1 학생용 구두 테스트지</b>와 교사용 채점 루브릭/흐름도가 자동 생성되어 함께 인쇄됩니다.</p>
+                                    <div class="space-y-1.5 text-slate-200">
+                                        <p>• <b class="text-white">학생용 ON</b>: 직독직해 및 어법 구문분석 학습용 순수 교안이 출력됩니다.</p>
+                                        <p>• <b class="text-amber-300">강사용 ON</b>: 문장별 어법/어휘 출제 힌트 및 강사 지도 코멘트가 표시되며, <b class="text-amber-200">교안 마지막에 1:1 학생용 구두 테스트지</b>와 교사용 채점 루브릭/흐름도가 자동 생성되어 함께 인쇄됩니다.</p>
                                     </div>
                                 </div>
                             </div>
@@ -2647,6 +2647,7 @@
             // Step 2: Automatically generate 1:1 Oral Test (어법 40% / 어휘 60%) for Teacher Edition
             showLoading("강사용 1:1 구두 TEST지 생성 중", "2단계: 에이닷 스타일 어법(40%)·어휘(60%) 고난도 구두 테스트지 및 교사용 채점 가이드를 함께 생성하고 있습니다...");
             try {
+                const curBranch = typeof getCurrentBranch === 'function' ? getCurrentBranch() : '본사';
                 const wholePassage = (currentAnalysisData.sentences || []).map(s => s.original || '').join(' ') || passagePayload;
                 const topicStr = (currentAnalysisData.summary_info && currentAnalysisData.summary_info.subject) || title;
                 const oralRes = await fetch('/api/generate_oral_test', {
@@ -2656,14 +2657,18 @@
                         passage: wholePassage,
                         sentences: sentence_pairs,
                         topic: topicStr,
-                        api_key: savedApiKey
+                        api_key: savedApiKey,
+                        branch: curBranch,
+                        username: curBranch,
+                        save_to_db: false
                     })
                 });
                 if (oralRes.ok) {
                     const oralData = await oralRes.json();
-                    currentAnalysisData.oral_test = oralData;
-                    window.currentOralTestData = oralData;
-                    renderOralTestData(oralData, title);
+                    const actualOral = (oralData && oralData.oral_test) ? oralData.oral_test : oralData;
+                    currentAnalysisData.oral_test = actualOral;
+                    window.currentOralTestData = actualOral;
+                    renderOralTestData(actualOral, title);
                 }
             } catch (oralErr) {
                 console.warn("Auto oral test generation warning:", oralErr);
@@ -2688,6 +2693,7 @@
                     doc_type: '강의용 교안(학생용)',
                     label: selectedMaterialType,
                     branch: curBranch,
+                    username: curBranch,
                     sentence_pairs: sentence_pairs,
                     analysis_data: currentAnalysisData,
                     illustration_url: curIllu
@@ -2698,7 +2704,11 @@
                     body: JSON.stringify(studentPayload)
                 });
 
-                // 2) 강사용 교안 저장
+                // 2) 강사용 교안 저장 (oral_test 포함)
+                const teacherAnalysis = Object.assign({}, currentAnalysisData);
+                if (window.currentOralTestData) {
+                    teacherAnalysis.oral_test = window.currentOralTestData;
+                }
                 const teacherPayload = {
                     title: cleanHeading,
                     folder_name: folderName,
@@ -2706,8 +2716,9 @@
                     doc_type: '강사용 교안',
                     label: selectedMaterialType,
                     branch: curBranch,
+                    username: curBranch,
                     sentence_pairs: sentence_pairs,
-                    analysis_data: currentAnalysisData,
+                    analysis_data: teacherAnalysis,
                     illustration_url: curIllu
                 };
                 await fetch('/api/save', {
@@ -2788,6 +2799,18 @@
         function renderAnalysisData(data, isFromSaved = false) {
             emptyState.classList.add('hidden');
             handoutSheet.classList.remove('hidden');
+
+            // Normalize & unwrap oral_test
+            if (data && data.oral_test) {
+                let rawO = data.oral_test;
+                if (rawO && rawO.oral_test) rawO = rawO.oral_test;
+                data.oral_test = rawO;
+                window.currentOralTestData = rawO;
+                if (currentAnalysisData) currentAnalysisData.oral_test = rawO;
+            } else if (window.currentOralTestData && data) {
+                data.oral_test = window.currentOralTestData;
+                if (currentAnalysisData) currentAnalysisData.oral_test = window.currentOralTestData;
+            }
 
             const userTitle = data.title || titleInput.value.trim() || '영어 지문 분석';
             const fullHeading = userTitle.replace(/\s*강의용\s*교안\s*$/, '').trim();
@@ -3416,7 +3439,8 @@
 
                     // [강사용 교안 전용] 문장별 TEST 출제 포인트 표시 (어법 선택형, 빈칸, 서술형 문장)
                     if (window.isTeacherMode) {
-                        const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const rawO = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const oralData = (rawO && rawO.oral_test) ? rawO.oral_test : rawO;
                         const sNum = s.index || (chunkIdx + 1);
                         const matchSent = oralData?.student_sheet?.sentences?.find(st => Number(st.sentence_num) === Number(sNum));
                         
@@ -3560,7 +3584,8 @@
 
                     // [강사용 교안 전용] [중요 어법 포인트] 아래에 [TEST지 질문 및 답안] 블록 추가
                     if (window.isTeacherMode) {
-                        const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const rawO2 = currentAnalysisData?.oral_test || window.currentOralTestData;
+                        const oralData = (rawO2 && rawO2.oral_test) ? rawO2.oral_test : rawO2;
                         const sNum = s.index || (chunkIdx + 1);
 
                         if (oralData) {
@@ -3653,7 +3678,8 @@
 
                 // [강사용 교안 전용] 마지막 페이지 하단 지문 요지 및 4단계 논리 흐름도 구두 질문/답안
                 if (isLastPage && window.isTeacherMode) {
-                    const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                    const rawO3 = currentAnalysisData?.oral_test || window.currentOralTestData;
+                    const oralData = (rawO3 && rawO3.oral_test) ? rawO3.oral_test : rawO3;
                     if (oralData && oralData.core_logic_flow) {
                         const flow = oralData.core_logic_flow;
                         const flowSteps = flow.flow || {};
@@ -3761,7 +3787,8 @@
 
             // [강사용 교안 전용 부록] 1:1 학생용 구두 테스트지 및 교사용 채점 가이드 페이지 자동 추가
             if (window.isTeacherMode) {
-                const oralData = currentAnalysisData?.oral_test || window.currentOralTestData;
+                const rawO4 = currentAnalysisData?.oral_test || window.currentOralTestData;
+                const oralData = (rawO4 && rawO4.oral_test) ? rawO4.oral_test : rawO4;
                 if (oralData && oralData.student_sheet && oralData.student_sheet.sentences && oralData.student_sheet.sentences.length > 0) {
                     const stSents = oralData.student_sheet.sentences;
                     
@@ -4037,6 +4064,30 @@
                 }
             }
         }
+
+        window.toggleTeacherModePopover = function(e) {
+            if (e) e.stopPropagation();
+            const pop = document.getElementById('popoverTeacherMode');
+            if (pop) {
+                const isHidden = pop.classList.contains('invisible') || pop.classList.contains('opacity-0');
+                if (isHidden) {
+                    pop.classList.remove('invisible', 'opacity-0', 'pointer-events-none');
+                    pop.classList.add('visible', 'opacity-100', 'pointer-events-auto');
+                } else {
+                    pop.classList.add('invisible', 'opacity-0', 'pointer-events-none');
+                    pop.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
+                }
+            }
+        };
+
+        document.addEventListener('click', function(e) {
+            const pop = document.getElementById('popoverTeacherMode');
+            const btn = document.getElementById('btnHelpTeacherMode');
+            if (pop && btn && !btn.contains(e.target) && !pop.contains(e.target)) {
+                pop.classList.add('invisible', 'opacity-0', 'pointer-events-none');
+                pop.classList.remove('visible', 'opacity-100', 'pointer-events-auto');
+            }
+        });
 
         // Switch Oral Sub View inside #oralTestSheet ('student', 'teacher', 'flow')
         window.currentOralSubView = 'student';
@@ -5572,20 +5623,30 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                             currentAnalysisData.summary_info.illustration_url = '';
                         }
                     }
+                    // Extract oral_test data properly
+                    const rawOral = data.analysis_data?.oral_test || data.oral_test;
+                    const actualOral = (rawOral && rawOral.oral_test) ? rawOral.oral_test : rawOral;
+                    if (actualOral) {
+                        currentAnalysisData.oral_test = actualOral;
+                        window.currentOralTestData = actualOral;
+                        renderOralTestData(actualOral, data.title || '');
+                    }
+
                     if (docType.includes('강사용')) {
-                        window.setHandoutMode(true);
+                        window.isTeacherMode = true;
+                        updateTeacherModeUI();
                     } else if (docType.includes('학생용') || docType === '강의용교안' || docType === '강의용 교안') {
-                        window.setHandoutMode(false);
+                        window.isTeacherMode = false;
+                        updateTeacherModeUI();
                     }
 
                     if (docType === '단어TEST' || docType === '단어테스트' || (data.analysis_data && data.analysis_data.is_vocab_test)) {
                         const vocabList = data.analysis_data.vocabulary || [];
                         renderVocabTestSheet(data.title || '', vocabList);
                     } else if (docType === '구두TEST' || (docType.includes('구두') && !docType.includes('교안'))) {
-                        const oralData = data.analysis_data?.oral_test || data.oral_test;
-                        if (oralData) {
-                            window.currentOralTestData = oralData;
-                            renderOralTestData(oralData, data.title || '');
+                        if (actualOral) {
+                            window.currentOralTestData = actualOral;
+                            renderOralTestData(actualOral, data.title || '');
                         }
                         vocabTestSheet.classList.add('hidden');
                         handoutSheet.classList.add('hidden');
@@ -5593,11 +5654,6 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         if (oralSheet) oralSheet.classList.remove('hidden');
                         openOralTestModal();
                     } else {
-                        const oralData = data.analysis_data?.oral_test || data.oral_test;
-                        if (oralData) {
-                            window.currentOralTestData = oralData;
-                            renderOralTestData(oralData, data.title || '');
-                        }
                         vocabTestSheet.classList.add('hidden');
                         renderAnalysisData(currentAnalysisData, true);
                     }
@@ -6174,7 +6230,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         const canvas = document.createElement('canvas');
                         let w = img.width;
                         let h = img.height;
-                        const maxW = 1280;
+                        const maxW = 1920;
                         if (w > maxW) {
                             h = Math.round(h * (maxW / w));
                             w = maxW;
@@ -6183,7 +6239,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         canvas.height = h;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, w, h);
-                        const compressed = canvas.toDataURL('image/jpeg', 0.88);
+                        const compressed = canvas.toDataURL('image/jpeg', 0.95);
                         applyUrl(compressed);
                     } catch(e) {
                         applyUrl(dataUrl);
@@ -6432,6 +6488,11 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     }
 
                     // 2) 강사용 교안 저장 (oral_test 포함)
+                    const teacherAnalysis = Object.assign({}, currentAnalysisData);
+                    const preservedOral = window.currentOralTestData || currentAnalysisData?.oral_test;
+                    if (preservedOral) {
+                        teacherAnalysis.oral_test = (preservedOral.oral_test) ? preservedOral.oral_test : preservedOral;
+                    }
                     const teacherPayload = {
                         title: cleanHeading,
                         folder_name: folderName,
@@ -6441,7 +6502,7 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         branch: curBranch,
                         username: curBranch,
                         sentence_pairs: pairs,
-                        analysis_data: currentAnalysisData,
+                        analysis_data: teacherAnalysis,
                         illustration_url: curIllu
                     };
                     const resTeacher = await fetch('/api/save', {
@@ -6657,16 +6718,18 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                 showLoading("1:1 구두 TEST지 생성 및 저장 중", `[${title}] 지문을 정밀 분석하여 에이닷 스타일 어법 양자택일, 빈칸, 서술형 문장 및 교사용 1:1 구두 질문/루브릭, 논리 흐름도를 생성하고 있습니다...`);
 
                 try {
+                    const curBr = getCurrentBranch();
                     const payload = {
                         title: title,
                         folder_name: folderName,
                         material_type: selectedMaterialType,
                         passage: fullPassage,
                         topic: title,
-                        branch: getCurrentBranch(),
+                        branch: curBr,
+                        username: curBr,
                         sentence_pairs: pairs,
                         api_key: apiKey,
-                        save_to_db: true
+                        save_to_db: false
                     };
 
                     const response = await fetch('/api/generate_oral_test', {
@@ -6681,9 +6744,10 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                     }
 
                     const resData = await response.json();
-                    window.currentOralTestData = resData.oral_test;
+                    const actualOral = resData.oral_test || resData;
+                    window.currentOralTestData = actualOral;
                     if (currentAnalysisData) {
-                        currentAnalysisData.oral_test = resData.oral_test;
+                        currentAnalysisData.oral_test = actualOral;
                     }
 
                     // Automatically enable teacher mode to display test points on the lecture handout
@@ -6693,11 +6757,33 @@ isCorrect ? 'bg-emerald-600 text-white shadow-xs' : 'bg-white border border-slat
                         renderAnalysisData(currentAnalysisData);
                     }
 
-                    renderOralTestData(resData.oral_test, title);
+                    // Automatically sync into 강사용 교안
+                    if (currentAnalysisData) {
+                        const curIllu = currentAnalysisData.illustration_url || '';
+                        const teacherPayload = {
+                            title: title,
+                            folder_name: folderName,
+                            material_type: selectedMaterialType,
+                            doc_type: '강사용 교안',
+                            label: selectedMaterialType,
+                            branch: curBr,
+                            username: curBr,
+                            sentence_pairs: pairs,
+                            analysis_data: currentAnalysisData,
+                            illustration_url: curIllu
+                        };
+                        fetch('/api/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(teacherPayload)
+                        }).catch(e => console.warn('Teacher handout save error:', e));
+                    }
+
+                    renderOralTestData(actualOral, title);
                     openOralTestModal();
 
                     hideLoading();
-                    showToast(`'${title}' 1:1 구두 TEST지가 성공적으로 생성 및 저장되었습니다!\n교안에도 강사용 출제 포인트가 결합되었습니다.`, 'success');
+                    showToast(`'${title}' 1:1 구두 TEST가 [강사용 교안]에 성공적으로 통합 결합되었습니다!`, 'success');
                 } catch (err) {
                     hideLoading();
                     showToast(err.message, 'error');
