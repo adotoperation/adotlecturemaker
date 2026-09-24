@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A. WEAVE 도입 기획안 (CEO 보고용)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Pretendard -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #334155;
+      -webkit-font-smoothing: antialiased;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .gradient-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0284c7 100%);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8 lg:p-12 text-slate-800 bg-slate-950 min-h-screen">
+
+  <!-- Document Container -->
+  <div class="max-w-5xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-800">
+    
+    <!-- Top Header Banner -->
+    <header class="gradient-header text-white p-8 md:p-12 relative overflow-hidden">
+      <div class="absolute -right-16 -top-16 w-80 h-80 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute right-12 bottom-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="relative z-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/20 text-sky-300 text-xs font-semibold tracking-wider uppercase border border-sky-400/30 mb-4">
+          <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+          CEO 비즈니스 전략 보고서
+        </div>
+        <h1 class="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-3 leading-tight">
+          에이닷 AI 맞춤형 내신 솔루션 <span class="text-sky-400">A. WEAVE</span> 도입안
+        </h1>
+        <p class="text-slate-300 text-base md:text-lg font-medium max-w-3xl leading-relaxed">
+          내신 시험 범위 파편화에 따른 강사 업무 과중 및 유료 자료 구매 문제를 해결하고,<br class="hidden sm:inline"> 
+          강사의 본질인 <strong>1:1 밀착 관리 회복</strong>을 통한 전사 성장률 재도약 전략
+        </p>
+
+        <!-- Executive Meta Badges -->
+        <div class="mt-8 pt-6 border-t border-slate-700/60 flex flex-wrap gap-4 text-xs md:text-sm text-slate-300 font-medium">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">보고 일시:</span>
+            <span class="text-white">2026. 09. 24</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">보고 부서:</span>
+            <span class="text-white">디지털콘텐츠혁신본부 / 전략기획팀</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">대상 솔루션:</span>
+            <span class="text-sky-300 font-semibold">A. WEAVE (에이닷 강의용 교안 및 변형문제 자동화 엔진)</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="p-6 md:p-12 space-y-14">
+
+      <!-- ========================================================================= -->
+      <!-- 【1단계 · 배경 및 문제 제기】 -->
+      <!-- ========================================================================= -->
+      <section class="space-y-6">
+        <div class="flex items-center gap-3 border-b-2 border-slate-900 pb-3">
+          <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-600 text-white font-black text-base shadow-sm">1</span>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+            【1단계 · 배경 및 문제 제기】
+          </h2>
+          <span class="text-xs md:text-sm font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200 ml-auto">
+            위기의 근본 원인
+          </span>
+        </div>
+        <p class="text-slate-500 font-semibold text-sm -mt-3">
+          "본사 전수 대응의 한계 $\rightarrow$ 지점의 과중한 업무/비용 지출 $\rightarrow$ 강사의 본분 상실 및 성장률 정체"
+        </p>
+
+        <!-- Sub 1: 구조적 한계 -->
+        <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+          <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            1. 전국 내신 범위의 극단적 파편화와 본사 공급의 구조적 한계
+          </h3>
+          <ul class="space-y-2.5 text-slate-700 text-sm md:text-base leading-relaxed pl-4 list-disc marker:text-rose-500">
+            <li>
+              <strong>학교별 시험 범위의 무한 분산:</strong> 전국 수천 개 중·고교의 내신 영어 범위는 교과서(수십 종), EBS/시중 부교재(수백 종), 모의고사 변형 지문, 학교 자체 프린트 등으로 극심하게 세분화되어 있습니다.
+            </li>
+            <li>
+              <strong>지점별 과중한 학교 관리 수:</strong> 단일 지점당 담당하는 학교만 평균 <strong>10~20개교</strong>에 달하여, 각 지점에서 요구하는 내신 대비 콘텐츠가 완전히 상이합니다.
+            </li>
+            <li>
+              <strong>본사 전수 대응의 물리적 불가능:</strong> 시험 3~4주 전에야 학교별 시험 범위가 확정되는 현행 학사 구조상, 본사 R&D 인력만으로 전국 모든 지점의 특수 교재와 프린트를 실시간 100% 제작하여 공급하는 것은 현실적으로 불가능합니다.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Sub 2: 양자택일 악순환 -->
+        <div class="bg-rose-50/50 rounded-2xl p-6 border border-rose-200">
+          <h3 class="text-lg font-bold text-rose-950 flex items-center gap-2 mb-3">
+            <span class="w-2 h-2 rounded-full bg-rose-600"></span>
+            2. 지점의 양자택일 악순환: '강사 갈아 넣기' vs '과도한 외주 비용 지출'
+          </h3>
+          <div class="grid md:grid-cols-2 gap-4 mt-4">
+            <!-- 루트 A -->
+            <div class="bg-white p-5 rounded-xl border border-rose-200 shadow-xs">
+              <div class="flex items-center gap-2 font-bold text-rose-700 text-sm mb-2">
+                <span class="px-2 py-0.5 bg-rose-100 rounded text-xs">루트 A</span>
+                지점 자체 제작 시 (강사 업무 과중)
+              </div>
+              <ul class="text-xs md:text-sm text-slate-600 space-y-1.5 list-disc pl-4 marker:text-rose-400">
+                <li>본사 미지원 자료를 지점 강사가 직접 타이핑, 어법 분석, 슬래시 구문 작업을 전담함.</li>
+                <li><strong>지문 1개당 30~50분 이상</strong> 소요.</li>
+                <li>시험 기간 강사들의 살인적인 야근, 체력 고갈, 조기 퇴사(번아웃)가 연례행사처럼 반복됨.</li>
+              </ul>
+            </div>
+            <!-- 루트 B -->
+            <div class="bg-white p-5 rounded-xl border border-rose-200 shadow-xs">
+              <div class="flex items-center gap-2 font-bold text-rose-700 text-sm mb-2">
+                <span class="px-2 py-0.5 bg-rose-100 rounded text-xs">루트 B</span>
+                외부 유료 자료 구매 시 (영업이익 훼손)
+              </div>
+              <ul class="text-xs md:text-sm text-slate-600 space-y-1.5 list-disc pl-4 marker:text-rose-400">
+                <li>부족한 일손 때문에 사설 족보 사이트나 외주 제작 자료를 지점 비용으로 대량 구매함.</li>
+                <li><strong>시험 기간마다 지점당 수백만 원</strong>에 달하는 막대한 비용 지출 $\rightarrow$ 지점 수익성 악화.</li>
+                <li>비싸게 구매해도 에이닷 고유의 구문독해 기호가 없어 현장에서 재가공해야 하는 비효율 발생.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub 3: 핵심 병목 -->
+        <div class="bg-slate-900 text-white rounded-2xl p-6 md:p-8 shadow-lg border border-slate-800">
+          <div class="flex items-center gap-2 text-rose-400 font-extrabold text-sm md:text-base tracking-wide uppercase mb-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            최종 결과: 전사적 핵심 병목 (Core Bottleneck)
+          </div>
+          <h4 class="text-xl md:text-2xl font-bold text-white mb-3">
+            자료 준비에 치여 강사의 본분인 <span class="text-rose-400 underline decoration-rose-500 underline-offset-4">학생 관리의 질이 붕괴</span>되고, 에이닷의 성장률이 저해됨
+          </h4>
+          <p class="text-slate-300 text-sm md:text-base leading-relaxed">
+            강사가 시험 기간 동안 <strong>'자료 타이핑 노동자'</strong>로 전락하면서, 에이닷의 정체성이자 가장 강력한 무기인 
+            <strong>'1:1 밀착 구두 테스트, 취약점 진단 클리닉, 학부모 안심 상담'</strong>을 진행할 절대적인 시간을 상실하고 있습니다.
+            그 결과 내신 직후 학생·학부모의 만족도 하락 $\rightarrow$ 퇴원 증가 $\rightarrow$ 신규 원생 유치 정체로 이어지는 전사적 악순환이 고착화되었습니다.
+          </p>
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- 【2단계 · 목적 및 당위성】 -->
+      <!-- ========================================================================= -->
+      <section class="space-y-6">
+        <div class="flex items-center gap-3 border-b-2 border-slate-900 pb-3">
+          <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-sky-600 text-white font-black text-base shadow-sm">2</span>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+            【2단계 · 목적 및 당위성】
+          </h2>
+          <span class="text-xs md:text-sm font-semibold text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-200 ml-auto">
+            추진 가치 & 필요성
+          </span>
+        </div>
+        <p class="text-slate-500 font-semibold text-sm -mt-3">
+          "자료 제작 완전 자동화(10초)를 통해 강사를 '1:1 관리 전문가'로 복귀시키고 지점 이익을 극대화"
+        </p>
+
+        <!-- Sub 1: 추진 목적 -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="bg-sky-50/50 p-6 rounded-2xl border border-sky-200/70">
+            <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg mb-4">
+              01
+            </div>
+            <h4 class="font-bold text-slate-900 text-base mb-2">교안 제작의 전면 자동화</h4>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              지문 입력 즉시 <strong>10~15초 내</strong> 학생용 교안, 강사용 교안, 1:1 구두 TEST, 변형문제까지 완제화하여 원클릭 일괄 출력.
+            </p>
+          </div>
+
+          <div class="bg-sky-50/50 p-6 rounded-2xl border border-sky-200/70">
+            <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg mb-4">
+              02
+            </div>
+            <h4 class="font-bold text-slate-900 text-base mb-2">강사 리소스의 본질 회복</h4>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              단순 타이핑 및 편집 노동에서 해방된 강사의 시간과 에너지를 <strong>1:1 밀착 코칭 및 학부모 케어</strong>에 100% 재투자.
+            </p>
+          </div>
+
+          <div class="bg-sky-50/50 p-6 rounded-2xl border border-sky-200/70">
+            <div class="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold text-lg mb-4">
+              03
+            </div>
+            <h4 class="font-bold text-slate-900 text-base mb-2">에이닷 교수법 상향 표준화</h4>
+            <p class="text-xs md:text-sm text-slate-600 leading-relaxed">
+              본사 고유의 <strong>13대 문법 규칙 및 문장기호</strong>를 AI에 내재화하여, 신임 강사도 본사 수석 연구원급 교안으로 강의 가능.
+            </p>
+          </div>
+        </div>
+
+        <!-- Sub 2: 도입의 당위성 -->
+        <div class="bg-slate-50 rounded-2xl p-6 md:p-8 border border-slate-200 space-y-4">
+          <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-sky-600"></span>
+            왜 지금 A. WEAVE 도입이 필연적인가? (3대 당위성)
+          </h3>
+          <div class="space-y-3.5 text-sm md:text-base text-slate-700">
+            <div class="flex items-start gap-3 bg-white p-4 rounded-xl border border-slate-200">
+              <span class="font-bold text-sky-600 whitespace-nowrap">당위성 1</span>
+              <div>
+                <strong class="text-slate-900">압도적인 비용 절감 및 지점 영업이익 수호:</strong>
+                외부 사이트에 회당 수백만 원씩 지출하던 비용을 <strong>교안 세트당 63원</strong>(학생용+강사용 합본 8원 + 기본 삽화 55원), 변형문제 <strong>회차당 6원</strong> 수준으로 축소하여 지점 비용의 98% 이상을 방어합니다.
+              </div>
+            </div>
+            <div class="flex items-start gap-3 bg-white p-4 rounded-xl border border-slate-200">
+              <span class="font-bold text-sky-600 whitespace-nowrap">당위성 2</span>
+              <div>
+                <strong class="text-slate-900">지역 내신 시장의 독점적 초격차 무기화:</strong>
+                주변 대형 학원들이 인력 부족으로 대응을 포기하는 소수 인원 학교, 까다로운 자사고/외고 프린트까지 시험 발표 당일 즉시 제작 배포하여 <strong>"우리 학교 내신은 오직 에이닷에서만 맞춤 대응된다"</strong>는 독보적인 입소문 우위를 점합니다.
+              </div>
+            </div>
+            <div class="flex items-start gap-3 bg-white p-4 rounded-xl border border-slate-200">
+              <span class="font-bold text-sky-600 whitespace-nowrap">당위성 3</span>
+              <div>
+                <strong class="text-slate-900">원생 관리 정상화를 통한 재등록률 및 LTV 증대:</strong>
+                강사의 피로도를 덜고 1:1 구두 TEST 및 피드백 횟수를 2~3배 늘림으로써, 내신 성적 향상 $\rightarrow$ 재등록률 급상승 $\rightarrow$ 전사 매출 성장률 가속화의 선순환을 완성합니다.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================================= -->
+      <!-- 【3단계 · 결과 및 기대 효과】 -->
+      <!-- ========================================================================= -->
+      <section class="space-y-6">
+        <div class="flex items-center gap-3 border-b-2 border-slate-900 pb-3">
+          <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-600 text-white font-black text-base shadow-sm">3</span>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
+            【3단계 · 결과 및 기대 효과】
+          </h2>
+          <span class="text-xs md:text-sm font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200 ml-auto">
+            도입 성과 지표
+          </span>
+        </div>
+        <p class="text-slate-500 font-semibold text-sm -mt-3">
+          "정량적 시간/비용 98% 절감, 1:1 코칭 품질 상향 표준화, 에이닷 자체 내신 데이터 자산화"
+        </p>
+
+        <!-- Comparison Table / Cards -->
+        <div class="grid md:grid-cols-3 gap-6">
+          
+          <!-- 1. 정량적 효과 -->
+          <div class="bg-white rounded-2xl p-6 border-2 border-emerald-500/30 shadow-md relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0"></div>
+            <div class="relative z-10">
+              <span class="text-xs font-bold text-emerald-600 bg-emerald-100/60 px-2.5 py-1 rounded-full uppercase">
+                Quantitative
+              </span>
+              <h4 class="text-xl font-extrabold text-slate-900 mt-3 mb-4">정량적 효과</h4>
+              <div class="space-y-3 text-xs md:text-sm">
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div class="text-slate-500 text-xs">교안 제작 소요 시간</div>
+                  <div class="text-slate-900 font-bold mt-0.5 flex items-center justify-between">
+                    <span class="line-through text-slate-400">지문당 40분</span>
+                    <span class="text-emerald-600 text-base font-extrabold">15초 (99% 절감)</span>
+                  </div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div class="text-slate-500 text-xs">지문 1개당 제작 단가</div>
+                  <div class="text-slate-900 font-bold mt-0.5 flex items-center justify-between">
+                    <span class="line-through text-slate-400">약 5,000~10,000원</span>
+                    <span class="text-emerald-600 text-base font-extrabold">63원 (98% 절감)</span>
+                  </div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div class="text-slate-500 text-xs">교재 출하 리드타임</div>
+                  <div class="text-slate-900 font-bold mt-0.5 flex items-center justify-between">
+                    <span class="text-slate-500">타 학원: 1~2주 지연</span>
+                    <span class="text-emerald-600 font-extrabold">발표 당일 즉시</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 정성적 효과 -->
+          <div class="bg-white rounded-2xl p-6 border-2 border-sky-500/30 shadow-md relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-sky-50 rounded-bl-full -z-0"></div>
+            <div class="relative z-10">
+              <span class="text-xs font-bold text-sky-600 bg-sky-100/60 px-2.5 py-1 rounded-full uppercase">
+                Qualitative
+              </span>
+              <h4 class="text-xl font-extrabold text-slate-900 mt-3 mb-4">정성적 효과</h4>
+              <ul class="space-y-2.5 text-xs md:text-sm text-slate-700 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-sky-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>1:1 밀착 관리 정상화:</strong> 단순 노동 해소로 1:1 구두 테스트 및 취약 클리닉 집중 진행.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-sky-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>전 지점 품질 상향 평준화:</strong> 강사 역량 편차 없이 전 지점에 최고 수준의 에이닷 교재 공급.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-sky-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>우수 강사 이탈(퇴사) 방지:</strong> 시험 기간 반복되던 살인적 야근과 번아웃을 구조적으로 차단.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- 3. 전사 전략 가치 -->
+          <div class="bg-white rounded-2xl p-6 border-2 border-indigo-500/30 shadow-md relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-bl-full -z-0"></div>
+            <div class="relative z-10">
+              <span class="text-xs font-bold text-indigo-600 bg-indigo-100/60 px-2.5 py-1 rounded-full uppercase">
+                Strategic Asset
+              </span>
+              <h4 class="text-xl font-extrabold text-slate-900 mt-3 mb-4">전사 전략 가치</h4>
+              <ul class="space-y-2.5 text-xs md:text-sm text-slate-700 leading-relaxed">
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>에이닷 교육 IP의 독자 알고리즘화:</strong> 외부 기술 종속 없이 자체 프롬프트/구문 엔진 영구 확보.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>전국 내신 족보 빅데이터 아카이브:</strong> 전국 지점에서 생성되는 학교별 지문·변형문제가 중앙 DB에 누적.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                  <svg class="w-4 h-4 text-indigo-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                  <span><strong>전사 성장률 재가속:</strong> 학생 성적 향상 $\rightarrow$ 재등록률 급상승 $\rightarrow$ 브랜드 LTV 극대화.</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- Bottom Executive Summary Card -->
+      <div class="p-6 md:p-8 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h4 class="text-lg md:text-xl font-bold text-sky-300 mb-1">
+            "A. WEAVE는 단순한 교안 제작기가 아닌, 학원의 본질을 회복시키는 성장 엔진입니다."
+          </h4>
+          <p class="text-xs md:text-sm text-slate-300">
+            강사의 손에서 단순 타이핑 노동을 덜어내고 학생 1:1 관리에 집중시킬 때, 에이닷의 초격차 내신 1등급 신화는 다시 완성됩니다.
+          </p>
+        </div>
+        <div class="shrink-0">
+          <button onclick="window.print()" class="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+            보고서 인쇄 / PDF 저장
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-100 p-6 text-center text-xs text-slate-500 border-t border-slate-200">
+      <p>© 2026 에이닷 영어학원 (A. WEAVE Project). All rights reserved. 본 문서는 대외비(Confidential) 전략 보고서입니다.</p>
+    </footer>
+
+  </div>
+
+</body>
+</html>
